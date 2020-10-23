@@ -1,0 +1,28 @@
+- They syntax for the inputs text is as follows:
+- P1 = Start player 1's inputs (Only 1 player is required)
+- P2 = Start player 2's inputs (Only 1 player is required)
+- u = Up
+- d = Down
+- l = Left
+- r = Right
+- a = A
+- b = B
+- c = C
+- s = S
+- number = Repeat for x frames
+
+- Each new line is a frame of input unless specified with a number eg. 5 = nothing for 5 frames, da10 = down and A for 10 frames
+
+- Directions assume the player 1 is on the left and facing right, while player 2 is on the right facing left. The inputs will be 
+- flipped programaticaly if players swap sides so there is no need to rewrite your input for each side.
+
+- To perform the input playback change one of the hotkeys in the menu to "Input playback" and press the hotkey
+
+
+- Player 1 Start
+P1
+a
+
+- Player 2 start
+P2
+a
