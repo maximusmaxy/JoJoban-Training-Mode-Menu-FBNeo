@@ -63,6 +63,8 @@ local options = {
 -- END CONFIGURATION --
 -----------------------
 
+local fcReplay = false --Determines whether it's a fightcade replay or not
+
 print("JoJo's Bizarre Adventure: Heritage for the Future Training Mode Menu for FBNeo")
 print("Credits to Maxie and the HFTF Stardust Romhackers for the current version with menu features.")
 print("Credits to peon2 for programming, potatoboih for finding RAM values and Klofkac for the initial version.")
@@ -70,19 +72,22 @@ print("Special Thanks to Zarythe for graphical design and all the beta testers."
 print("Developed specifically for JoJo's Bizarre Adventure (Japan 990913, NO CD) (jojobanr1) though other versions should work.")
 print("This script was designed for FBNeo. It is not compatible with FBA-RR. Some compatibility with Mame-RR")
 print("Because of how knockdown is handled in JoJo, meaties may not behave as expected. Occasionally when the game is reset the script messes up, simply hit 'restart' in the lua script window to fix that")
---This script is not compressed or written efficiently as it is layed out to promote legibility.
-
 print()
 print("Commands List")
 print()
-print("Coin to open up the menu.")
-print("Hold start control your opponent.")
-print("Special functions are bound to Not In Use 1 and 2. The functions can be reassigned in the menu.")
-print("Holding down replay button will make it loop.")
-print("Pressing MK on the menu will restore p2 stand gauge")
-print("Pressing HK on the menu will restore p1 stand gauge")
 
-local fcReplay = false --Determines whether it's a fightcade replay or not
+if fcReplay then
+	print("Alt + 1 to cycle gui styles")
+	print("Alt + 2 to toggle hitboxes")
+	print("Alt + 3 to toggle music")
+else
+	print("Coin to open up the menu.")
+	print("Hold start control your opponent.")
+	print("Special functions are bound to Not In Use 1 and 2. The functions can be reassigned in the menu.")
+	print("Holding down replay button will make it loop.")
+	print("Pressing MK on the menu will restore p2 stand gauge")
+	print("Pressing HK on the menu will restore p1 stand gauge")
+end
 
 -- Aliasing memory and bitwise functions
 local readByte = memory.readbyte
@@ -142,7 +147,8 @@ local systemOptions = {
 		key = "mediumKickHotkey",
 		type = optionType.list,
 		list = {
-			"Record"
+			"Record",
+			"Disabled"
 		}
 	},
 	{
@@ -152,7 +158,8 @@ local systemOptions = {
 		list = {
 			"Replay",
 			"Replay P2",
-			"Input playback"
+			"Input playback",
+			"Disabled"
 		}
 	},
 	{
@@ -609,7 +616,11 @@ p2.name = "P2 "
 p2.number = 2
 
 hud.scroll = hud.scrollFromBottom and 1 or -1
-hud.frameAdvantage = 0
+
+local system = {
+	frameAdvantage = 0,
+	previousFrame = emu.framecount() - 1
+}
 
 local buttons = {
 	up = "Up",
@@ -633,7 +644,7 @@ elseif mame then
 	buttons.mk = "Button 5"
 	buttons.sk = "Button 6"
 else
-	error("This script is only intended for FBA-rr and MAME-rr.", 0)
+	error("This script is only intended for FBNeo and MAME-rr.", 0)
 end
 
 local inputDictionary = {
@@ -676,7 +687,7 @@ local cancelInputs = {
 	p1.buttons.sk
 }
 
-local input = {
+local inputTables = {
 	current = {},
 	previous = {},
 	held = {},
@@ -753,7 +764,7 @@ local hitboxOffsets = {
 --Initialise input held count time
 function initButtons(player) 
 	for _, v in pairs(player.buttons) do
-		input.held[v] = 0
+		inputTables.held[v] = 0
 	end
 end
 
@@ -823,7 +834,7 @@ end
 
 --Returns whether a key is pressed once
 function pressed(key)
-	return (not input.previous[key] and input.current[key])
+	return (not inputTables.previous[key] and inputTables.current[key])
 end
 
 --Checks a table of inputs for being pressed
@@ -836,7 +847,7 @@ end
 
 --This is like when you hold down a key on a computer and it spams it after a certain amount of time
 function repeating(key) 
-	local value = input.held[key]
+	local value = inputTables.held[key]
 	if value == 0 then 
 		return false 
 	end
@@ -848,7 +859,7 @@ end
 
 --Input held for x frames
 function held(key, x)
-	return input.held[key] > x
+	return inputTables.held[key] > x
 end
 
 function heldTable(table, x)
@@ -1007,8 +1018,8 @@ end
 function memoryReader()
 	readPlayerMemory(p1)
 	readPlayerMemory(p2)
-	input.previous = input.current
-	input.current = joypad.read() -- reads all inputs
+	inputTables.previous = inputTables.current
+	inputTables.current = joypad.read() -- reads all inputs
 end
 
 function readPlayerMemory(player) 
@@ -1043,7 +1054,7 @@ end
 function getPlayerInputHex(player)
 	local hex = 0
 	for k, v in pairs(inputDictionary) do
-		if input.current[player..v] then
+		if inputTables.current[player..v] then
 			hex = bor(hex, k)
 		end
 	end
@@ -1161,10 +1172,10 @@ end
 
 function checkPlayerInput(player, other)
 	for _, v in pairs(player.buttons) do
-		if input.current[v] then
-			input.held[v] = input.held[v] + 1
+		if inputTables.current[v] then
+			inputTables.held[v] = inputTables.held[v] + 1
 		else
-			input.held[v] = 0
+			inputTables.held[v] = 0
 		end
 	end
 
@@ -1185,7 +1196,7 @@ function checkPlayerInput(player, other)
 		return
 	end
 
-	if input.current[player.buttons.start] then --checks to see if P1 is holding start
+	if inputTables.current[player.buttons.start] then --checks to see if P1 is holding start
 		
 		other.control = true
 
@@ -1280,13 +1291,13 @@ function characterControl()
 	if fcReplay then return end
 	if menu.state > 0 then return end
 
-	input.overwrite = {}
+	inputTables.overwrite = {}
 
 	controlPlayer(p1, p2)
 	controlPlayer(p2, p1)
 
-	if next(input.overwrite) ~= nil then --empty table
-		joypad.set(input.overwrite)
+	if next(inputTables.overwrite) ~= nil then --empty table
+		joypad.set(inputTables.overwrite)
 	end
 end
 
@@ -1338,7 +1349,7 @@ function controlPlayer(player, other)
 		local hex =  player.playback[#player.playback - player.playbackCount + 1]
 		hex = (player.playbackFlipped and swapHexDirection(hex) or hex)
 		local inputs = hexToPlayerInput(hex, player.name)
-		tableCopy(inputs, input.overwrite)
+		tableCopy(inputs, inputTables.overwrite)
 		player.playbackCount = player.playbackCount - 1
 		if player.playbackCount == 0 and player.loop then
 			player.playbackFlipped = player.facing ~= player.playbackFacing
@@ -1347,12 +1358,12 @@ function controlPlayer(player, other)
 	-- Player control
 	elseif player.control then
 		local inputs = hexToPlayerInput(other.inputs, player.name)
-		tableCopy(inputs, input.overwrite)
+		tableCopy(inputs, inputTables.overwrite)
 	-- Direction Lock
 	elseif player.directionLock ~= 0 then
 		local direction = (player.facing == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
 		local inputs = hexToPlayerInput(direction, player.name)
-		tableCopy(inputs, input.overwrite)
+		tableCopy(inputs, inputTables.overwrite)
 	end
 end
 
@@ -1649,9 +1660,7 @@ function resetColor()
 end
 
 function guiWriter() -- Writes the GUI
-	if options.guiStyle ~= 1 then
-		drawHitboxes()
-	end
+	drawHitboxes()
 
 	if menu.state > 0 then
 		drawMenu()
@@ -1977,7 +1986,20 @@ function replayOptions()
 	options.throwTech = false
 end
 
---register callbacks
+--register functions
+input.registerhotkey(1, function()
+	options.guiStyle = (options.guiStyle == 4) and 1 or options.guiStyle + 1
+	gui.clearuncommitted()
+end)
+
+input.registerhotkey(2, function()
+	options.hitboxes = (options.hitboxes == 2) and 1 or options.hitboxes + 1
+end)
+
+input.registerhotkey(3, function()
+	options.music = not options.music
+end)
+
 emu.registerstart(function()
 	writeByte(0x20713A8, 0x09) -- Infinite Credits
 	writeByte(0x20312C1, 0x01) -- Unlock all characters
@@ -1997,11 +2019,10 @@ emu.registerexit(function()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 end)
 
-local previousFrame = emu.framecount() - 1
-
+--main loop
 while true do 
 	local currentFrame = emu.framecount()
-	if currentFrame ~= previousFrame then -- if frame isn't repeated
+	if currentFrame ~= system.previousFrame then -- if frame isn't repeated
 		memoryReader()
 		gameplayLoop()
 		inputSorter()
@@ -2010,6 +2031,6 @@ while true do
 		characterControl()
 		updateHitboxes()
 	end
-	previousFrame = currentFrame
+	system.previousFrame = currentFrame
 	emu.frameadvance()
 end
