@@ -42,12 +42,23 @@ local options = {
 	healthRefill = true,
 	standGaugeRefill = true,
 	guiStyle = 2,
+	p1Gui = true,
+	p2Gui = false,
 	forceStand = 1,
 	ips = true,
 	perfectAirTech = false,
 	reversal = 1,
 	throwTech = false,
 	hitboxes = 1,
+	p1Child = false,
+	p2Child = false,
+	wakeupReversal = false,
+	guardReversal = false,
+	hitReversal = false,
+	reversalButton = 1,
+	reversalDirection = 1,
+	reversalMotion = 1,
+	reversalReplay = 1,
 	hitboxColor = 0xFF000000,
 	hurtboxColor = 0x0040FF00,
 	collisionboxColor = 0x00FF0000,
@@ -64,6 +75,7 @@ local options = {
 -----------------------
 
 local fcReplay = false --Determines whether it's a fightcade replay or not
+local debug = false -- Fbneo doesn't have watches so draw the variables on the screen
 
 print("JoJo's Bizarre Adventure: Heritage for the Future Training Mode Menu for FBNeo")
 print("Credits to Maxie and the HFTF Stardust Romhackers for the current version with menu features.")
@@ -89,20 +101,29 @@ else
 	print("Pressing HK on the menu will restore p1 stand gauge")
 end
 
--- Aliasing memory and bitwise functions
+-------------------------------------------------
+-- Aliases
+-------------------------------------------------
+
 local readByte = memory.readbyte
 local readByteSigned = memory.readbytesigned
 local readWord = memory.readword
 local readWordSigned = memory.readwordsigned
+local readDWord = memory.readdword
+local readDWordSigned = memory.readdwordsigned
 local writeByte = memory.writebyte
 local writeWord = memory.writeword
-local writeWordSigned = memory.writewordsigned
+local writeDWord = memory.writedwordisgned
 
 local lShift = bit.lshift
 local rShift = bit.rshift
 local band = bit.band
 local bor = bit.bor
 local bxor = bit.bxor
+
+-------------------------------------------------
+-- Data
+-------------------------------------------------
 
 local optionType = {
 	subMenu = 1,
@@ -139,8 +160,18 @@ local systemOptions = {
 			"None",
 			"Simple",
 			"Advanced",
-			"P1 + P2"
+			"Wakeup Indicator"
 		}
+	},
+	{
+		name = "Player 1 Gui:",
+		key = "p1Gui", 
+		type = optionType.bool
+	},
+	{
+		name= "Player 2 Gui:",
+		key = "p2Gui",
+		type = optionType.bool
 	},
 	{
 		name = "Not In Use 1 Hotkey:",
@@ -190,15 +221,24 @@ local battleOptions = {
 		type = optionType.bool
 	},
 	{
+		name = "P1 Child:",
+		key = "p1Child",
+		type = optionType.bool
+	},
+	{
+		name = "P2 Child:",
+		key = "p2Child",
+		type = optionType.bool
+	},
+	{
 		name = "Return",
 		type = optionType.back
-	},
-
+	}
 }
 
 local enemyOptions = {
 	{
-		name = "Guard Action",
+		name = "Guard Action:",
 		key = "guardAction",
 		type = optionType.list,
 		list = {
@@ -239,7 +279,7 @@ local enemyOptions = {
 		max = 10
 	},
 	{
-		name = "O Frame Air Tech",
+		name = "O Frame Air Tech:",
 		key  = "perfectAirTech",
 		type = optionType.bool
 	},
@@ -251,21 +291,6 @@ local enemyOptions = {
 			"Default",
 			"On",
 			"Off"
-		}
-	},
-	{
-		name = "Reversal:",
-		key = "reversal",
-		type = optionType.list,
-		list = {
-			"None",
-			"A",
-			"B",
-			"C",
-			"S",
-			"A+B+C",
-			"Recording",
-			"Input playback"
 		}
 	},
 	{
@@ -340,6 +365,94 @@ local colorOptions = {
 	}
 }
 
+local reversalOptions = {
+	{
+		name = "Wakeup Reversal:",
+		key = "wakeupReversal",
+		type = optionType.bool
+	},
+	{
+		name = "Guard Reversal:",
+		key = "guardReversal",
+		type = optionType.bool
+	},
+	{
+		name = "Hit Reversal:",
+		key = "hitReversal",
+		type = optionType.bool
+	},
+	{
+		name = "Reversal Button:",
+		key = "reversalButton",
+		type = optionType.list,
+		list = {
+			"A",
+			"B",
+			"C",
+			"S",
+			"A+B+C",
+			"A+B",
+			"A+C",
+			"B+C"
+		}
+	},
+	{
+		name = "Reversal Direction:",
+		key = "reversalDirection",
+		type = optionType.list,
+		list = {
+			"5 - Neutral",
+			"6 - Forward",
+			"7 - Up Back",
+			"8 - Up",
+			"9 - Up Forward",
+			"1 - Down Back",
+			"2 - Down",
+			"3 - Down Forward",
+			"4 - Back"
+		}
+	},
+	{
+		name = "Reversal Motion:",
+		key = "reversalMotion",
+		type = optionType.list,
+		list = {
+			"None",
+			"236 - QCF",
+			"214 - QCB",
+			"623 - DP",
+			"421 - RDP",
+			"41236 - HCF",
+			"63214 - HCB",
+			"22 - DD",
+			"6248 - 360",
+			"62486248 - 720",
+			"463214 - TWS"
+		}
+	},
+	{
+		name = "Reversal Replay:",
+		key = "reversalReplay",
+		type = optionType.list,
+		list = {
+			"None",
+			"Recording",
+			"Buffered Recording",
+			"Inputs.txt",
+			"Buffered Inputs.txt"
+		}
+	},
+	{
+		name = "Reset to Default",
+		type = optionType.func,
+		func = function() resetReversalOptions() end
+	},
+	{
+		name = "Return",
+		type = optionType.back
+	}
+}
+
 local rootOptions = {
 	{
 		name = "Enemy Settings",
@@ -355,6 +468,11 @@ local rootOptions = {
 		name = "System Settings",
 		type = optionType.subMenu,
 		options = systemOptions
+	},
+	{
+		name = "Reversal Settings",
+		type = optionType.subMenu,
+		options = reversalOptions
 	},
 	{
 		name = "Color Settings",
@@ -503,9 +621,31 @@ local p1 = {
 	canAct = false,
 	previousCanAct = false,
 	frameAdvantage = 0,
+	defenseAction = 0,
+	previousDefenseAction = 0,
+	wakeupCount = 0,
+	previousWakeupCount = 0,
+	guardCount = 0,
+	previousGuardCount = 0,
+	hitCount = 0,
+	previousHitCount = 0,
+	airtechCount = 0,
+	previousAirtechCount = 0,
+	pushblockCount = 0,
+	previousPushblockCount = 0,
+	wakeupFreeze = 0,
+	hitFreeze = 0,
+	previousHitFreeze = 0,
+	actionAddress = 0,
+	stunType = 0,
+	stunCount = 0,
+	previousStunCount = 0,
+	wakeupFrame = false,
+	meaty = false,
 	buttons = {},
 	memory = nil,
-	memory2 = nil
+	memory2 = nil,
+	memory4 = nil
 }
 
 -- Shallow copy of p1 with new tables created
@@ -552,7 +692,13 @@ p1.memory = {  --0x203488C
 	canAct2 = 0x02034A25,
 	throwTech = 0x02034A3C, --1b0
 	standFacing = 0x20350D9,
-	standActive = 0x02034A20
+	standActive = 0x02034A20,
+	child = 0x02034AB2,
+	defenseAction = 0x00000000,
+	hitFreeze = 0x00000000,
+	wakeupFreeze = 0x00000000,
+	stunType = 0x00000000,
+	stunCount = 0x00000000
 }
 
 p1.memory2 = {
@@ -564,6 +710,9 @@ p1.memory2 = {
 	standY = 0x203512C
 }
 
+p1.memory4 = {
+	actionAddress = 0x00000000
+}
 
 p2.memory = { 
 	character = 0x2034CBF,
@@ -591,7 +740,13 @@ p2.memory = {
 	canAct2 = 0x00000000,
 	throwTech = 0x02034E5C,
 	standFacing = 0x020354F9,
-	standActive = 0x02034E40
+	standActive = 0x02034E40,
+	child = 0x02034ED2,
+	defenseAction = 0x02034D92,
+	hitFreeze = 0x02034E7F,
+	wakeupFreeze = 0x02034D9A,
+	stunType = 0x02034E82,
+	stunCount = 0x02034E92
 }
 
 p2.memory2 = {
@@ -601,6 +756,10 @@ p2.memory2 = {
 	y = 0x2034D0C,
 	standX = 0x2035548,
 	standY = 0x203554C,
+}
+
+p2.memory4 = {
+	actionAddress = 0x02034D3C
 }
 
 p1.health = readByte(p1.memory.health)
@@ -619,7 +778,9 @@ hud.scroll = hud.scrollFromBottom and 1 or -1
 
 local system = {
 	frameAdvantage = 0,
-	previousFrame = emu.framecount() - 1
+	previousFrame = emu.framecount() - 1,
+	frameAdvance = false,
+	screenFreeze = 0
 }
 
 local buttons = {
@@ -771,10 +932,99 @@ end
 initButtons(p1)
 initButtons(p2)
 
+local reversal = {
+	buttons = {
+		0x10,
+		0x20,
+		0x40,
+		0x80,
+		0x70,
+		0x30,
+		0x50,
+		0x60
+	},
+	directions = {
+		0x00, 
+		0x08,
+		0x05,
+		0x01,
+		0x09,
+		0x06,
+		0x02,
+		0x0A,
+		0x04
+	},
+	motions = {
+		{},
+		{ 0x02, 0x0A, 0x08 },
+		{ 0x02, 0x06, 0x04 },
+		{ 0x08, 0x02, 0x0A },
+		{ 0x04, 0x02, 0x06 },
+		{ 0x04, 0x06, 0x02, 0x0A, 0x08 },
+		{ 0x08, 0x0A, 0x02, 0x06, 0x04 },
+		{ 0x02, 0x00, 0x02, 0x02, 0x00, 0x02 },
+		{ 0x08, 0x02, 0x04, 0x01 },
+		{ 0x08, 0x02, 0x04, 0x01, 0x08, 0x02, 0x04, 0x01 },
+		{ 0x04, 0x08, 0x0A, 0x02, 0x06, 0x04 }
+	}
+}
+
+local wakeupOffsets = {
+	{ -1, 0 },
+	{ -2, -2 },
+	{ -2, -3 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ -2, -2 },
+	{ 0, 0 },
+	{ -2, 0 },
+	{ 0, 0 },
+	{ -2, -2 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ -3, -3 },
+	{ -2, -2 },
+	{ -2, -1 },
+	{ 0, 0 },
+	{ 0, 0 },
+	{ 0, 0 }, 
+	{ -3, -3 },
+	{ -3, -3 },
+	{ -3, -3 }, 
+	{ -2, -2 }
+}
+
+local stunType = {
+	[0] = 13,
+	[1] = 10,
+	[2] = 13,
+	[3] = 16,
+	[4] = 22,
+	[5] = 24,
+	[6] = 60,
+	[7] = 60,
+	[8] = 60,
+	[9] = 30,
+	[10] = 30,
+	[11] = 30,
+	[12] = 232,
+	[13] = 13,
+	[14] = 13,
+	[15] = 232
+}
+
 local boxCache = {
 	{ {}, {}, {} },
 	{ {}, {}, {} },
 }
+
+-------------------------------------------------
+-- IO
+-------------------------------------------------
 
 -- Reads the inputs.txt file and turns it into an array of hex values containing p1 and p2 inputs
 function readInputsFile()
@@ -805,6 +1055,48 @@ function readInputsFile()
 	f:close()
 end
 
+-- Creates the inputs.txt file if it doesn't exist
+function createInputsFile()
+	local exists = io.open("inputs.txt", "r")
+	if exists then
+		exists:close()
+		return
+	end
+	local f, err = io.open("inputs.txt", "w")
+	if err then 
+		print("Error creating inputs.txt")
+		return 
+	end
+	f:write([[- They syntax for the inputs text is as follows:
+- P1 = Start player 1's inputs (Only 1 player is required)
+- P2 = Start player 2's inputs (Only 1 player is required)
+- u = Up
+- d = Down
+- l = Left
+- r = Right
+- a = A
+- b = B
+- c = C
+- s = S
+- number = Repeat for x frames
+
+- Each new line is a frame of input unless specified with a number eg. 5 = nothing for 5 frames, da10 = down and A for 10 frames
+
+- Directions assume the player 1 is on the left and facing right, while player 2 is on the right facing left. The inputs will be 
+- flipped programaticaly if players swap sides so there is no need to rewrite your input for each side.
+
+- To perform the input playback change one of the hotkeys in the menu to "Input playback" and press the hotkey
+
+
+- Player 1 Start
+P1
+
+- Player 2 start
+P2
+]]);
+	f:close()
+end
+
 -- Converts the input text into a hex value and a wait time
 function parseInput(line)
 	local _, _, number = line:find("(%d+)")
@@ -819,99 +1111,6 @@ function parseInput(line)
 		end
 	end
 	return inputs
-end
-
--- Reads a file and returns the contents
-function readFile(name)
-	local f, err = io.open(name, "r")
-	if err then
-		return nil
-	end
-	local contents = f:read("*all")
-	f:close()
-	return contents
-end
-
---Returns whether a key is pressed once
-function pressed(key)
-	return (not inputTables.previous[key] and inputTables.current[key])
-end
-
---Checks a table of inputs for being pressed
-function pressedTable(table)
-	for i = 1, #table, 1 do
-		if pressed(table[i]) then return true end
-	end
-	return false
-end
-
---This is like when you hold down a key on a computer and it spams it after a certain amount of time
-function repeating(key) 
-	local value = inputTables.held[key]
-	if value == 0 then 
-		return false 
-	end
-	if value == 1 or (value > 20 and value % 3 == 0) then
-		return true
-	end
-	return false
-end
-
---Input held for x frames
-function held(key, x)
-	return inputTables.held[key] > x
-end
-
-function heldTable(table, x)
-	for i = 1, #table, 1 do
-		if held(table[i], x) then return true end
-	end
-	return false
-end
-
---Turns a hex into both players inputs
-function hexToInputTable(hex)
-	local table = {}
-	inputTableInsert(table, hex, "P1 ")
-	inputTableInsert(table, rShift(hex, 8), "P2 ")
-	return table
-end
-
---Turns a hex into a player input table
-function hexToPlayerInput(hex, player)
-	local table = {}
-	inputTableInsert(table, hex, player)
-	return table
-end
-
---Used by hextoinputtable
-function inputTableInsert(table, hex, player)
-	for k, v in pairs(inputDictionary) do
-		if band(k, hex) == k then
-			table[player..v] = true
-		end
-	end
-end
-
---Swaps left and right in a hex for changing sides
-function swapHexDirection(hex)
-	return swapBits(hex, 2, 3)
-end
-
---swaps two individual bits in a hex
-function swapBits(hex, p1, p2)
-	local bit1 = band(rShift(hex, p1), 1)
-	local bit2 = band(rShift(hex, p2), 1)
-	local x = bxor(bit1, bit2)
-	x = bor(lShift(x, p1), lShift(x, p2))
-	return bxor(hex, x)
-end
-
---Copies values from one table to another
-function tableCopy(source, dest) 
-	for k, v in pairs(source) do
-		dest[k] = v
-	end
 end
 
 --Saves settings to menu settings.txt
@@ -1014,12 +1213,95 @@ function setOption(line)
 	end
 end
 
--- Reads from memory and assigns variables based on the memory
+-------------------------------------------------
+-- Inputs
+-------------------------------------------------
+
+--Returns whether a key is pressed once
+function pressed(key)
+	return (not inputTables.previous[key] and inputTables.current[key])
+end
+
+--Checks a table of inputs for being pressed
+function pressedTable(table)
+	for i = 1, #table, 1 do
+		if pressed(table[i]) then return true end
+	end
+	return false
+end
+
+--This is like when you hold down a key on a computer and it spams it after a certain amount of time
+function repeating(key) 
+	local value = inputTables.held[key]
+	if value == 0 then 
+		return false 
+	end
+	if value == 1 or (value > 20 and value % 3 == 0) then
+		return true
+	end
+	return false
+end
+
+--Input held for x frames
+function held(key, x)
+	return inputTables.held[key] > x
+end
+
+function heldTable(table, x)
+	for i = 1, #table, 1 do
+		if held(table[i], x) then return true end
+	end
+	return false
+end
+
+--Turns a hex into both players inputs
+function hexToInputTable(hex)
+	local table = {}
+	inputTableInsert(table, hex, "P1 ")
+	inputTableInsert(table, rShift(hex, 8), "P2 ")
+	return table
+end
+
+--Turns a hex into a player input table
+function hexToPlayerInput(hex, player)
+	local table = {}
+	inputTableInsert(table, hex, player)
+	return table
+end
+
+--Used by hextoinputtable
+function inputTableInsert(table, hex, player)
+	for k, v in pairs(inputDictionary) do
+		if band(k, hex) == k then
+			table[player..v] = true
+		end
+	end
+end
+
+--Swaps left and right in a hex for changing sides
+function swapHexDirection(hex)
+	return swapBits(hex, 2, 3)
+end
+
+--swaps two individual bits in a hex
+function swapBits(hex, p1, p2)
+	local bit1 = band(rShift(hex, p1), 1)
+	local bit2 = band(rShift(hex, p2), 1)
+	local x = bxor(bit1, bit2)
+	x = bor(lShift(x, p1), lShift(x, p2))
+	return bxor(hex, x)
+end
+
+-------------------------------------------------
+-- Memory Reader
+-------------------------------------------------
+
 function memoryReader()
 	readPlayerMemory(p1)
 	readPlayerMemory(p2)
 	inputTables.previous = inputTables.current
 	inputTables.current = joypad.read() -- reads all inputs
+	system.screenFreeze = readByte(0x020314C6)
 end
 
 function readPlayerMemory(player) 
@@ -1032,16 +1314,29 @@ function readPlayerMemory(player)
 	player.previousblockstun = player.blockstun
 	player.previousIps = player.ips
 	player.previousScaling = player.scaling
+	player.previousWakeupCount = player.wakeupCount
+	player.previousAirtechCount = player.airtechCount
+	player.previousDefenseAction = player.defenseAction
+	player.previousPushblockCount = player.pushblockCount
+	player.previousHitFreeze = player.hitFreeze
+	player.previousStunCount = player.stunCount
 	for k, v in pairs(player.memory) do
 		player[k] = readByte(v)
 	end
 	for k, v in pairs(player.memory2) do
 		player[k] = readWordSigned(v)
 	end
+	for k, v in pairs (player.memory4) do
+		player[k] = readDWord(v)
+	end
 	if player.standGauge < player.standHealth then
 		player.standGauge = player.standHealth
 	end
 end
+
+-------------------------------------------------
+-- Input Sorter
+-------------------------------------------------
 
 function inputSorter() --sorts inputs
 	p1.previousInputs = p1.inputs
@@ -1061,7 +1356,10 @@ function getPlayerInputHex(player)
 	return hex
 end
 
--- Queues new inputs
+-------------------------------------------------
+-- Input History
+-------------------------------------------------
+
 function inputHistoryRefresher()
 	updatePlayerHistory(p1)
 	updatePlayerHistory(p2)
@@ -1085,11 +1383,9 @@ function updatePlayerHistory(player)
 	end
 end
 
-function drawDpad(DpadX,DpadY,sideLength)
-	gui.box(DpadX,DpadY,DpadX+(sideLength*3),DpadY+sideLength,"black","white")
-	gui.box(DpadX+sideLength, DpadY-sideLength, DpadX+(sideLength*2), DpadY+(sideLength*2), "black", "white")
-	gui.box(DpadX+1, DpadY+1, DpadX+(sideLength*3)-1, DpadY+sideLength-1,"black")
-end
+-------------------------------------------------
+-- Gameplay Loop
+-------------------------------------------------
 
 function gameplayLoop() --main loop for gameplay calculations
 	updatePlayer(p1, p2)
@@ -1140,10 +1436,106 @@ function updatePlayer(player, other)
 	end
 
 	-- Frame Data
-	player.previousCanReversal = player.canReversal
-	player.canReversal = canReversal(player)
-	player.previousCanAct = player.canAct
-	player.canAct = canAct(player)
+	-- player.previousCanReversal = player.canReversal
+	-- player.canReversal = canReversal(player)
+	-- player.previousCanAct = player.canAct
+	-- player.canAct = canAct(player)
+
+	-- Reversals
+
+	-- If the player is in defense action 28 or 30 and the wakeupFreeze is finished they are starting their wakeup
+	if (player.defenseAction == 28 or player.defenseAction == 30) and player.wakeupFreeze == 0xFF and player.wakeupCount == 0 then
+		-- For some god forsaken reason specific characters with specific wakeups cancel into their idle early
+		-- I've tried to figure out why but i have no idea so i've hardcoded offsets for each characters wakeup animation :^)
+		local wakeupOffset = wakeupOffsets[player.character + 1][player.defenseAction == 28 and 1 or 2]
+		player.wakeupCount = getActionLength(player.actionAddress) + wakeupOffset + 2
+		player.hitCount = 0
+	end
+
+	if player.guarding > 0 and player.previousGuarding == 0 then
+		updateGuardReversal(player)
+		player.hitCount = 0
+	end
+
+	-- If hit and not defenseAction 29 (Launch) or in the air already
+	if player.hitstun == 1 and player.previousHitstun ~= 1 and player.y == 0 and 
+			player.defenseAction ~= 29 and player.defenseAction ~= 27 and player.defenseAction ~= 39  then
+		updateHitReversal(player)
+		player.guardCount = 0
+	end
+
+	-- Update reversal counters
+	if system.screenFreeze == 0 then -- not screen frozen
+
+		if player.wakeupCount > 0 then
+			player.wakeupCount = player.wakeupCount - 1
+			player.wakeupFrame = (player.wakeupCount == 1)
+		end
+
+		if player.guardCount > 0 then
+			if player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount then
+				updateGuardReversal(player)
+			end
+			player.guardCount = player.guardCount - 1
+		end
+
+		if player.hitCount > 0 then
+			if player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount then
+				updateHitReversal(player)
+			end
+			player.hitCount = player.hitCount - 1
+		end
+
+		if player.airtechCount > 0 then
+			player.airtechCount = player.airtechCount - 1
+		end
+
+		if player.pushblockCount > 0 then
+			player.pushblockCount = player.pushblockCount - 1
+		end
+	end
+
+	-- Update meaty
+	if player.wakeupFrame then
+		if player.hitFreeze > 0 or player.defenseAction == 27 then -- If hit or sweep
+			if player.guarding > 0 then
+				updateGuardReversal(player)
+			else
+				updateHitReversal(player)
+			end
+			player.meaty = true
+		else
+			player.meaty = false
+		end
+	end
+end
+
+function getActionLength(address)
+	local count = 0
+	while true do
+		if readByte(address) ~= 0 then
+			break
+		end
+		count = count + readByte(address + 0x03)
+		if readByte(address + 0x02) == 0x80 then 
+			break 
+		end
+		address = address + 0x20
+	end
+	return count
+end
+
+function updateGuardReversal(player)
+	player.guardCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 3 
+	-- Add 3 if a buffered motion
+	if options.reversalReplay == 3 or options.reversalReplay == 5 or 
+	   (options.reversalReplay == 1 and options.reversalMotion ~= 1) then
+		player.guardCount = player.guardCount + 3
+	end
+end
+
+function updateHitReversal(player)
+	player.hitCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 5
 end
 
 -- p1Frame = 0
@@ -1160,6 +1552,10 @@ end
 -- 	end
 -- 	gui.text(50, 100, frameAdvantage)
 -- end
+
+-------------------------------------------------
+-- Input Checker
+-------------------------------------------------
 
 function inputChecker()
 	if fcReplay then return end
@@ -1287,6 +1683,10 @@ function inputPlayback(player)
 	end
 end
 
+-------------------------------------------------
+-- Character Control
+-------------------------------------------------
+
 function characterControl()
 	if fcReplay then return end
 	if menu.state > 0 then return end
@@ -1325,22 +1725,37 @@ function controlPlayer(player, other)
 			player.blocking = false
 		-- Air Tech
 		elseif options.airTech and canAirTech(player) then
-			airTech(player)
+			airTech(player, other)
 		--Perfect Air Tech 
 		elseif options.perfectAirTech and canPerfectAirTech(player) then
-			airTech(player, true)
+			airTech(player, other, true)
 		-- Throw tech
 		elseif options.throwTech and player.throwTech > 0 then
 			throwTech(player)
+		end
 		-- Reversals
-		elseif player.canReversal then
-			-- Force Stand
-			if options.forceStand > 1 and canStand(player) then
-				setPlayback(player, { 0x80 })
-				writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
-			-- Reversal
-			elseif options.reversal > 1 then
-				reversal(player)
+		if options.forceStand > 1 and canReversal(player) and canStand(player) then
+			setPlayback(player, { 0x80 })
+			writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+		else
+			if options.wakeupReversal and player.wakeupCount > 0 then
+				doReversal(player, other, player.wakeupCount)
+			end
+			if options.guardReversal then
+				if player.guardCount > 0 then
+					doReversal(player, other, player.guardCount)
+				end
+				if player.pushblockCount > 0 then
+					doReversal(player, other, player.pushblockCount)
+				end
+			end
+			if options.hitReversal then
+				 if player.hitCount > 0 then
+					doReversal(player, other, player.hitCount)
+				end
+				if player.airtechCount > 0 then
+					doReversal(player, other, player.airtechCount)
+				end
 			end
 		end
 	end
@@ -1375,37 +1790,69 @@ function setPlayback(player, table)
 	player.loop = false
 end
 
+--Copies values from one table to another
+function tableCopy(source, dest) 
+	for k, v in pairs(source) do
+		dest[k] = v
+	end
+end
+
+--Copies values from an indexed table to another and trims 0 values
+function duplicateList(source)
+	local table = {}
+	local trim = true
+	local final = #source
+	while final > 1 do
+		if source[final] == 0 then
+			final = final - 1
+		else
+			break
+		end
+	end
+	for i = 1, final, 1 do
+		if trim and source[i] ~= 0 then 
+			trim = false
+		end
+		if not trim then
+			table[#table + 1] = source[i]
+		end
+	end
+	return table
+end
+
 function insertDelay(inputs, number, hex)
 	for _ = 1, number, 1 do
 		table.insert(inputs, 1, hex)
 	end
 end
 
-function airTech(player, perfect)
+function airTech(player, other, perfect)
 	local inputs
 	local direction = options.airTechDirection == 5 and math.random(4) or options.airTechDirection
 	if direction == 1 then
 		inputs = { 0x70 }
-		player.reversalCount = (player.stand and 10 or 3)
 	elseif direction == 2 then
 		inputs = { 0x72}
-		player.reversalCount = 10
 	elseif direction == 3 then
 		inputs = (player.facing == 1 and { 0x78 } or { 0x74 })
-		player.reversalCount = 10
 	elseif direction == 4 then
 		inputs = (player.facing == 1 and { 0x74 } or { 0x78 })
-		player.reversalCount = 10
+	end
+	local buffered = isReversalBuffered()
+	if player.height > 32 or buffered then
+		if buffered then
+			player.airtechCount = #getReversal(player, other) + 1
+		elseif direction == 1 and player.stand == 0 then
+			player.airTechCount = 4
+		else
+			player.airtechCount = 11
+		end
 	end
 	if not perfect then
 		insertDelay(inputs, options.airTechDelay, 0)
+		player.airtechCount = player.airtechCount + options.airTechDelay
 	end
 	setPlayback(player, inputs)
-	if player.height > 32 then	--player height 32 rolls, 33 doesn't
-		player.reversalCount = player.reversalCount + #inputs
-	else
-		player.reversalCount = 0
-	end
 end
 
 function pushBlock(player)
@@ -1413,13 +1860,15 @@ function pushBlock(player)
 	local inputs = { bor(0x70, direction) }
 	insertDelay(inputs, options.guardActionDelay, direction)
 	setPlayback(player, inputs)
-	player.reversalCount = 18 + options.guardActionDelay
+	player.pushblockCount = 18 + options.guardActionDelay
+	player.guardCount = 0
 end
 
 function guardCancel(player)
 	local inputs = (player.facing == 1 and { 0x08, 0x02, 0x1A } or { 0x04, 0x02, 0x16 })
 	insertDelay(inputs, options.guardActionDelay, band(player.inputs, 0x0F))
 	setPlayback(player, inputs)
+	player.guardCount = 0
 	--player.reversalCount = 15 Jotaro s.off
 end
 
@@ -1427,36 +1876,90 @@ function throwTech(player)
 	setPlayback(player, { 0x44 })
 end
 
-function reversal(player)
+function getReversal(player, other)
 	local inputs
-	player.playbackFacing = player.facing
-	player.playbackFlipped = false
+	local button = reversal.buttons[options.reversalButton]
+	if options.reversalReplay ~= 1 then
+		if options.reversalReplay == 2 or options.reversalReplay == 3 then --Replay
+			local recordedPlayer = (options.strongKickHotkey == 2 and other or player)
+			inputs = duplicateList(recordedPlayer.recorded)
+			player.playbackFacing = recordedPlayer.recordedFacing
+			if player.y > 0 then
+				player.playbackFlipped = player.facing ~= recordedPlayer.recordedFacing
+			else
+				player.playbackFlipped = other.facing == recordedPlayer.recordedFacing
+			end
+		elseif options.reversalReplay == 4 or options.reversalReplay == 5 then --Inputs.txt
+			readInputsFile()
+			inputs = duplicateList(player.inputPlayback)
+			player.playbackFacing = player.inputPlaybackFacing
+			if player.y > 0 then
+				player.playbackFlipped = player.facing ~= player.inputPlaybackFacing
+			else
+				player.playbackFlipped = other.facing == player.inputPlaybackFacing
+			end
+		end
+	elseif options.reversalMotion ~= 1 then
+		inputs = duplicateList(reversal.motions[options.reversalMotion]);
+		inputs[#inputs + 1] = bor(inputs[#inputs], button)
+	else 
+		inputs = { bor(reversal.directions[options.reversalDirection], button) }
+	end
+	return inputs
+end
+
+function doReversal(player, other, count)
+	local inputs = getReversal(player, other)
+	if options.reversalReplay == 2 or options.reversalReplay == 4 then
+		if count == 1 then
+			player.loop = false
+			player.playback = inputs
+			player.playbackCount = #inputs
+		end
+		return
+	end
+	local reversalIndex
+	if options.reversalReplay ~= 1 then
+		reversalIndex = getFinalButtonIndex(inputs) - count + 1
+	else
+		reversalIndex = #inputs - count + 1
+		player.playbackFacing = 1
+		-- If on the ground use the other players facing because they might be flipped during the combo
+		if player.y > 0 then
+			player.playbackFlipped = player.facing ~= 1
+		else
+			player.playbackFlipped = other.facing == 1 
+		end
+	end
+	if reversalIndex < 1 or reversalIndex > #inputs then
+		return
+	end
 	player.loop = false
-	if options.reversal == 2 then -- A
-		inputs = { bor(0x10, band(0x0F, player.inputs)) }
-	elseif options.reversal == 3 then -- B
-		inputs = { bor(0x20, band(0x0F, player.inputs)) }
-	elseif options.reversal == 4 then -- C
-		inputs = { bor(0x40, band(0x0F, player.inputs)) }
-	elseif options.reversal == 5 then -- S
-		inputs = { bor(0x80, band(0x0F, player.inputs)) }
-	elseif options.reversal == 6 then -- ABC
-		inputs = { bor(0x70, band(0x0F, player.inputs)) }
-	elseif options.reversal == 7 then -- Recording
-		inputs = player.recorded
-		player.playbackFacing = player.recordedFacing
-		player.playbackFlipped = player.facing ~= player.recordedFacing
-	elseif options.reversal == 8 then -- Input playback
-		readInputsFile()
-		inputs = player.inputPlayback
-		player.playbackFacing = player.inputPlaybackFacing
-		player.playbackFlipped = player.facing ~= player.inputPlaybackFacing
+	player.playback = { inputs[reversalIndex] }
+	player.playbackCount = 1
+end
+
+function getFinalButtonIndex(inputs)
+	local index = #inputs
+	local button = 0
+	for i = #inputs, 1, -1 do
+		if button > 0 then
+			if band(button, inputs[i]) == button then
+				index = i
+			else
+				return index
+			end
+		end
+		if inputs[i] > 0x0F then
+			button = band(inputs[i], 0xF0)
+			index = i
+		end
 	end
-	player.playback = inputs
-	player.playbackCount = #inputs
-	while (player.playback[#player.playback - player.playbackCount + 1] == 0) do -- trim empty inputs
-		player.playbackCount = player.playbackCount - 1
-	end
+	return 1
+end
+
+function isReversalBuffered()
+	return options.reversalReplay == 3 or options.reversalReplay == 5 or (options.reversalReplay == 1 and options.reversalMotion ~= 1)
 end
 
 function canGuardAction(player)
@@ -1474,21 +1977,11 @@ function canPerfectAirTech(player)
 end
 
 function canReversal(player)
-	player.reversalCount = player.reversalCount - 1
-	if player.reversalCount == 1 then
-		player.reversalCount = 0
-		return true
-	end
-	if not player.blocking and canGuardAction(player) then
-		player.blocking = true
-	end
-	if player.blocking and 
-		(player.stand  == 0 and player.guardAnimation == 2) or
-		(player.stand == 1 and player.standGuardAnimation == 2) then
-		player.blocking = false
-		return true
-	end
-	if player.previousHitstun == 1 and player.hitstun ~= 1 then
+	if player.wakeupCount == 1 or
+	   player.guardCount == 1 or
+	   player.hitCount == 1 or
+	   player.airtechCount == 1 or
+	   player.pushblockCount == 1 then
 		return true
 	end
 	return false
@@ -1503,6 +1996,20 @@ function canAct(player)
 	return player.canAct1 == 0 and player.canAct2 == 0
 end
 
+function resetReversalOptions()
+	options.wakeupReversal = false
+	options.guardReversal = false
+	options.hitReversal = false
+	options.reversalButton = 1
+	options.reversalDirection = 1
+	options.reversalMotion = 1
+	options.reversalReplay = 1
+end
+
+-------------------------------------------------
+-- Menu
+-------------------------------------------------
+
 function openMenu()
 	if menu.state == 0 then
 		menu.state = 1
@@ -1511,6 +2018,9 @@ function openMenu()
 		menu.options = rootOptions
 		updateMenuInfo()
 		writeByte(0x20713A3, 0x00); -- Bit mask that disables player input
+		--update child options
+		options.p1Child = readByte(p1.memory.child) == 0xFF
+		options.p2Child = readByte(p2.memory.child) == 0xFF
 	else
 		menuClose()
 	end
@@ -1587,6 +2097,9 @@ function menuClose()
 	menu.state = 0
 	gui.clearuncommitted()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
+	--update child mode
+	writeByte(p1.memory.child, options.p1Child and 0xFF or 0x00)
+	writeByte(p2.memory.child, options.p2Child and 0xFF or 0x00)
 end
 
 function menuLeft()
@@ -1659,6 +2172,10 @@ function resetColor()
 	options[menu.color] = menu.default
 end
 
+-------------------------------------------------
+-- Gui
+-------------------------------------------------
+
 function guiWriter() -- Writes the GUI
 	drawHitboxes()
 
@@ -1677,7 +2194,7 @@ function guiWriter() -- Writes the GUI
 	gui.text(135,216,tostring(p1.meter)) -- P1's meter fill
 	gui.text(242,216,tostring(p2.meter)) -- P2's meter fill
 
-	if (options.guiStyle > 1) then
+	if options.p1Gui then
 		local historyLength = (options.guiStyle == 3 and 13 or 11)
 		for i = 1, historyLength, 1 do
 			local hex = p1.inputHistoryTable[i]
@@ -1713,34 +2230,13 @@ function guiWriter() -- Writes the GUI
 				gui.box(hud.xP1+hud.offset*2, hud.yP1+1-(11*i*hud.scroll), hud.xP1+hud.offset*3-1, hud.yP1+hud.offset-1-(11*i*hud.scroll),"red")
 			end
 		end
-	end
-	
-	if options.guiStyle == 2 or options.guiStyle == 4 then
-		gui.text(8,50,"P1 Damage: "..tostring(p2.previousDamage)) -- Damage of P1's last hit
-		gui.text(8,66,"P1 Combo: ")
-		gui.text(48,66, p1.displayComboCounter, p1.comboCounterColor) -- P1's combo count
-		gui.text(8,58,"P1 Combo Damage: "..tostring(p1.comboDamage)) -- Damage of P1's combo in total
-	elseif options.guiStyle == 3 and menu.state == 0 then
-		gui.text(146,45,"Damage: ") -- Damage of P1's last hit
-		guiTextAlignRight(236,45,p2.previousDamage) -- Damage of P1's last hit
-		gui.text(146,53,"Combo Damage: ") -- Damage of P1's combo in total
-		guiTextAlignRight(236,53,p1.comboDamage) -- Damage of P1's combo in total
-		gui.text(146,61,"Combo: ")
-		guiTextAlignRight(236,61,p1.displayComboCounter, p1.comboCounterColor)
-		gui.text(146,69,"IPS: ") -- IPS for P1's combo
-		if p1.previousIps == 0 or not options.ips then --It flickers on and off if you don't check the menu option
-			guiTextAlignRight(236, 69, "OFF", "red")
-		else
-			guiTextAlignRight(236, 69, "ON", "green")
+
+		if options.guiStyle ~= 3 then
+			gui.text(8,50,"P1 Damage: "..tostring(p2.previousDamage)) -- Damage of P1's last hit
+			gui.text(8,66,"P1 Combo: ")
+			gui.text(48,66, p1.displayComboCounter, p1.comboCounterColor) -- P1's combo count
+			gui.text(8,58,"P1 Combo Damage: "..tostring(p1.comboDamage)) -- Damage of P1's combo in total
 		end
-		gui.text(146,77,"Scaling: ") -- Scaling for P1's combo
-		if p1.previousScaling == 0 then
-			guiTextAlignRight(236, 77, "OFF", "red")
-		else
-			guiTextAlignRight(236, 77, "ON", "green")
-		end
-		-- gui.text(146, 85, "Frame Advantage: ")
-		-- guiTextAlignRight(236, 85, frameAdvantage)
 	end
 
 	if (p1.recording) then
@@ -1748,15 +2244,10 @@ function guiWriter() -- Writes the GUI
 	elseif (p1.playbackCount > 0) then
 		gui.text(152,32,"Replaying", "red")
 	end
-
-	if (options.guiStyle == 4) then
-
-		gui.text(300,50,"P2 Damage: " .. tostring(p1.previousDamage)) -- Damage of P2's last hit
-		gui.text(300,66,"P2 Combo: ")
-		gui.text(348,66, p2.displayComboCounter, p2.comboCounterColor) -- P2's combo count
-		gui.text(300,58,"P2 Combo Damage: " .. tostring(p2.comboDamage)) -- Damage of P2's combo in total
-
-		for i = 1, 11, 1 do
+	
+	if options.p2Gui then
+		local historyLength = (options.guiStyle == 3 and 13 or 11)
+		for i = 1, historyLength, 1 do
 			local hex = p2.inputHistoryTable[i]
 			local buttonOffset=0
 			if band(hex, 0x10) == 0x10 then --A
@@ -1790,11 +2281,82 @@ function guiWriter() -- Writes the GUI
 				gui.box(hud.xP2+hud.offset*2, hud.yP2+1-(11*i*hud.scroll), hud.xP2+hud.offset*3-1, hud.yP2+hud.offset-1-(11*i*hud.scroll),"red")
 			end
 		end
+
+		if options.guiStyle ~= 3 then
+			gui.text(300,50,"P2 Damage: " .. tostring(p1.previousDamage)) -- Damage of P2's last hit
+			gui.text(300,66,"P2 Combo: ")
+			gui.text(348,66, p2.displayComboCounter, p2.comboCounterColor) -- P2's combo count
+			gui.text(300,58,"P2 Combo Damage: " .. tostring(p2.comboDamage)) -- Damage of P2's combo in total
+		end
 	end
+
 	if (p2.recording) then
 		gui.text(200,32,"Recording", "red")
 	elseif (p2.playbackCount > 0) then
 		gui.text(200,32,"Replaying", "red")
+	end
+
+	if menu.state == 0 then
+		if options.guiStyle == 3 then
+			gui.text(146,36,"Damage: ") -- Damage of P1's last hit
+			guiTextAlignRight(236,36,p2.previousDamage) -- Damage of P1's last hit
+			gui.text(146,44,"Combo Damage: ") -- Damage of P1's combo in total
+			guiTextAlignRight(236,44,p1.comboDamage) -- Damage of P1's combo in total
+			gui.text(146,52,"Combo: ")
+			guiTextAlignRight(236,52,p1.displayComboCounter, p1.comboCounterColor)
+			gui.text(146,60,"IPS: ") -- IPS for P1's combo
+			if p1.previousIps == 0 or not options.ips then --It flickers on and off if you don't check the menu option
+				guiTextAlignRight(236, 60, "OFF", "red")
+			else
+				guiTextAlignRight(236, 60, "ON", "green")
+			end
+			gui.text(146,68,"Scaling: ") -- Scaling for P1's combo
+			if p1.previousScaling == 0 then
+				guiTextAlignRight(236, 68, "OFF", "red")
+			else
+				guiTextAlignRight(236, 68, "ON", "green")
+			end
+			gui.text(146, 76, "Meaty:") 
+			if p2.meaty then
+				guiTextAlignRight(236, 76, "ON", "green")
+			else
+				guiTextAlignRight(236, 76, "OFF", "red")
+			end
+		elseif options.guiStyle == 4 then
+			gui.text(168, 50, "Meaty:") 
+			if p2.meaty then
+				guiTextAlignRight(214, 50, "YES", "green")
+			else
+				guiTextAlignRight(214, 50, "NO", "red")
+			end
+			drawWakeupIndicator(145, 62, p2.wakeupCount)
+		end
+		-- gui.text(146, 85, "Frame Advantage: ")
+		-- guiTextAlignRight(236, 85, frameAdvantage)
+	end
+
+	if debug then
+		debugInfo = {
+			readByte(0x02034D92).." defense action",
+			readByte(0x02034D9B).." defense counter",
+			readByte(0x02034E7F).." freeze counter",
+			p2.wakeupCount.." wakeup count",
+			getActionLength(p2.actionAddress).." action length",
+			p2.wakeupFreeze.." wakeup freeze",
+			string.upper(string.format("%x", p2.actionAddress)).." action address",
+			string.upper(string.format("%x", readDWord(p2.memory4.actionAddress - 8))).." action address2",
+			string.upper(string.format("%x", readDWord(p2.memory4.actionAddress - 4))).." action address3",
+			p2.guardCount.." guard count",
+			p2.hitCount.." hit count",
+			p2.airtechCount.." airtech count",
+			p2.pushblockCount.." pushblock count",
+			p2.inputs.." p2 inputs",
+			getActionLength(p2.actionAddress + 0x840).." stand action length",
+			readByte(0x0203558D).." some animation counter",
+			(p2.wakeupFrame and "true" or "false").." wakeup frame",
+			p2.stunCount.." stun count",
+		}
+		drawDebug(debugInfo, 232, 30)
 	end
 end
 
@@ -1802,6 +2364,12 @@ function guiTextAlignRight(x, y, text, color)
 	local t = tostring(text)
 	color = color or "white"
 	gui.text(x - #t * 4, y, t, color)
+end
+
+function drawDpad(DpadX,DpadY,sideLength)
+	gui.box(DpadX,DpadY,DpadX+(sideLength*3),DpadY+sideLength,"black","white")
+	gui.box(DpadX+sideLength, DpadY-sideLength, DpadX+(sideLength*2), DpadY+(sideLength*2), "black", "white")
+	gui.box(DpadX+1, DpadY+1, DpadX+(sideLength*3)-1, DpadY+sideLength-1,"black")
 end
 
 -- Draws the menu overlay
@@ -1844,6 +2412,24 @@ function drawMenu()
 		gui.text(110, 172, menu.info, colors.menuTitleColor)
 	end
 end
+
+function drawDebug(debugInfo, x, y) 
+	for i = 1, #debugInfo, 1 do
+		gui.text(x, y + 8 * i, debugInfo[i])
+	end
+end
+
+function drawWakeupIndicator(x, y, count)
+	gui.box(x, y, x + 92, y + 18, 0xFFFFFF00)
+	if count > 0 then
+		local length = math.min(count, 29)
+		gui.box(x + 90 - length * 3, y + 2, x + 90, y + 16, 0xFBA400FF)
+	end
+end
+
+-------------------------------------------------
+-- Hitboxes
+-------------------------------------------------
 
 function updateHitboxes()
 	boxCache[2] = boxCache[1]
@@ -1974,7 +2560,22 @@ function drawCachedHitboxes(data)
 	end
 end
 
+-------------------------------------------------
+-- System
+-------------------------------------------------
+
+function updateSystem()
+	if system.frameAdvance then
+		emu.pause()
+	else
+		emu.frameadvance()
+	end
+end
+
 function replayOptions() 
+	options.guiStyle = 2
+	options.p1Gui = true
+	options.p2Gui = true
 	options.healthRefill = false
 	options.meterRefill = false
 	options.ips = true
@@ -1984,20 +2585,35 @@ function replayOptions()
 	options.forceStand = 1
 	options.reversal = 1
 	options.throwTech = false
+	options.wakeupIndicator = 1
+	resetReversalOptions()
 end
 
---register functions
+-------------------------------------------------
+-- Register Functions
+-------------------------------------------------
+
 input.registerhotkey(1, function()
-	options.guiStyle = (options.guiStyle == 4) and 1 or options.guiStyle + 1
+	if fcReplay then
+		options.guiStyle = (options.guiStyle == 2) and 1 or 2
+	else
+		options.guiStyle = (options.guiStyle == 4) and 1 or options.guiStyle + 1
+	end
 	gui.clearuncommitted()
 end)
 
 input.registerhotkey(2, function()
 	options.hitboxes = (options.hitboxes == 2) and 1 or options.hitboxes + 1
+	gui.clearuncommitted()
 end)
 
 input.registerhotkey(3, function()
 	options.music = not options.music
+end)
+
+input.registerhotkey(4, function()
+	if fcReplay then return end
+	system.frameAdvance = not system.frameAdvance
 end)
 
 emu.registerstart(function()
@@ -2005,6 +2621,7 @@ emu.registerstart(function()
 	writeByte(0x20312C1, 0x01) -- Unlock all characters
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 	readSettings()
+	createInputsFile()
 	if fcReplay then 
 		replayOptions()
 	end
@@ -2019,18 +2636,17 @@ emu.registerexit(function()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 end)
 
---main loop
+-------------------------------------------------
+-- Main Loop
+-------------------------------------------------
+
 while true do 
-	local currentFrame = emu.framecount()
-	if currentFrame ~= system.previousFrame then -- if frame isn't repeated
-		memoryReader()
-		gameplayLoop()
-		inputSorter()
-		inputChecker()
-		inputHistoryRefresher()
-		characterControl()
-		updateHitboxes()
-	end
-	system.previousFrame = currentFrame
-	emu.frameadvance()
+	memoryReader()
+	gameplayLoop()
+	inputSorter()
+	inputChecker()
+	inputHistoryRefresher()
+	characterControl()
+	updateHitboxes()
+	updateSystem()
 end
