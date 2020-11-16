@@ -684,8 +684,8 @@ local rootOptions = {
 	}, 
 	{
 		name = "Trial Options",
-		type = optionType.subMenu,
-		options = trialOptions
+		type = optionType.func,
+		func = function() trialOptionsVerification() end
 	},
 	{
 		name = "Save Settings",
@@ -2589,12 +2589,13 @@ function menuSelect()
 	elseif option.type == optionType.trialCharacters then
 		if #trials == 0 then
 			menu.info = "trials.lua not found"
+		else
+			menu.state = 5
+			menu.options = trialCharacterOptions
+			menu.previousIndex = menu.index
+			menu.index = charToIndex[p1.character]
+			menu.title = "Combo Trials"
 		end
-		menu.state = 5
-		menu.options = trialCharacterOptions
-		menu.previousIndex = menu.index
-		menu.index = charToIndex[p1.character]
-		menu.title = "Combo Trials"
 	elseif option.type == optionType.trialCharacter then
 		menu.state = 6
 		menu.options = getTrialOptions(menu.index, option)
@@ -2972,6 +2973,7 @@ function trialModeStart()
 	trial.subIndex = 1
 	trial.wait = 0
 	trial.replay = false
+	trial.reset = false
 
 	writeByte(p1.memory.standGaugeRefill, p1.standGaugeMax)
 	writeByte(p2.memory.standGaugeRefill, p2.standGaugeMax)
@@ -3377,8 +3379,8 @@ function updateTrialPosition()
 		writeWord(p1.memory2.standX, p1sx)
 		updated = true
 	end
-	if p2.stand > 0 and p2.standY ~= p2sx then
-		writeWord(p2.memory2.standY, p2sx)
+	if p2.stand > 0 and p2.standX ~= p2sx then
+		writeWord(p2.memory2.standX, p2sx)
 		updated = true
 	end
 	-- return whether updated or not
@@ -3390,9 +3392,7 @@ function trialMenuClose()
 end
 
 function trialForceStop()
-	trial.success = false
-	trial.reset = false
-	trial.replay = false
+	trialModeStart()
 	p1.playbackCount = 0
 	p2.playbackCount = 0
 end
@@ -3427,6 +3427,18 @@ function sanitizeTrials()
 				trials[i].trials[y].combo[c].type = comboDictionary[trials[i].trials[y].combo[c].type] or 1
 			end
 		end
+	end
+end
+
+function trialOptionsVerification()
+	if #trials == 0 then
+		menu.info = "trials.lua not found"
+	else
+		-- replace the current option with the submenu and select it
+		local option = menu.options[menu.index]
+		option.type = optionType.subMenu
+		option.options = trialOptions
+		menuSelect()
 	end
 end
 
@@ -3941,19 +3953,6 @@ input.registerhotkey(3, function()
 	options.music = not options.music
 end)
 
-emu.registerstart(function()
-	writeByte(0x20713A8, 0x09) -- Infinite Credits
-	writeByte(0x20312C1, 0x01) -- Unlock all characters
-	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
-	clearTrialOptions() --initialize character trials
-	readSettings()
-	readTrials()
-	createInputsFile()
-	if fcReplay then 
-		replayOptions()
-	end
-end)
-
 function replayOptions() 
 	options.guiStyle = 2
 	options.p1Gui = true
@@ -3970,6 +3969,19 @@ function replayOptions()
 	options.boingo = false
 	resetReversalOptions()
 end
+
+emu.registerstart(function()
+	writeByte(0x20713A8, 0x09) -- Infinite Credits
+	writeByte(0x20312C1, 0x01) -- Unlock all characters
+	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
+	clearTrialOptions() --initialize character trials
+	readSettings()
+	readTrials()
+	createInputsFile()
+	if fcReplay then 
+		replayOptions()
+	end
+end)
 
 gui.register(function()
 	guiWriter()
