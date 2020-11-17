@@ -29,8 +29,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 1,
                 recording = { "r15","ar9","r10","rb4","b2","3","d2","rd3","r1","sr3","1","d3","dl2","l2","bl2","b4","8","d2","dl3","l3","1","a7","60" },
+                difficulty = 1,
                 rng = 2902996483,
                 name = "Rekkas",
                 position = false,
@@ -40,9 +40,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 872,
                     child = false,
+                    standX = 872,
+                    x = 1192,
                 },
                 info = {
                     "Easy hard knock down",
@@ -58,9 +58,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    x = 1104,
-                    standX = 999,
                     child = false,
+                    standX = 999,
+                    x = 1104,
                 },
             },
             {
@@ -201,8 +201,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 1,
                 recording = { "r3","rd2","d4","rd2","r1","ar2","a19","ar3","arb9","r1","19","r4","3","r7","cr7","r18","ar7","r12","rb4","db2","d2","dl3","l1","bl1","b4","9","ru6","r1","20","c6","11","r5","ar8","r11","rb1","db4","dl3","l3","s8","14","a3","ab2","b2","cb1","c5","5","a3","ab2","b2","cb1","c5","6","a3","ab2","b2","cb1","c5","37","r13","12","a10","17","r22","ar10","r1","15","ru5","r1","19","c7","7","r8","ar8","r11","rb4","db2","d2","rd3","r2","sr1","s2","2","d1","dl2","l3","b5","9","d2","dl3","l3","1","a6","76" },
+                difficulty = 1,
                 rng = 2902996483,
                 name = "Tandem Test",
                 position = false,
@@ -212,9 +212,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 872,
                     child = false,
+                    standX = 872,
+                    x = 1192,
                 },
                 info = {
                     "ABCABCABC",
@@ -230,9 +230,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    x = 1070,
-                    standX = 998,
                     child = false,
+                    standX = 998,
+                    x = 1070,
                 },
             },
             {
@@ -275,10 +275,10 @@ return {
                         id = {
                             17,
                             43,
-                            44
+                            44,
                         },
-                        name = "s.5A > 5A > 5B",
                         type = "multi",
+                        name = "s.5A > 5A > 5B",
                     },
                     {
                         id = 30,
@@ -295,8 +295,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                recording = { "r8","rb4","rdb1","rd1","d2","dl2","l3","b7","6","ru7","r1","20","c6","10","r6","ar6","r12","rb3","b2","2","d2","rd3","r2","sr1","s3","2","d1","dl3","l2","bl3","b3","44","r4","4","r3","ar1","a3","16","a4","6","a5","4","b6","1","d2","rd2","r3","c5","15","d2","dl3","l2","al1","a3","8","d3","dl2","l4","a5","121" },
                 difficulty = 1,
+                recording = { "r8","rb4","rdb1","rd1","d2","dl2","l3","b7","6","ru7","r1","20","c6","10","r6","ar6","r12","rb3","b2","2","d2","rd3","r2","sr1","s3","2","d1","dl3","l2","bl3","b3","44","r4","4","r3","ar1","a3","16","a4","6","a5","4","b6","1","d2","rd2","r3","c5","15","d2","dl3","l2","al1","a3","8","d3","dl2","l4","a5","121" },
                 rng = 2902996483,
                 name = "Stand crash",
                 position = false,
@@ -306,9 +306,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 1,
-                    child = false,
-                    standX = 1192,
                     x = 1192,
+                    standX = 1192,
+                    child = false,
                 },
                 info = {
                     "Works on 80 s.gauge opponents (eg. Dio)",
@@ -324,9 +324,108 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    child = false,
-                    standX = 1004,
                     x = 1043,
+                    standX = 1004,
+                    child = false,
+                },
+            },
+            {
+                direction = 6,
+                ips = false,
+                combo = {
+                    {
+                        id = 6,
+                        name = "j.C",
+                    },
+                    {
+                        id = 40,
+                        name = "2C",
+                    },
+                    {
+                        id = 6,
+                        type = "stand charge",
+                        name = "623[A/B] Charge",
+                    },
+                    {
+                        id = 6,
+                        type = "meaty",
+                        name = "j.C (Meaty)",
+                    },
+                    {
+                        id = 29,
+                        name = "623]A/B[ Release",
+                    },
+                    {
+                        id = 0,
+                        name = "5A",
+                    },
+                    {
+                        id = 2,
+                        name = "6B",
+                    },
+                    {
+                        id = 67,
+                        name = "214B",
+                    },
+                    {
+                        id = 6,
+                        name = "j.C",
+                    },
+                    {
+                        id = 0,
+                        name = "5A",
+                    },
+                    {
+                        id = 2,
+                        name = "6B",
+                    },
+                    {
+                        id = 28,
+                        name = "236S",
+                    },
+                    {
+                        id = 36,
+                        name = "214B",
+                    },
+                    {
+                        id = 99,
+                        name = "214A",
+                    },
+                },
+                author = "Majonglesgay",
+                tandemCooldown = false,
+                difficulty = 1,
+                recording = { "ru4","r1","21","c5","7","d8","cd3","crd1","rd3","r3","rd1","d5","rd4","rb2","b14","rb6","b25","rb1","rub2","rb2","b2","cb7","b5","28","r4","ar8","r11","rb2","rdb1","db1","d3","dl2","l2","b6","8","ru7","21","c6","9","r8","ar6","r12","rb3","db2","d3","rd3","r2","sr2","s2","1","d2","dl3","l1","bl1","b5","10","d2","dl3","l3","a6","119" },
+                rng = 2902996483,
+                name = "Instant overhead",
+                position = false,
+                p2 = {
+                    y = 0,
+                    character = 11,
+                    standY = 0,
+                    facing = 0,
+                    stand = 0,
+                    x = 1192,
+                    standX = 1192,
+                    child = false,
+                },
+                info = {
+                    "j.C must hit meaty or the trial will fail",
+                },
+                stage = {
+                    id = 38,
+                    x = 840,
+                    y = 252,
+                },
+                p1 = {
+                    y = 0,
+                    character = 0,
+                    standY = 0,
+                    facing = 1,
+                    stand = 0,
+                    x = 1063,
+                    standX = 979,
+                    child = false,
                 },
             },
         },
@@ -356,12 +455,12 @@ return {
                         name = "j.214A (Hit)",
                     },
                 },
-                difficulty = 2,
+                standGuage = false,
                 author = "Majonglesgay",
                 tandemCooldown = false,
+                difficulty = 2,
                 recording = { "ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81" },
-                standGuage = false,
-                rng = 3975358280,
+                name = "Net link",
                 info = {
                     "Nothing but net",
                 },
@@ -372,11 +471,11 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    child = false,
-                    standX = 872,
                     x = 1192,
+                    standX = 872,
+                    child = false,
                 },
-                name = "Net link",
+                rng = 3975358280,
                 stage = {
                     id = 38,
                     x = 840,
@@ -388,9 +487,9 @@ return {
                     standY = 42,
                     facing = 1,
                     stand = 0,
-                    child = false,
-                    standX = 1103,
                     x = 1096,
+                    standX = 1103,
+                    child = false,
                 },
             },
             {
@@ -411,8 +510,8 @@ return {
                     },
                     {
                         id = {
-                            6, 
-                            35
+                            6,
+                            35,
                         },
                         type = "multi",
                         name = "s.5A > 5C (1 hit)",
@@ -484,8 +583,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 3,
                 recording = { "ru3","r2","rd1","crd6","rd11","r1","3","a5","6","r4","3","r3","ar1","a3","16","a3","7","c5","d2","dl3","l2","s5","9","a2","ab2","b2","cb2","c3","6","a4","ab1","b1","cb2","c6","5","a3","ab2","b2","cb2","c5","30","r39","ar9","r12","ar7","r14","ar7","r15","ar7","r13","ar8","r4","8","ru5","r1","16","d3","dl1","adl2","al4","a1","14","a7","24","d2","dl3","l3","b6","22","l6","3","l4","dl1","d2","rd3","r1","acrb1","acb4","186" },
+                difficulty = 3,
                 rng = 4118674902,
                 name = "Instant overhead on standing opponent?",
                 position = false,
@@ -495,9 +594,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 918,
                     child = false,
+                    standX = 918,
+                    x = 1192,
                 },
                 info = {
                     "Yes",
@@ -513,9 +612,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 1,
-                    x = 1125,
-                    standX = 1141,
                     child = false,
+                    standX = 1141,
+                    x = 1125,
                 },
             },
         },
@@ -548,20 +647,20 @@ return {
                     {
                         id = {
                             35,
-                            37
+                            37,
                         },
-                        name = "s.5A > 2B",
-                        type = "multi"
+                        type = "multi",
+                        name = "s.5A > 3B",
                     },
                     {
                         id = 70,
-                        name = "s.6248C",
+                        name = "s.6248A",
                     },
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 1,
                 recording = { "c5","2","d1","rd2","r3","ar1","a6","18","l5","al5","l7","11","a5","2","r1","rd2","rdb5","rb1","5","l4","dl1","d2","rd2","r1","ru2","u3","a5","123" },
+                difficulty = 1,
                 rng = 2902996483,
                 name = "Command grab ender",
                 position = false,
@@ -571,9 +670,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1057,
-                    standX = 872,
                     child = false,
+                    standX = 872,
+                    x = 1057,
                 },
                 info = {
                     "GET OVER HERE!",
@@ -589,9 +688,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 1,
-                    x = 971,
-                    standX = 971,
                     child = false,
+                    standX = 971,
+                    x = 971,
                 },
             },
             {
@@ -618,7 +717,7 @@ return {
                         id = {
                             35,
                             58,
-                            53
+                            53,
                         },
                         type = "multi",
                         name = "s.5A > 5A > 5B",
@@ -630,7 +729,7 @@ return {
                     {
                         id = {
                             48,
-                            48
+                            48,
                         },
                         type = "multi",
                         name = "s.2A > 2A",
@@ -638,7 +737,7 @@ return {
                     {
                         id = {
                             48,
-                            48
+                            48,
                         },
                         type = "multi",
                         name = "s.2A > 2A",
@@ -648,7 +747,7 @@ return {
                             35,
                             58,
                             53,
-                            54
+                            54,
                         },
                         type = "multi",
                         name = "s.5A > 5A > 5B > 5C",
@@ -668,22 +767,22 @@ return {
                     {
                         id = {
                             35,
-                            37
+                            37,
                         },
-                        name = "s.5A > 2B",
-                        type = "multi"
+                        type = "multi",
+                        name = "s.5A > 3B",
                     },
                     {
                         id = 70,
-                        name = "s.6248C",
+                        name = "s.6248A",
                     },
                 },
-                difficulty = 3,
+                rng = 2902996483,
                 author = "Majonglesgay",
                 tandemCooldown = false,
                 recording = { "d2","ad7","d1","13","a5","9","d3","scd7","rd3","r4","2","a5","18","l4","al4","l9","11","a5","6","a5","9","b5","3","d2","dl2","l3","s4","40","d3","ad6","d10","ad7","d10","ad7","d11","ad7","d3","9","a5","5","a5","6","b5","8","c4","4","d2","rd3","r2","ar1","a4","9","l3","al5","l7","8","s1","sc6","c1","1","d1","rd3","r2","ar2","a5","20","l2","al4","l8","11","a4","3","rd3","rdb6","b1","4","l2","dl1","d2","rd2","r1","ru2","u4","a5","194" },
-                standGuage = false,
-                rng = 2902996483,
+                difficulty = 3,
+                name = "CC",
                 info = {
                     "s.off confirm into custom combo",
                 },
@@ -694,11 +793,11 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    child = false,
-                    standX = 872,
                     x = 1192,
+                    standX = 872,
+                    child = false,
                 },
-                name = "CC",
+                standGauge = false,
                 stage = {
                     id = 38,
                     x = 840,
@@ -710,9 +809,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    child = false,
-                    standX = 957,
                     x = 1145,
+                    standX = 957,
+                    child = false,
                 },
             },
         },
@@ -744,8 +843,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                recording = { "r4","5","r6","5","c1","cb7","23","c3","4","c7","38" },
                 difficulty = 1,
+                recording = { "r4","5","r6","5","c1","cb7","23","c3","4","c7","38" },
                 rng = 2902996483,
                 name = "Double Attack",
                 position = false,
@@ -755,9 +854,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    child = false,
-                    standX = 872,
                     x = 1192,
+                    standX = 872,
+                    child = false,
                 },
                 info = {
                     "At the end of your stand dash if you dash attack",
@@ -775,9 +874,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 1,
-                    child = false,
-                    standX = 979,
                     x = 979,
+                    standX = 979,
+                    child = false,
                 },
             },
         },
@@ -799,9 +898,9 @@ return {
                         name = "5C",
                     },
                     {
-                        id = 84, 
+                        id = 84,
+                        type = "stand charge",
                         name = "236B (Cancel)",
-                        type = "stand charge"
                     },
                     {
                         id = 3,
@@ -818,8 +917,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                recording = { "c4","1","d1","rd3","r2","rb1","b4","4","d8","ad4","d11","23","d3","cd7","d27","20" },
                 difficulty = 1,
+                recording = { "c4","1","d1","rd3","r2","rb1","b4","4","d8","ad4","d11","23","d3","cd7","d27","20" },
                 rng = 2902996483,
                 name = "Doll cancel",
                 position = false,
@@ -829,9 +928,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    child = false,
-                    standX = 872,
                     x = 1030,
+                    standX = 872,
+                    child = false,
                 },
                 info = {
                     "Link from 5C using a 236 cancel",
@@ -847,9 +946,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    child = false,
-                    standX = 1073,
                     x = 972,
+                    standX = 1073,
+                    child = false,
                 },
             },
         },
@@ -888,8 +987,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                recording = { "l4","26","d2","rd2","r3","1","acb5","48","d4","rd2","r2","2","acb5","49","r14","ru10","u1","3","a3","1","d1","rd3","r2","acb6","64" },
                 difficulty = 1,
+                recording = { "l4","26","d2","rd2","r3","1","acb5","48","d4","rd2","r2","2","acb5","49","r14","ru10","u1","3","a3","1","d1","rd3","r2","acb6","64" },
                 rng = 76910903,
                 name = "Triple Knives",
                 position = false,
@@ -899,9 +998,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    child = false,
-                    standX = 872,
                     x = 1192,
+                    standX = 872,
+                    child = false,
                 },
                 info = {
                     "Checkmate da!",
@@ -917,9 +1016,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 1,
-                    child = false,
-                    standX = 1022,
                     x = 1006,
+                    standX = 1022,
+                    child = false,
                 },
             },
             {
@@ -941,8 +1040,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 1,
                 recording = { "r4","4","r4","cr1","c3","3","d2","dl2","l2","cl1","c5","4","r4","4","r2","rd3","crd22","rd6","d1","25" },
+                difficulty = 1,
                 rng = 3840637271,
                 name = "66C Sweep",
                 position = false,
@@ -952,9 +1051,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 1157,
                     child = false,
+                    standX = 1157,
+                    x = 1192,
                 },
                 info = {
                     "Day 1 combos",
@@ -970,9 +1069,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    x = 936,
-                    standX = 1030,
                     child = false,
+                    standX = 1030,
+                    x = 936,
                 },
             },
             {
@@ -1007,8 +1106,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 3,
                 recording = { "r5","3","r4","cr1","c4","d2","rd3","r1","sr3","s3","3","r5","3","r1","rd2","rdb9","rb1","r1","7","r8","rb2","db3","d1","dl3","l3","al1","a5","9","d2","dl3","l3","a6","61" },
+                difficulty = 3,
                 rng = 3771363387,
                 name = "Whiff test",
                 position = true,
@@ -1018,9 +1117,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 1157,
                     child = false,
+                    standX = 1157,
+                    x = 1192,
                 },
                 info = {
                     "Link after a whiffed 236S",
@@ -1036,9 +1135,9 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    x = 967,
-                    standX = 983,
                     child = false,
+                    standX = 983,
+                    x = 967,
                 },
             },
             {
@@ -1060,7 +1159,7 @@ return {
                     {
                         id = {
                             3,
-                            0
+                            0,
                         },
                         type = "alt",
                         name = "2A",
@@ -1108,7 +1207,7 @@ return {
                         id = {
                             10,
                             30,
-                            31
+                            31,
                         },
                         type = "multi",
                         name = "s.5A > 5B > 5C",
@@ -1121,7 +1220,7 @@ return {
                         id = {
                             10,
                             30,
-                            31
+                            31,
                         },
                         type = "multi",
                         name = "s.5A > 5B > 5C",
@@ -1134,7 +1233,7 @@ return {
                         id = {
                             10,
                             30,
-                            31
+                            31,
                         },
                         type = "multi",
                         name = "s.5A > 5B > 5C",
@@ -1154,7 +1253,7 @@ return {
                     {
                         id = {
                             3,
-                            0
+                            0,
                         },
                         type = "alt",
                         name = "2A",
@@ -1162,7 +1261,7 @@ return {
                     {
                         id = {
                             3,
-                            0
+                            0,
                         },
                         type = "alt",
                         name = "2A",
@@ -1170,7 +1269,7 @@ return {
                     {
                         id = {
                             3,
-                            0
+                            0,
                         },
                         type = "alt",
                         name = "2A",
@@ -1178,7 +1277,7 @@ return {
                     {
                         id = {
                             3,
-                            0
+                            0,
                         },
                         type = "alt",
                         name = "2A",
@@ -1190,8 +1289,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 3,
                 recording = { "r4","3","r2","rd4","ad2","adl2","al2","l1","8","r3","4","r8","3","d1","dl4","adl8","dl11","adl8","d1","5","r4","asr4","as3","a1","3","r4","4","r2","ard3","ad1","d1","dl3","l1","sl1","s10","8","a5","ab1","b2","cb1","c5","5","a4","ab1","b2","cb1","c5","6","a4","ab2","b3","cb2","c4","21","r21","14","d1","dl3","adl11","dl1","d1","10","r13","14","dl5","adl11","dl1","d1","9","r25","12","b5","d2","rd3","r4","c5","11","dl7","adl6","dl11","adl6","dl12","adl7","dl11","adl8","dl11","adl6","dl12","adl8","12","c4","4","c7","90" },
+                difficulty = 3,
                 rng = 3771363387,
                 name = "Corner \"BnB\"",
                 position = false,
@@ -1201,9 +1300,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1192,
-                    standX = 1157,
                     child = false,
+                    standX = 1157,
+                    x = 1192,
                 },
                 info = {
                     "I finally did it! *Posts vid in discord*",
@@ -1219,9 +1318,98 @@ return {
                     standY = 0,
                     facing = 1,
                     stand = 0,
-                    x = 1048,
-                    standX = 1014,
                     child = false,
+                    standX = 1014,
+                    x = 1048,
+                },
+            },
+            {
+                direction = 2,
+                ips = false,
+                combo = {
+                    {
+                        id = 6,
+                        name = "j.A",
+                    },
+                    {
+                        id = 3,
+                        name = "2A",
+                    },
+                    {
+                        id = {
+                            0,
+                            3
+                        },
+                        type = "alt",
+                        name = "2A",
+                    },
+                    {
+                        id = 47,
+                        name = "214A (Negative Edge)",
+                    },
+                    {
+                        id = 3,
+                        name = "2A",
+                    },
+                    {
+                        id = {
+                            0,
+                            3
+                        },
+                        type = "alt",
+                        name = "2A (Uncrouch cancel)",
+                    },
+                    {
+                        id = {
+                            13,
+                            30
+                        },
+                        name = "2S+A > 5B",
+                        type = "multi"
+                    },
+                    {
+                        id = 47,
+                        name = "s.214A",
+                    },
+                    {
+                        id = 50,
+                        name = "s.214A",
+                    },
+                },
+                author = "Majonglesgay",
+                tandemCooldown = false,
+                recording = { "ru5","r1","21","a6","4","d8","ad5","d15","ad1","adl2","al1","l3","7","r4","4","r8","3","dl4","adl7","dl12","adl7","dl1","d1","8","d2","asd4","a1","3","b6","db1","d1","dl4","l2","1","a5","7","d2","dl3","l3","1","a6","77" },
+                difficulty = 1,
+                rng = 2902996483,
+                name = "Don't want no short people",
+                position = false,
+                p2 = {
+                    y = 0,
+                    character = 11,
+                    standY = 0,
+                    facing = 0,
+                    stand = 0,
+                    child = false,
+                    standX = 872,
+                    x = 1192,
+                },
+                info = {
+                    "Works on short people and dogs",
+                },
+                stage = {
+                    id = 38,
+                    x = 840,
+                    y = 252,
+                },
+                p1 = {
+                    y = 0,
+                    character = 11,
+                    standY = 0,
+                    facing = 1,
+                    stand = 0,
+                    child = false,
+                    standX = 1085,
+                    x = 1034,
                 },
             },
         },
@@ -1279,8 +1467,8 @@ return {
                 },
                 author = "Majonglesgay",
                 tandemCooldown = false,
-                difficulty = 1,
                 recording = { "c6","cr1","r4","rd1","d5","rd2","r1","cr2","c4","49" },
+                difficulty = 1,
                 rng = 2902996483,
                 name = "Antiair",
                 position = false,
@@ -1290,9 +1478,9 @@ return {
                     standY = 0,
                     facing = 0,
                     stand = 0,
-                    x = 1090,
-                    standX = 872,
                     child = false,
+                    standX = 872,
+                    x = 1090,
                 },
                 info = {
                     "Anti air test",
@@ -1310,8 +1498,8 @@ return {
                     standY = 0,
                     facing = 1,
                     level = 0,
-                    stand = 0,
                     character = 22,
+                    stand = 0,
                 },
             },
         },

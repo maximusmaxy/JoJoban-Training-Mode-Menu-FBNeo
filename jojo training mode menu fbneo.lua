@@ -811,8 +811,7 @@ local p1 = {
 	standGuardAnimation = 0,
 	riseFall = 0,
 	previousRiseFall = 0,
-	hitstun = false,
-	previousHitstun = false,
+	hitstun = 0,
 	blockstun = 0,
 	previousBlockstun = 0,
 	blocking = false,
@@ -1314,7 +1313,8 @@ local comboType = {
 	whiff = 9,
 	projectiles = 10,
 	remote = 11,
-	recall = 12
+	recall = 12,
+	meaty = 13,
 }
 
 local comboDictionary = {} 
@@ -1347,6 +1347,7 @@ local intToComboString = {
 	"projectiles",
 	"remote",
 	"recall",
+	"meaty",
 }
 
 -------------------------------------------------
@@ -1971,11 +1972,6 @@ function updatePlayer(player, other)
 		else
 			player.meaty = false
 		end
-	end
-
-	-- Update Is hit
-	if player.previousHitstun == 1 and player.hitstun == 1 and 
-		player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount then
 	end
 end
 
@@ -2836,7 +2832,15 @@ end
 
 function updateTrialCheck()
 	local input = trial.combo[trial.index]
-	if not (trial.index == 1 and trial.subIndex == 1) and p2.previousHitstun > 0 and p2.hitstun == 0 then 
+	if input.type == comboType.meaty and p2.wakeupFrame then
+		if checkAttackId(input.id) then
+			advanceTrialIndex()
+		else
+			trialFail()
+		end
+		return 
+	end
+	if not (trial.index == 1 and trial.subIndex == 1) and not trialStun(input) then 
 		trialFail()
 	elseif input.type == comboType.id then 
 		if checkAttackId(input.id) then
@@ -2961,6 +2965,34 @@ function getAttackId()
 	return -1
 end
 
+function trialStun(input)
+	if p2.guarding > 0 and p2.previousGuarding == 0 then 
+		return false
+	end
+	if p2.hitstun == 3 then 
+		return true 
+	end
+	if p2.wakeupFrame then 
+		return false
+	end
+	if p2.y > 0 then
+		if p2.previousHitstun > 0 and p2.hitstun == 0 then 
+			return false 
+		end
+	else
+		if p2.defenseAction > 26 then 
+			return true
+		elseif p1.character == 0x04 and input.id == 70 then
+			if p2.previousHitstun > 0 and p2.hitstun == 0 then
+				return false
+			end
+		elseif p2.hitCount == 2 then 
+			return false
+		end
+	end
+	return true
+end
+
 function trialModeStart()
 	trial.trial = menu.options[menu.index].trial
 	trial.id = menu.index
@@ -3010,15 +3042,33 @@ function updateOptions()
 	if trial.trial.rng ~= nil then
 		writeDWord(0x020162E4, trial.trial.rng)
 	end
-	options.meterRefill = trial.trial.meter ~= nil and trial.trial.meter or true
-	options.standGaugeRefill = trial.trial.standGauge ~= nil and trial.trial.standGauge or true
+	if trial.trial.meter ~= nil then
+		options.meterRefill = trial.trial.meter
+	else
+		options.meterRefill = true
+	end
+	if trial.trial.standGauge ~= nil then
+		options.standGaugeRefill = trial.trial.standGauge
+	else
+		options.standGaugeRefill = true
+	end
 	if trial.trial.p1 then
-		updateChild(p1, trial.trial.p1.child, 0x020348D5)
+		if trial.trial.p1.child ~= nil then
+			options.p1Child = trial.trial.p1.child
+		else
+			options.p1Child = false
+		end
+		updateChild(p1, options.p1Child, 0x020348D5)
 		if p1.character == 0x16 then -- mariah
 			writeByte(0x02033210, trial.trial.p1.level or 0)
 		end
 	end
 	if trial.trial.p2 then
+		if trial.trial.p2.child ~= nil then
+			options.p2Child = trial.trial.p2.child
+		else
+			options.p2Child = false
+		end
 		updateChild(p2, trial.trial.p2.child, 0x02034CF5)
 	end
 	options.guiStyle = 2
@@ -3153,7 +3203,7 @@ function updateTrialRecording()
 	local attackId = getAttackId()
 	if attackId ~= -1 then
 		combo[#combo + 1] = {
-			type = comboType.id,
+			type = p2.wakeupFrame and comboType.meaty or comboType.id,
 			name = tostring(#combo + 1),
 			id = attackId
 		}
@@ -3640,7 +3690,10 @@ function drawHud()
 			p1.standAttackHit.." stand attack hit",
 			p1.actionId.." action id",
 			p1.standActionId.." stand action id",
-			p2.hitstun.." hitstun"
+			p2.hitstun.." hitstun",
+			readByte(0x02034D61).." hitstun2",
+			p2.y.." p2 y",
+			p2.defenseAction.." p2 defense action",
 		}
 		drawDebug(debugInfo, 180, 30)
 	end
