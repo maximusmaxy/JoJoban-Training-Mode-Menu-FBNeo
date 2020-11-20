@@ -9,6 +9,7 @@
 -- DrewDos: Creating the memory map document.
 -- GaryButternubs: Finding ram addresses.
 -- Unknown: The creator of the hit editor lua. We probably wouldn't have live hitboxes without you.
+-- tylerneylon: Json parser https://gist.github.com/tylerneylon/59f4bcf316be525b30ab
 
 -------------------
 -- CONFIGURATION --
@@ -88,7 +89,11 @@ local options = {
 	inputHistoryA = 0x00FF00FF, -- Colour of the letter A in the input history
 	inputHistoryB = 0x0000FFFF, -- Colour of the letter B in the input history
 	inputHistoryC = 0xFF0000FF, -- Colour of the letter C in the input history
-	inputHistoryS = 0xFFFF00FF -- Colour of the letter S in the input history
+	inputHistoryS = 0xFFFF00FF, -- Colour of the letter S in the input history
+	trialsFilename = "sample_trials.json",
+	trialSuccess = {},
+	p1Recording = {},
+	p2Recording = {},
 }
 
 -----------------------
@@ -129,6 +134,7 @@ local readWord = memory.readword
 local readWordSigned = memory.readwordsigned
 local readDWord = memory.readdword
 local readDWordSigned = memory.readdwordsigned
+local readByteRange = memory.readbyterange
 local writeByte = memory.writebyte
 local writeWord = memory.writeword
 local writeDWord = memory.writedword
@@ -154,7 +160,9 @@ local optionType = {
 	slider = 8,
 	trialCharacters = 9,
 	trial = 10,
-	back = 11
+	files = 11,
+	file = 12, 
+	back = 13
 }
 
 local systemOptions = {
@@ -494,133 +502,111 @@ local reversalOptions = {
 local trialCharacterOptions = {
 	{
 		name = "Jotaro",
-		key = "jotaroTrials",
 		type = optionType.trialCharacter,
 		id = 0
 	},
 	{
 		name = "Kakyoin",
-		key = "kakyoinTrials",
 		type = optionType.trialCharacter,
 		id = 1
 	},
 	{
 		name = "Avdol",
-		key = "avdolTrials",
 		type = optionType.trialCharacter,
 		id = 2
 	},
 	{
 		name = "Polnareff",
-		key = "polnareffTrials",
 		type = optionType.trialCharacter,
 		id = 3
 	},
 	{
 		name = "Old Joseph",
-		key = "oldJosephTrials",
 		type = optionType.trialCharacter,
 		id = 4
 	},
 	{
 		name = "Iggy",
-		key = "iggyTrials",
 		type = optionType.trialCharacter,
 		id = 5
 	},
 	{
 		name = "Alessi",
-		key = "alessiTrials",
 		type = optionType.trialCharacter,
 		id = 6
 	},
 	{
 		name = "Chaka",
-		key = "chakaTrials",
 		type = optionType.trialCharacter,
 		id = 7
 	},
 	{
 		name = "Devo",
-		key = "devoTrials",
 		type = optionType.trialCharacter,
 		id = 8
 	},
 	{
 		name = "Midler",
-		key = "midlerTrials",
 		type = optionType.trialCharacter,
 		id = 10
 	},
 	{
 		name = "Dio",
-		key = "dioTrials",
 		type = optionType.trialCharacter,
 		id = 11
 	},
 	{
 		name = "Shadow Dio",
-		key = "shadowDioTrials",
 		type = optionType.trialCharacter,
 		id = 14
 	},
 	{
 		name = "Young Joseph",
-		key = "youngJosephTrials",
 		type = optionType.trialCharacter,
 		id = 15
 	},
 	{
 		name = "Hol Horse",
-		key = "holHorseTrials",
 		type = optionType.trialCharacter,
 		id = 16
 	},
 	{
 		name = "Vanilla Ice",
-		key = "vanillaIceTrials",
 		type = optionType.trialCharacter,
 		id = 17
 	},
 	{
 		name = "New Kakyoin",
-		key = "newKakyoinTrials",
 		type = optionType.trialCharacter,
 		id = 18
 	},
 	{
 		name = "Black Polnareff",
-		key = "blackPolnareffTrials",
 		type = optionType.trialCharacter,
 		id = 19
 	},
 	{
 		name = "Petshop",
-		key = "petshopTrials",
 		type = optionType.trialCharacter,
 		id = 20
 	},
 	{
 		name = "Mariah",
-		key = "mariahTrials",
 		type = optionType.trialCharacter,
 		id = 22
 	},
 	{
 		name = "Hoingo",
-		key = "hoingoTrials",
 		type = optionType.trialCharacter,
 		id = 23
 	},
 	{
 		name = "Rubber Soul",
-		key = "rubberSoulTrials",
 		type = optionType.trialCharacter,
 		id = 24
 	},
 	{
 		name = "Khan",
-		key = "khanTrials",
 		type = optionType.trialCharacter,
 		id = 25
 	},
@@ -642,9 +628,13 @@ local trialOptions = {
 		func = function() exportTrial() end
 	},
 	{
+		name = "Select Trials",
+		type = optionType.files,
+	},
+	{
 		name = "Reset Trial Completion",
 		type = optionType.func,
-		func = function() clearTrialOptions() end
+		func = function() resetTrialCompletion() end
 	},
 	{
 		name = "Return",
@@ -686,11 +676,6 @@ local rootOptions = {
 		name = "Trial Options",
 		type = optionType.func,
 		func = function() trialOptionsVerification() end
-	},
-	{
-		name = "Save Settings",
-		type = optionType.func,
-		func = function() writeSettings() end
 	},
 	{
 		name = "About",
@@ -1222,6 +1207,7 @@ for i = 1, 64, 1 do
 		x = 0,
 		y = 0,
 		attackId = 0,
+		previousAttackId = 0,
 		attackHit = 0,
 		previousAttackHit = 0,
 		consumed = false
@@ -1350,6 +1336,218 @@ local intToComboString = {
 	"meaty",
 }
 
+-- creates a set similar to the java style collection
+function createSet(list)
+	local set = {}
+	for _, l in ipairs(list) do 
+		set[l] = true 
+	end
+	return set
+end
+
+local recordingKeys = createSet({
+	"recording",
+	"p1Recording",
+	"p2Recording"
+})
+
+-------------------------------------------------
+-- json.lua 
+-- By tylerneylon
+-- https://gist.github.com/tylerneylon/59f4bcf316be525b30ab
+-------------------------------------------------
+
+--[[ json.lua
+A compact pure-Lua JSON library.
+The main functions are: json.stringify, json.parse.
+## json.stringify:
+This expects the following to be true of any tables being encoded:
+ * They only have string or number keys. Number keys must be represented as
+strings in json; this is part of the json spec.
+ * They are not recursive. Such a structure cannot be specified in json.
+A Lua table is considered to be an array if and only if its set of keys is a
+consecutive sequence of positive integers starting at 1. Arrays are encoded like
+so: `[2, 3, false, "hi"]`. Any other type of Lua table is encoded as a json
+object, encoded like so: `{"key1": 2, "key2": false}`.
+Because the Lua nil value cannot be a key, and as a table value is considerd
+equivalent to a missing key, there is no way to express the json "null" value in
+a Lua table. The only way this will output "null" is if your entire input obj is
+nil itself.
+An empty Lua table, {}, could be considered either a json object or array -
+it's an ambiguous edge case. We choose to treat this as an object as it is the
+more general type.
+To be clear, none of the above considerations is a limitation of this code.
+Rather, it is what we get when we completely observe the json specification for
+as arbitrary a Lua object as json is capable of expressing.
+## json.parse:
+This function parses json, with the exception that it does not pay attention to
+\u-escaped unicode code points in strings.
+It is difficult for Lua to return null as a value. In order to prevent the loss
+of keys with a null value in a json string, this function uses the one-off
+table value json.null (which is just an empty table) to indicate null values.
+This way you can check if a value is null with the conditional
+`val == json.null`.
+If you have control over the data and are using Lua, I would recommend just
+avoiding null values in your data to begin with.
+--]]
+
+local json = {}
+
+-- Internal functions.
+
+json.in_char = {'\\', '"', '/', '\b', '\f', '\n', '\r', '\t'}
+json.out_char = {'\\', '"', '/',  'b',  'f',  'n',  'r',  't'}
+
+local function escape_str(s)
+	for i, c in ipairs(json.in_char) do
+		s = s:gsub(c, '\\' .. json.out_char[i])
+	end
+	return s
+end
+
+-- Returns pos, did_find; there are two cases:
+-- 1. Delimiter found: pos = pos after leading space + delim; did_find = true.
+-- 2. Delimiter not found: pos = pos after leading space;     did_find = false.
+-- This throws an error if err_if_missing is true and the delim is not found.
+local function skip_delim(str, pos, delim, err_if_missing)
+	pos = pos + #str:match('^%s*', pos)
+	if str:sub(pos, pos) ~= delim then
+		if err_if_missing then
+			error('Expected ' .. delim .. ' near position ' .. pos)
+		end
+    	return pos, false
+  	end
+  	return pos + 1, true
+end
+
+json.esc_map = {b = '\b', f = '\f', n = '\n', r = '\r', t = '\t'}
+
+-- Expects the given pos to be the first character after the opening quote.
+-- Returns val, pos; the returned pos is after the closing quote character.
+local function parse_str_val(str, pos, val)
+	val = val or ''
+	local early_end_error = 'End of input found while parsing string.'
+	if pos > #str then error(early_end_error) end
+	local c = str:sub(pos, pos)
+	if c == '"'  then return val, pos + 1 end
+	if c ~= '\\' then return parse_str_val(str, pos + 1, val .. c) end
+	-- We must have a \ character.
+	local nextc = str:sub(pos + 1, pos + 1)
+	if not nextc then error(early_end_error) end
+	return parse_str_val(str, pos + 2, val .. (json.esc_map[nextc] or nextc))
+end
+
+-- Returns val, pos; the returned pos is after the number's final character.
+local function parse_num_val(str, pos)
+	local num_str = str:match('^-?%d+%.?%d*[eE]?[+-]?%d*', pos)
+	local val = tonumber(num_str)
+	if not val then error('Error parsing number at position ' .. pos .. '.') end
+	return val, pos + #num_str
+end
+
+-- Public values and functions.
+
+function json.stringify(obj) -- rewritten to output in desired formatting
+	local curlyboy = not obj[1] and next(obj) ~= nil
+	local sb = { (curlyboy and "{" or "[") }
+	insertJsonTable(sb, obj, 1)
+	sb[#sb + 1] = (curlyboy and "}" or "]")
+	return table.concat(sb, "\n")
+end
+
+function insertJsonTable(sb, t, depth)
+	if next(t) == nil then return end
+	for k, v in pairs(t) do
+		local keyType = type(k)
+		local valueType = type(v)
+		local key
+		local value
+		local skip = false
+
+		if keyType == "number" then
+			key = string.rep("    ", depth)
+		else
+			key = string.rep("    ", depth).."\""..k.."\": "
+		end
+		
+		if valueType == "nil" then 
+			skip = true
+		elseif recordingKeys[k] then
+			value = "[\""..table.concat(v, "\",\"").."\"],"
+		elseif valueType == "table" then
+			local curlyboy = not v[1] and next(v) ~= nil
+			sb[#sb + 1] = key..(curlyboy and "{" or "[")
+			depth = depth + 1
+			insertJsonTable(sb, v, depth)
+			depth = depth - 1
+			sb[#sb + 1] = string.rep("    ", depth)..(curlyboy and "}" or "]")..","
+			skip = true
+		elseif valueType == "string" then
+			value = "\""..escape_str(v).."\","
+		elseif valueType == "boolean" then
+			value = (v and "true" or "false")..","
+		elseif valueType == "number" and k == "type" then
+			if v == 1 then
+				skip = true
+			else
+				value = "\""..intToComboString[v].."\","
+			end
+		else
+			value = v..","
+		end
+
+		if not skip then
+			sb[#sb + 1] = key..value
+		end
+	end
+	sb[#sb] = sb[#sb]:sub(1, -2)
+end
+
+json.null = {}  -- This is a one-off table to represent the null value.
+
+function json.parse(str, pos, end_delim)
+	pos = pos or 1
+	if pos > #str then error('Reached unexpected end of input.') end
+	local pos = pos + #str:match('^%s*', pos)  -- Skip whitespace.
+	local first = str:sub(pos, pos)
+	if first == '{' then  -- Parse an object.
+		local obj, key, delim_found = {}, true, true
+		pos = pos + 1
+		while true do
+			key, pos = json.parse(str, pos, '}')
+			if key == nil then return obj, pos end
+			if not delim_found then error('Comma missing between object items.') end
+			pos = skip_delim(str, pos, ':', true)  -- true -> error if missing.
+			obj[key], pos = json.parse(str, pos)
+			pos, delim_found = skip_delim(str, pos, ',')
+		end
+	elseif first == '[' then  -- Parse an array.
+		local arr, val, delim_found = {}, true, true
+		pos = pos + 1
+		while true do
+			val, pos = json.parse(str, pos, ']')
+			if val == nil then return arr, pos end
+			if not delim_found then error('Comma missing between array items.') end
+			arr[#arr + 1] = val
+			pos, delim_found = skip_delim(str, pos, ',')
+		end
+	elseif first == '"' then  -- Parse a string.
+		return parse_str_val(str, pos + 1)
+	elseif first == '-' or first:match('%d') then  -- Parse a number.
+		return parse_num_val(str, pos)
+	elseif first == end_delim then  -- End of an object or array.
+		return nil, pos + 1
+	else  -- Parse true, false, or null.
+		local literals = {['true'] = true, ['false'] = false, ['null'] = json.null}
+		for lit_str, lit_val in pairs(literals) do
+			local lit_end = pos + #lit_str - 1
+			if str:sub(pos, lit_end) == lit_str then return lit_val, lit_end + 1 end
+		end
+		local pos_info_str = 'position ' .. pos .. ': ' .. str:sub(pos, pos + 10)
+		error('Invalid json syntax starting at ' .. pos_info_str)
+	end
+end
+
 -------------------------------------------------
 -- IO
 -------------------------------------------------
@@ -1441,22 +1639,17 @@ function parseInput(line)
 	return inputs
 end
 
---Saves settings to menu settings.txt
+-- Saves settings to menu settings.txt
 function writeSettings()
-	local f, err = io.open("menu settings.txt", "w")
+	local f, err = io.open("menu settings.json", "w")
 	if err then 
-		print("Could not save settings to \"menu settings.txt\"")
+		print("Could not save settings to \"menu settings.json\"")
 		return 
 	end
-	local strings = {}
-	for k, v in pairs(options) do
-		table.insert(strings, k:upper().." = "..tostring(v))
-	end
-	table.insert(strings, "P1")
-	insertPlayerRecording(strings, p1, 1)
-	table.insert(strings, "P2")
-	insertPlayerRecording(strings, p2, 0)
-	local _, err = f:write(table.concat(strings, "\n"))
+	options.p1Recording = getParsedRecording(p1.recorded, p1.recordedFacing ~= 1)
+	options.p2Recording = getParsedRecording(p2.recorded, p2.recordedFacing ~= 0)
+	local settingsString = json.stringify(options)
+	local _, err = f:write(settingsString)
 	if err then
 		menu.info = "Error saving settings"
 	else
@@ -1465,20 +1658,20 @@ function writeSettings()
 	f:close()
 end
 
-function insertPlayerRecording(strings, player, facing)
-	if #player.recorded == 0 then return end
-	local previousHex = player.recorded[1]
-	local hex = previousHex
+function getParsedRecording(recording, swap)
+	if #recording == 0 then return {} end
+	local strings = {}
 	local count = 1
+	local hex = swap and swapHexDirection(recording[1]) or recording[1]
+	local previousHex = hex
 	local str = hexToInputString(hex)
-	for i = 2, #player.recorded, 1 do
-		hex =  player.recorded[i] 
-		hex = (facing == player.recordedFacing and hex or swapHexDirection(hex))
+	for i = 2, #recording, 1 do
+		hex = swap and swapHexDirection(recording[i]) or recording[i]
 		if hex == previousHex then
 			count = count + 1
 		else
 			str = str..tostring(count)
-			table.insert(strings, str)
+			strings[#strings + 1] = str
 			str = hexToInputString(hex)
 			count = 1
 		end
@@ -1486,8 +1679,9 @@ function insertPlayerRecording(strings, player, facing)
 	end
 	if count ~= 1 then
 		str = str..tostring(count)
-		table.insert(strings, str)
+		strings[#strings + 1] = str
 	end
+	return strings
 end
 
 function hexToInputString(hex)
@@ -1502,56 +1696,56 @@ end
 
 --Read settings from menu settings.txt
 function readSettings()
-	local f, err = io.open("menu settings.txt", "r")
+	local f, err = io.open("menu settings.json", "r")
 	if err then
 		return
 	end
-	local player = nil
-	for line in f:lines() do
-		if #line ~= 0 then
-			if line == "P1" then
-				player = p1
-				player.recorded = {}
-				player.recordedFacing = 1
-			elseif line == "P2" then
-				player = p2
-				player.recorded = {}
-				player.recordedFacing = 0
-			elseif player then
-				local inputs = parseInput(line)
-				for _ = 1, inputs.wait, 1 do
-					player.recorded[#player.recorded + 1] = inputs.hex
-				end
-			else
-				setOption(line)
-			end
-		end
-	end
+	options = json.parse(f:read("*all"))
+	p1.recorded = parseRecording(options.p1Recording)
+	p1.recordedFacing = 1
+	p2.recorded = parseRecording(options.p2Recording)
+	p2.recordedFacing = 0
 	f:close()
 end
 
-function setOption(line)
-	for k, v in pairs(options) do
-		local _, _, key, value = line:upper():find("(%w+)%s*=%s*(%w+)")
-		if key == k:upper() then
-			local type = type(v)
-			if type == "boolean" then
-				options[k] = (value == "TRUE" and true or false)
-			elseif type == "number" then
-				options[k] = tonumber(value)
-			end
-			break
+function parseRecording(strings)
+	local recording = {}
+	for i = 1, #strings, 1 do
+		local inputs = parseInput(strings[i])
+		for _ = 1, inputs.wait, 1 do
+			recording[#recording + 1] = inputs.hex
 		end
 	end
+	return recording
 end
 
 function readTrials()
-	local t, err = loadfile("trials.lua")
+	local success = readTrial(options.trialsFilename)
+	if success then return end
+	success = readTrial("sample_trials.json")
+	if success then return end
+	local jsons = getTrialsJsons()
+	if #jsons == 0 then return end
+	readTrial(jsons[1])
+end
+
+function readTrial(filename)
+	local t, err = io.open(filename, "r")
 	if err then
-		return
+		print(err)
+		return false
 	end
-	trials = t()
+	trials = json.parse(t:read("*all"))
 	sanitizeTrials()
+	options.trialsFilename = filename
+	if options.trialSuccess[filename] == nil then
+		local successTable = {}
+		for i = 1, 22, 1 do 
+			successTable[i] = 0
+		end
+		options.trialSuccess[filename] = successTable
+	end
+	return true
 end
 
 function exportTrial()
@@ -1559,78 +1753,43 @@ function exportTrial()
 		menu.info = "No new trials to export"
 		return
 	end
-	local success = os.rename("trials.lua", "trials backup.lua")
+	local backup =  "_backup_"..options.trialsFilename
+	local success = os.rename(options.trialsFilename, backup)
 	if not success then
-		menu.info = "Error backing up your trials"
+		menu.info = "Error backing up to "..backup
 		return
 	end
-	local f, err = io.open("trials.lua", "w")
+	local f, err = io.open(options.trialsFilename, "w")
 	if err then
-		menu.info = "Error accessing trials.lua"
+		menu.info = "Error accessing "..options.trialsFilename
 		return
 	end
-	local trialString = getTrialString()
+	local trialString = json.stringify(trials)
 	local _, err = f:write(trialString)
 	if err then
 		menu.info = "Error exporting trial"
 	else
 		menu.info = "Trials exported successfully"
 		trial.export = false
-		os.remove("trials backup.lua")
+		os.remove(backup)
 	end
 	f:close()
 end
 
-function getTrialString()
-	local sb = { "return {" }
-	insertTable(sb, trials, 1)
-	sb[#sb + 1] = "}"
-	return table.concat(sb, "\n")
-end
-
-function insertTable(sb, t, depth)
-	for k, v in pairs(t) do
-		local keyType = type(k)
-		local valueType = type(v)
-		local key
-		local value
-		local skip = false
-
-		if keyType == "number" then
-			key = string.rep("    ", depth)
-		else
-			key = string.rep("    ", depth)..k.." = "
-		end
-		
-		if valueType == "nil" then 
-			skip = true
-		elseif k == "recording" then
-			value = "{ \""..table.concat(v, "\",\"").."\" },"
-		elseif valueType == "table" then
-			sb[#sb + 1 ] = key.."{"
-			depth = depth + 1
-			insertTable(sb, v, depth)
-			depth = depth - 1
-			sb[#sb + 1] = string.rep("    ", depth).."},"
-			skip = true
-		elseif valueType == "string" then
-			value = "\""..v:gsub("\"", "\\\"").."\""..","
-		elseif valueType == "boolean" then
-			value = (v and "true" or "false")..","
-		elseif valueType == "number" and k == "type" then
-			if v == 1 then
-				skip = true
-			else
-				value = "\""..intToComboString[v].."\","
-			end
-		else
-			value = v..","
-		end
-
-		if not skip then
-			sb[#sb + 1] = key..value
+function getTrialsJsons()
+	local handle = io.popen("dir .\\ /b")
+	local files = {}
+	if handle == nil then
+	  	menu.info = "No trials jsons found"
+	  	return files
+	end
+	for line in handle:lines() do
+		if line:match(".*[Tt][Rr][Ii][Aa][Ll].*json$") then 
+			files[#files + 1] = line
 		end
 	end
+	handle:close()
+	return files
 end
 
 -------------------------------------------------
@@ -1742,6 +1901,8 @@ function readPlayerMemory(player)
 	player.previousPushblockCount = player.pushblockCount
 	player.previousHitFreeze = player.hitFreeze
 	player.previousStunCount = player.stunCount
+	player.previousAttackId = player.attackId
+	player.previousStandAttackId = player.standAttackId
 	player.previousAttackHit = player.attackHit
 	player.previousStandAttackHit = player.standAttackHit
 	player.previousTandem = player.tandem
@@ -1773,15 +1934,16 @@ function readProjectileMemory()
 			projectile.hitbox = readWord(address + 0xAC)
 			projectile.x = readWordSigned(address + 0x5C)
 			projectile.y = readWordSigned(address + 0x60)
+			projectile.previousAttackId = projectile.attackId
 			projectile.attackId = readByte(address + 0xDC)
 			projectile.previousAttackHit = projectile.attackHit
 			projectile.attackHit = readByte(address + 0xDD)
 			if projectile.previousState == 0 then
 				projectile.consumed = false
 			end
-		end	
+		end
 	end
-end  
+end
 
 function readSystemMemory()
 	system.screenFreeze = readByte(0x020314C6)
@@ -2601,6 +2763,20 @@ function menuSelect()
 		updateMenuTrial()
 	elseif option.type == optionType.trial then
 		menuClose()
+	elseif option.type == optionType.files then
+		local fileOptions = getFileOptions()
+		if #fileOptions == 0 then
+			menu.info = "No trials jsons found"
+		else
+			menu.options = fileOptions
+			menu.state = 7
+			menu.previousSubIndex = menu.index
+			menu.index = 1
+			menu.title = "Trial Select"
+		end
+	elseif option.type == optionType.file then
+		readTrial(option.name)
+		writeSettings()
 	end
 end
 
@@ -2619,6 +2795,12 @@ function menuCancel()
 		menu.options = trialCharacterOptions
 		menu.title = "Combo Trials"
 		trialModeStop()
+	elseif menu.state == 7 then -- files
+		menu.state = 2
+		menu.index = menu.previousSubIndex
+		menu.options = trialOptions
+		menu.title = "Trial Options"
+		updateMenuInfo()
 	elseif menu.state > 1 then -- sub menu
 		menu.state = 1
 		menu.index = menu.previousIndex
@@ -2637,6 +2819,8 @@ function menuClose()
 	updateChild(p2, options.p2Child, 0x02034CF5)
 	if trial.enabled then
 		trialMenuClose()
+	else
+		writeSettings()
 	end
 end
 
@@ -2667,7 +2851,7 @@ function menuLeft()
 			if #menu.options < 14 or menu.index == 13 then
 				menu.index = #menu.options - 1
 			else
-				menu.index = 11
+				menu.index = 12
 			end
 		else
 			menu.index = menu.index - 1
@@ -2782,10 +2966,10 @@ function resetColor()
 	options[menu.color] = menu.default
 end
 
-function getTrialOptions(i, option)
+function getTrialOptions(index)
 	local optionsTable = {}
-	local success = options[option.key]
-	local characterTrials = trials[i].trials
+	local success = options.trialSuccess[options.trialsFilename][index]
+	local characterTrials = trials[index].trials
 	for i = 1, #characterTrials, 1 do
 		optionsTable[i] = {
 			type = optionType.trial,
@@ -2816,6 +3000,23 @@ function updateChild(player, option, address)
 	end
 end
 
+function getFileOptions()
+	local jsons = getTrialsJsons()
+	if #jsons == 0 then return {} end
+	local optionsTable = {}
+	for i = 1, #jsons, 1 do
+		optionsTable[i] = {
+			name = jsons[i],
+			type = optionType.file
+		}
+	end
+	optionsTable[#optionsTable + 1] = {
+		name = "Return",
+		type = optionType.back
+	}
+	return optionsTable
+end
+
 -------------------------------------------------
 -- Trials
 -------------------------------------------------
@@ -2827,67 +3028,66 @@ function updateTrial()
 	elseif trial.reset then
 		updateTrialReset()
 	end
-	updateTrialCheck()
+	updateTrialCheck(false)
 end
 
-function updateTrialCheck()
+function updateTrialCheck(tailCall)
 	local input = trial.combo[trial.index]
 	if input.type == comboType.meaty and p2.wakeupFrame then
 		if checkAttackId(input.id) then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		else
-			trialFail()
+			return trialFail()
 		end
-		return 
 	end
 	if not (trial.index == 1 and trial.subIndex == 1) and not trialStun(input) then 
-		trialFail()
+		return trialFail()
 	elseif input.type == comboType.id then 
 		if checkAttackId(input.id) then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.multi then
 		if checkAttackId(input.id[trial.subIndex]) then
-			advanceTrialSubIndex(input)
+			return advanceTrialSubIndex(input)
 		end
 	elseif input.type == comboType.alt then
 		for i = 1, #input.id, 1 do
 			if checkAttackId(input.id[i]) then
-				advanceTrialIndex()
+				return advanceTrialIndex()
 			end
 		end
 	elseif input.type == comboType.tandem then
 		if p1.previousTandem == 0 and p1.tandem == 1 then 
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.inputs then
 		if p1.previousTandemCount ~= p1.tandemCount then
 			local address = 0x02032174 + (p1.tandemCount - 1) * 6
-			local tandemInput = readWord(address) * 0x100000000 + readWord(address + 2) * 0x10000 + readWord(address + 4)
+			local tandemInput = tandemString(readByteRange(address, 6))
 			if tandemInput == input.id[trial.subIndex] then
-				advanceTrialSubIndex(input)
-			else
-				trialFail()
+				return advanceTrialSubIndex(input)
+			elseif not tailCall then
+				return trialFail()
 			end
 		end
 	elseif input.type == comboType.pCharge then
 		if p1.actionId == input.id then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.sCharge then
 		if p1.standActionId == input.id then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.bCharge then
 		for i = 1, 32, 1 do
 			local projectile = projectiles[i]
 			if projectile.previousState == 0 and projectile.state == 1 and input.id == projectile.attackId then
-				advanceTrialIndex()
+				return advanceTrialIndex()
 			end
 		end
 	elseif input.type == comboType.whiff then
 		if checkWhiffId(input.id) then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.projectiles then
 		if checkAttackId(input.id) then
@@ -2896,30 +3096,37 @@ function updateTrialCheck()
 					projectiles[i].consumed = true
 				end
 			end
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.remote then
 		if p1.previousStand == 1 and p1.stand == 2 then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.recall then
 		if p1.previousStand == 2 and p1.stand == 0 then
-			advanceTrialIndex()
+			return advanceTrialIndex()
 		end
 	end
 end
 
+function tandemString(ids)
+	return string.format("%02X%02X%02X%02X%02X", ids[1], ids[2], ids[3], ids[5], ids[6])
+end
+
 function checkAttackId(id)
-	if p1.previousAttackHit == 0 and p1.attackHit > 0 and p1.attackId == id then
+	if p1.attackHit > 0 and p1.attackId == id and 
+		(p1.previousAttackHit == 0 or p1.attackId ~= p1.previousAttackId) then
 		return true
 	end
-	if p1.previousStandAttackHit == 0 and p1.standAttackHit > 0 and p1.standAttackId == id then
+	if p1.standAttackHit > 0 and p1.standAttackId == id and 
+		(p1.previousStandAttackHit == 0 or p1.previousStandAttackId ~= p1.standAttackId) then
 		return true
 	end
 	for i = 1, 32, 1 do
 		local projectile = projectiles[i]
 		if projectile.state > 0 and not projectile.consumed then
-			if projectile.previousAttackHit == 0 and projectile.attackHit == 1 and projectile.attackId == id then
+			if projectile.attackHit > 0 and projectile.attackId == id and 
+				(projectile.previousAttackHit == 0 or projectile.previousAttackId ~= projectile.attackId) then
 				return true
 			end
 		end
@@ -2948,16 +3155,16 @@ function hasHitbox(id)
 end
 
 function getAttackId()
-	if p1.previousAttackHit == 0 and p1.attackHit > 0 then 
+	if p1.attackHit > 0 and (p1.previousAttackHit == 0 or p1.attackId ~= p1.previousAttackId) then 
 		return p1.attackId
 	end
-	if p1.previousStandAttackHit == 0 and p1.standAttackHit > 0 then
+	if p1.standAttackHit > 0 and (p1.previousStandAttackHit == 0 or p1.previousStandAttackId ~= p1.standAttackId) then
 		return p1.standAttackId
 	end
 	for i = 1, 32, 1 do
 		local projectile = projectiles[i]
 		if projectile.state > 0 then
-			if projectile.previousAttackHit == 0 and projectile.attackHit > 0 then
+			if projectile.attackHit > 0 and (projectile.previousAttackHit == 0 or projectile.previousAttackId ~= projectile.attackId) then
 				return projectile.attackId
 			end
 		end
@@ -3111,20 +3318,79 @@ function advanceTrialIndex()
 		trial.success = true
 		if p1.playbackCount == 0 then 
 			menu.options[menu.index].success = true
-			local key = trialCharacterOptions[menu.previousSubIndex].key
-			local value = bor(options[key], lShift(1, trial.id - 1))
-			options[key] = value
-			menu.previousOptions[key] = value
+			local trialSuccess = options.trialSuccess[options.trialsFilename]
+			local value = bor(trialSuccess[menu.previousSubIndex], lShift(1, trial.id - 1))
+			trialSuccess[menu.previousSubIndex] = value
 			trialSave()
 		end
+	elseif trialTailCall() then
+		return updateTrialCheck(true) --make a tail call to check for multiple hits on the same frame if the id's are different
 	end
 end
 
 function advanceTrialSubIndex(input)
 	trial.subIndex = trial.subIndex + 1
 	if trial.subIndex > #input.id then
-		advanceTrialIndex()
+		return advanceTrialIndex()
+	elseif trialTailCall() then
+		return updateTrialCheck(true)
 	end
+end
+
+function trialTailCall() -- determines whether the previous id is the same as the current id 
+	local input = trial.combo[trial.index]
+	local inputId
+	local inputTable = false
+	if input.type == comboType.multi then 
+		if trial.subIndex > 1 then
+			return input.id[trial.subIndex] ~= input.id[trial.subIndex - 1]
+		end
+		inputId = input.id[1]
+	elseif input.type == comboType.id or input.type == comboType.meaty then
+		inputId = input.id
+	elseif input.type == comboType.alt then
+		inputId = input.id
+		inputTable = true
+	else
+		return true
+	end
+	local previousInput = trial.combo[trial.index - 1]
+	local previousInputId
+	local previousInputTable = false
+	if previousInput.type == comboType.multi then
+		previousInputId = previousInput.id[#previousInput.id]
+	elseif previousInput.type == comboType.id then
+		previousInputId = previousInput.id
+	elseif previousInput.type == comboType.alt then
+		previousInputId = previousInput.id
+		previousInputTable = true
+	elseif previousInput.type == comboType.meaty then
+		return false
+	else
+		return true
+	end
+	if inputTable then
+		if previousInputTable then
+			for i = 1, #inputId, 1 do
+				for j = 1, #previousInputId, 1 do
+					if inputId[i] == previousInputId[j] then return false end
+				end
+			end
+		else
+			for i = 1, #inputId, 1 do
+				if inputId[i] == previousInputId then return false end 
+			end
+		end
+	else
+		if previousInputTable then
+			for i = 1, #previousInputId, 1 do
+				if inputId == previousInputId[i] then return false end 
+			end
+		else
+			if inputId == previousInputId then return false end
+		end
+	end
+	return true
 end
 
 function trialFail()
@@ -3215,7 +3481,7 @@ function updateTrialRecording()
 		trial.recordingSubIndex = 1
 	elseif p1.tandem == 1 and p1.previousTandemCount ~= p1.tandemCount then
 		local address = 0x02032174 + (p1.tandemCount - 1) * 6
-		local tandemInput = readWord(address) * 0x100000000 + readWord(address + 2) * 0x10000 + readWord(address + 4)
+		local tandemInput = tandemString(readByteRange(address, 6))
 		if trial.recordingSubIndex == 1 then
 			combo[#combo + 1] = {
 				name = tostring(#combo + 1),
@@ -3246,35 +3512,9 @@ end
 
 function trialFinaliseRecording()
 	local hexes = duplicateList(p1.recorded, true, false)
-	if #hexes == 0 then 
-		return 
-	end
-	if trial.recording.p1.facing ~= 1 then 
-		for i = 1, #hexes, 1 do
-			hexes[i] = swapHexDirection(hexes[i])
-		end
-	end
-	local strings = {}
-	local previousHex = hexes[1]
-	local hex = previousHex
-	local count = 1
-	local str = hexToInputString(hex)
-	for i = 2, #hexes, 1 do
-		if hexes[i] == previousHex then
-			count = count + 1
-		else
-			str = str..tostring(count)
-			strings[#strings + 1] = str
-			str = hexToInputString(hexes[i])
-			count = 1
-		end
-		previousHex = hexes[i]
-	end
-	if count ~= 1 then
-		str = str..tostring(count)
-		strings[#strings + 1] = str
-	end
-	trial.recording.recording = strings
+	if #hexes == 0 then return end
+	local swap = trial.recording.p1.facing ~= 1
+	trial.recording.recording = getParsedRecording(hexes, swap)
 end
 
 function trialRecordingSave()
@@ -3451,20 +3691,18 @@ function parseTrialRecording()
 	if not trial.trial.recording then
 		return nil
 	end
-	local recording = {}
-	local strings = trial.trial.recording
-	for i = 1, #strings, 1 do
-		local inputs = parseInput(strings[i])
-		for _ = 1, inputs.wait, 1 do
-			recording[#recording + 1] = inputs.hex
-		end
-	end
-	return recording
+	return parseRecording(trial.trial.recording)
+end
+
+function resetTrialCompletion()
+	clearTrialOptions()
+	writeSettings()
 end
 
 function clearTrialOptions()
-	for i = 1, #trialCharacterOptions - 1, 1 do
-		options[trialCharacterOptions[i].key] = 0
+	local successTable = options.trialSuccess[options.trialsFilename]
+	for i = 1, 22, 1 do 
+		successTable[i] = 0
 	end
 	menu.info = "Trial completion reset!"
 end
@@ -3694,6 +3932,8 @@ function drawHud()
 			readByte(0x02034D61).." hitstun2",
 			p2.y.." p2 y",
 			p2.defenseAction.." p2 defense action",
+			projectiles[1].attackId.." proj attack id",
+			projectiles[1].attackHit.." proj hit"
 		}
 		drawDebug(debugInfo, 180, 30)
 	end
@@ -3722,6 +3962,8 @@ function drawMenu()
 		drawTrialsCharacters()
 	elseif menu.state == 6 then --trials
 		drawTrials()
+	elseif menu.state == 7 then --files
+		drawFileList()
 	else
 		drawList()
 	end
@@ -3786,19 +4028,20 @@ function drawTrialsCharacters()
 		local x = 100 + ((i - 1) % 2) * 100
 		local y = 60 + math.floor((i - 1) / 2) * 12
 		gui.text(x, y, option.name, color)
-		guiTextAlignRight(x + 86, y, trialCompletedCount(options[option.key]).."/"..#trials[i].trials, color)
+		guiTextAlignRight(x + 86, y, trialCompletedCount(i).."/"..#trials[i].trials, color)
 	end
 	local color = (menu.index == 23) and colors.menuSelectedColor or colors.menuUnselectedColor
 	gui.text(200, 192, "Return", color)
 end
 
-function trialCompletedCount(trial)
+function trialCompletedCount(index)
+	local success = options.trialSuccess[options.trialsFilename][index]
 	local count = 0
-	while trial > 0 do
-		if band(trial, 1) == 1 then
+	while success > 0 do
+		if band(success, 1) == 1 then
 			count = count + 1
 		end
-		trial = rShift(trial, 1)
+		success = rShift(success, 1)
 	end
 	return count
 end
@@ -3807,11 +4050,12 @@ function drawTrials()
 	if menu.index ~= #menu.options then
 		local trial = menu.options[menu.index].trial
 		gui.text(100, 60, trial.name, colors.menuUnselectedColor)
-		gui.text(100, 72, "Difficulty: "..string.rep("* ", trial.difficulty), colors.menuUnselectedColor)
+		local difficulty = type(trial.difficulty) == "number" and string.rep("* ", trial.difficulty) or trial.difficulty
+		gui.text(100, 72, "Difficulty: "..difficulty, colors.menuUnselectedColor)
 		gui.text(100, 84, "Author: "..trial.author, colors.menuUnselectedColor)
 		gui.text(100, 96, "Info:", colors.menuUnselectedColor)
 		for i = 1, #trial.info, 1 do
-			gui.text(100, 96 + i * 12, trial.info[i], colors.menuUnselectedColor)
+			gui.text(100, 100 + i * 8, trial.info[i], colors.menuUnselectedColor)
 		end
 		gui.text(202, 40, "Not in Use 1: Restart")
 		gui.text(202, 50, "Not in Use 2: Replay")
@@ -3853,6 +4097,15 @@ function drawTrialGui()
 		elseif #trial.combo > 13 then
 			gui.text(10, 188, "Start + Up/Down: Scroll")
 		end
+	end
+end
+
+function drawFileList()
+	for i = 1, #menu.options, 1 do
+		local option = menu.options[i]
+		local color = menu.index == i and colors.menuSelectedColor or 
+			options.trialsFilename == option.name and options.failColor or colors.menuUnselectedColor
+		gui.text(100, 50 + i * 10, option.name, color)
 	end
 end
 
@@ -4027,7 +4280,6 @@ emu.registerstart(function()
 	writeByte(0x20713A8, 0x09) -- Infinite Credits
 	writeByte(0x20312C1, 0x01) -- Unlock all characters
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
-	clearTrialOptions() --initialize character trials
 	readSettings()
 	readTrials()
 	createInputsFile()

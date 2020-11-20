@@ -1,4 +1,5 @@
 .vscode/
 menu settings.txt
+menu settings.json
 TODO.txt
 inputs.txt
