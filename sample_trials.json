@@ -455,11 +455,11 @@
                         "name": "j.214A (Hit)"
                     }
                 ],
-                "difficulty": 2,
+                "standGuage": false,
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
+                "difficulty": 2,
                 "recording": ["ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81"],
-                "standGuage": false,
                 "name": "Net link",
                 "info": [
                     "Nothing but net"
@@ -1380,7 +1380,7 @@
                     }
                 ],
                 "recording": ["ru5","r1","21","a6","4","d8","ad5","d15","ad1","adl2","al1","l3","7","r4","4","r8","3","dl4","adl7","dl12","adl7","dl1","d1","8","d2","asd4","a1","3","b6","db1","d1","dl4","l2","1","a5","7","d2","dl3","l3","1","a6","77"],
-                "difficulty": 1,
+                "difficulty": 2,
                 "name": "Don't want no short people",
                 "position": false,
                 "p2": {
@@ -1411,6 +1411,195 @@
                     "standX": 1085,
                     "x": 1034
                 }
+            },
+            {
+                "direction": 0,
+                "ips": false,
+                "combo": [
+                    {
+                        "name": "6CA6S (Time Stop)",
+                        "type": "time stop"
+                    },
+                    {
+                        "id": 25,
+                        "type": "stand charge",
+                        "name": "s.236AA (Whiff)"
+                    },
+                    {
+                        "id": 25,
+                        "type": "stand charge",
+                        "name": "s.236AA (Whiff)"
+                    },
+                    {
+                        "id": 23,
+                        "name": "214AA"
+                    },
+                    {
+                        "name": "(Time Stop End)",
+                        "type": "time stop end"
+                    },
+                    {
+                        "id": 18,
+                        "name": "s.236AA (Hit)"
+                    }
+                ],
+                "recording": ["r2","cr1","c4","ac1","a1","ar3","sr3","s3","167","d3","rd3","r1","acrb2","acb4","50","d2","rd3","r2","acrb1","acb4","63","s5","1","d2","dl2","l1","acbl2","acb3","770"],
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "meter": 6,
+                "difficulty": 1,
+                "rng": 1780190173,
+                "name": "Raw Timestop",
+                "position": false,
+                "p2": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "stand": 0,
+                    "child": false,
+                    "standX": 481,
+                    "x": 476
+                },
+                "info": [
+                    "Timestop test"
+                ],
+                "stage": {
+                    "id": 38,
+                    "x": 149,
+                    "y": 252
+                },
+                "p1": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 1,
+                    "child": false,
+                    "standX": 207,
+                    "x": 191
+                }
+            },
+            {
+                "direction": 0,
+                "ips": false,
+                "rng": 168052263,
+                "combo": [
+                    {
+                        "id": 3,
+                        "name": "2A"
+                    },
+                    {
+                        "id": [
+                            0,
+                            3
+                        ],
+                        "type": "alt",
+                        "name": "2A"
+                    },
+                    {
+                        "id": 47,
+                        "name": "214A (Negative Edge)"
+                    },
+                    {
+                        "id": 3,
+                        "name": "2A"
+                    },
+                    {
+                        "id": [
+                            0,
+                            3
+                        ],
+                        "type": "alt",
+                        "name": "2A"
+                    },
+                    {
+                        "id": 10,
+                        "name": "6A+S (Walk cancel)"
+                    },
+                    {
+                        "id": 58,
+                        "name": "s.663A"
+                    },
+                    {
+                        "name": "214S",
+                        "type": "tandem"
+                    },
+                    {
+                        "id": [
+                            "1405000000",
+                            "1405000000",
+                            "1405070000"
+                        ],
+                        "type": "inputs",
+                        "name": "5A > 5A > 5B"
+                    },
+                    {
+                        "id": [
+                            10,
+                            10,
+                            30
+                        ],
+                        "type": "multi",
+                        "name": "s.5A > 5A > 5B"
+                    },
+                    {
+                        "id": 8,
+                        "name": "j.C"
+                    },
+                    {
+                        "id": 3,
+                        "name": "2A"
+                    },
+                    {
+                        "id": [
+                            10,
+                            30,
+                            33
+                        ],
+                        "type": "multi",
+                        "name": "6S+A > 6B > 6C !SC (Stand Crash)"
+                    },
+                    {
+                        "name": "6CA6S (Time Stop)",
+                        "type": "time stop"
+                    }
+                ],
+                "author": "Teddy K",
+                "tandemCooldown": true,
+                "meter": 4,
+                "difficulty": 4,
+                "recording": ["d2","ad4","a1","9","d3","dl2","adl2","al2","a1","7","r4","5","r6","8","d1","dl3","adl6","dl11","adl6","ad1","8","r3","asr1","as2","s1","4","r4","6","r1","rd2","rdl1","ardl1","adl2","al2","asl1","s3","24","a5","3","a7","4","b8","31","r4","4","r7","ru2","r24","cr6","r7","rd6","ard7","rd3","r8","sr1","asr2","sr1","r13","rb5","r10","cr4","c2","5","r2","cr3","c1","ac3","ar4","asr2","as1","s2","201"],
+                "name": "Toki wo tomare",
+                "position": false,
+                "p2": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "stand": 1,
+                    "x": 355,
+                    "standX": 339,
+                    "child": false
+                },
+                "info": [
+                    "Stand crash into a timestop setup"
+                ],
+                "stage": {
+                    "id": 38,
+                    "x": 152,
+                    "y": 252
+                },
+                "p1": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 0,
+                    "x": 289,
+                    "standX": 504,
+                    "child": false
+                }
             }
         ]
     },
@@ -1432,6 +1621,66 @@
     {
         "name": "Vanilla Ice",
         "trials": [
+            {
+                "direction": 0,
+                "ips": false,
+                "combo": [
+                    {
+                        "id": 67,
+                        "name": "2C"
+                    },
+                    {
+                        "id": 132,
+                        "type": "stand charge",
+                        "name": "214A (Start)"
+                    },
+                    {
+                        "id": [
+                            10,
+                            82
+                        ],
+                        "type": "double meaty",
+                        "name": "663A + 214A (Unblockable)"
+                    }
+                ],
+                "recording": ["d3","cd8","d4","15","r4","5","r9","d5","dl2","l1","al2","a4","19","r3","4","r1","rd5","ard12","rd5","24"],
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "meter": false,
+                "difficulty": 1,
+                "rng": 3719585700,
+                "name": "The unblockable",
+                "position": false,
+                "p2": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 91,
+                    "facing": 0,
+                    "stand": 0,
+                    "x": 1192,
+                    "standX": 872,
+                    "child": false
+                },
+                "info": [
+                    "214A and 663A must hit on the first frame",
+                    "of wakeup"
+                ],
+                "stage": {
+                    "id": 38,
+                    "x": 840,
+                    "y": 252
+                },
+                "p1": {
+                    "y": 0,
+                    "character": 17,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 0,
+                    "x": 1126,
+                    "standX": 1092,
+                    "child": false
+                }
+            }
         ]
     },
     {

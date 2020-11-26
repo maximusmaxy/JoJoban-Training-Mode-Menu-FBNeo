@@ -1,0 +1,146 @@
+- Move id definitions
+- Syntax: id name -comment
+- Everything after a hyphen will be ignored
+- If you place a hyphen after an id it will
+- be removed from the combo eg. "52 -5C Second hit"
+
+Jotaro
+
+-Normals
+0 5A
+1 5B
+2 6B
+38 5C -First hit
+52 5C -Second hit
+60 6C
+4 2A
+39 2B
+50 2C
+41 3C
+3 j.A
+11 j.B
+6 j.C
+
+-Dash Normals
+12 d.5A
+13 d.5B
+83 d.5C
+16 d.2A
+105 d.2B
+106 d.2C
+
+-Stand Normals
+17 s.5A
+18 s.5B
+24 s.6B
+19 s.5C -Close
+21 s.5C -Far
+20 s.2A
+23 s.2B
+22 s.2C
+43 s.5A -Chain
+44 s.5B -Chain
+45 s.5C -Chain
+47 s.5B -Chain
+48 s.5B -Chain
+50 s.6B -Chain
+46 s.2A -Chain
+49 s.2B -Chain
+51 s.2C -Chain
+25 s.2C -Chain
+26 s.j.A
+80 s.j.B
+27 s.j.C
+
+-Stand Dash Normals
+81 s.d.5A
+82 s.d.5B
+83 s.d.5C
+102 s.d.2A
+103 s.d.2B
+104 s.d.2C
+
+-Specials
+61 236X
+62 236X
+63 236X
+64 236X
+65 236X
+86 236X
+66 214A
+67 214B
+68 214C
+29 623X
+28 236S
+
+-Stand Specials
+30 s.236X
+31 s.236X
+32 s.236X
+33 s.236X
+34 s.236X
+88 s.236X
+35 s.214A
+36 s.214B
+37 s.214C
+99 s.214A -Chain
+100 s.214B -Chain
+74 s.214C -Chain
+
+-Supers
+94 214AA
+42 236AA
+69 236AA
+70 236AA
+71 236AA
+72 236AA
+87 236AA
+97 s.214AA
+75 s.236AA
+76 s.236AA
+77 s.236AA
+78 s.236AA
+79 s.236AA
+89 s.236AA
+
+Kakyoin
+
+Avdol
+
+Polnareff
+
+Old Joseph
+
+Iggy
+
+Alessi
+
+Chaka
+
+Devo
+
+Midler
+
+Dio
+
+Shadow Dio
+
+Young Joseph
+
+Hol Horse
+
+Vanilla Ice
+
+New Kakyoin
+
+Black Polnareff
+
+Petshop
+
+Mariah
+
+Hoingo
+
+Rubber Soul
+
+Khan

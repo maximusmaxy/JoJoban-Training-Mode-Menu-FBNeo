@@ -25,24 +25,18 @@ local debug = false -- Fbneo doesn't have watches so draw the variables on the s
 -- A half transparent teal would be written as 0x00808080
 
 local colors = {
-	menuBackgroundColor = 0x36393FFF, --0xAAAAAAFF,
-	menuTitleColor = 0xB1B3B6FF, --"grey",
-	menuSelectedColor = 0x2A96F4FF, --"green",
-	menuUnselectedColor = "white",
-	menuBorderColor = 0x202225FF, --"white",
-	orangeboxColor = 0xFF800000,
-	wakeupIndicator = 0xFBA400FF
-}
-
--- Toggleable hud locations for input history
-
-local hud = {
-	scrollFromBottom = true, -- Toggles hud.scrolling the input history upwards or downwards
-	xP1 = 13, -- X Position of the first frame of P1's input history.
-	yP1 = 200, -- Y Position of the first frame of P1's input history. 207 and 70 are recommended for hud.scrolling from the bottom and top respectively.
-	xP2 = 337, -- X Position of the first frame of P2's input history.
-	yP2 = 200, -- Y Position of the first frame of P2's input history. 207 and 70 are recommended for hud.scrolling from the bottom and top respectively.
-	offset = 3
+	menuBackground = 0x36393FFF,
+	menuTitle = 0xB1B3B6FF,
+	menuSelectedMin = { 43, 156, 255 }, --0x2B9CFFFF,
+	menuSelectedMax = { 37, 134, 219 }, --0x2586DBFF,
+	menuUnselected = "white",
+	menuBorder = 0x202225FF,
+	dpadBack = "black", --0x55CDFCFF,
+	dpadBorder = "white", --0xFFFFFFFF,
+	dpadActive = "red", --0xF7A8B8FF,
+	orangebox = 0xFF800000,
+	wakeupIndicator = 0xFBA400FF,
+	wakeupBorder = 0xFFFFFF00
 }
 
 -- These are the default values for the menu options and you can change them to what you desire
@@ -61,8 +55,10 @@ local options = {
 	healthRefill = true,
 	standGaugeRefill = true,
 	guiStyle = 2,
+	inputStyle = 2,
 	p1Gui = true,
 	p2Gui = false,
+	infoNumbers = true,
 	forceStand = 1,
 	ips = true,
 	perfectAirTech = false,
@@ -73,6 +69,7 @@ local options = {
 	p2Child = false,
 	tandemCooldown = true,
 	boingo = false,
+	level = 0,
 	wakeupReversal = false,
 	guardReversal = false,
 	hitReversal = false,
@@ -112,9 +109,10 @@ print("Commands List")
 print()
 
 if fcReplay then
-	print("Alt + 1 to cycle gui styles")
+	print("Alt + 1 to toggle gui")
 	print("Alt + 2 to toggle hitboxes")
 	print("Alt + 3 to toggle music")
+	print("Alt + 4 to cyle input style")
 else
 	print("Coin to open up the menu.")
 	print("Hold start control your opponent.")
@@ -149,6 +147,13 @@ local bxor = bit.bxor
 -- Data
 -------------------------------------------------
 
+--Copies values from one table to another
+function tableCopy(source, dest) 
+	for k, v in pairs(source) do
+		dest[k] = v
+	end
+end
+
 local optionType = {
 	subMenu = 1,
 	bool = 2,
@@ -181,7 +186,7 @@ local systemOptions = {
 		type = optionType.bool
 	},
 	{
-		name = "Gui Style:",
+		name = "Hud Style:",
 		key = "guiStyle",
 		type = optionType.list,
 		list = {
@@ -193,13 +198,28 @@ local systemOptions = {
 		}
 	},
 	{
-		name = "Player 1 Gui:",
+		name = "Input Display Style:",
+		key = "inputStyle",
+		type = optionType.list,
+		list = {
+			"Simple",
+			"History",
+			"Frames",
+		}
+	},
+	{
+		name = "Player 1 Hud:",
 		key = "p1Gui", 
 		type = optionType.bool
 	},
 	{
-		name= "Player 2 Gui:",
+		name = "Player 2 Hud:",
 		key = "p2Gui",
+		type = optionType.bool
+	},
+	{
+		name = "Info Numbers:",
+		key = "infoNumbers",
 		type = optionType.bool
 	},
 	{
@@ -269,6 +289,23 @@ local battleOptions = {
 		key = "boingo",
 		type = optionType.bool,
 		info = "Warning: This breaks RNG while enabled"
+	},
+	{
+		name = "Mariah Level:",
+		key = "level",
+		type = optionType.list,
+		list = {
+			"Disabled",
+			"1",
+			"2",
+			"3",
+			"4", 
+			"5", 
+			"6",
+			"7",
+			"MAX"
+		},
+		info = "Locks Mariah's level"
 	},
 	{
 		name = "Return",
@@ -743,7 +780,9 @@ local menu = {
 	title = "Training Menu",
 	info = "",
 	color = nil,
-	default = nil
+	default = nil,
+	flash = 0,
+	flashColor = {}
 }
 
 local parserDictionary = {
@@ -836,6 +875,9 @@ local p1 = {
 	meaty = false,
 	attackHit = 0,
 	standAttackHit = 0,
+	actionId = 0,
+	standActionId = 0,
+	newButtons = 0,
 	buttons = {},
 	memory = nil,
 	memory2 = nil,
@@ -850,12 +892,6 @@ for k, v in pairs(p1) do
 	else
 		p2[k] = v
 	end
-end
-
--- Sets the table for use
-for i = 1, 13, 1 do 
-	p1.inputHistoryTable[i] = 0
-	p2.inputHistoryTable[i] = 0
 end
 
 --Set individual memory values
@@ -977,8 +1013,6 @@ p1.name = "P1 "
 p1.number = 1
 p2.name = "P2 "
 p2.number = 2
-
-hud.scroll = hud.scrollFromBottom and 1 or -1
 
 local system = {
 	frameAdvantage = 0,
@@ -1284,6 +1318,31 @@ local charToIndex = {
 	[25] = 22
 }
 
+local nameToId = {
+	Jotaro = 0,
+	Kakyoin = 1,
+	Avdol = 2,
+	Polnareff = 3,
+	["Old Joseph"] = 4,
+	Iggy = 5,
+	Alessi = 6,
+	Chaka = 7,
+	Devo = 8, 
+	Midler = 10,
+	Dio = 11,
+	["Shadow Dio"] = 14,
+	["Young Joseph"] = 15,
+	["Hol Horse"] = 16,
+	["Vanilla Ice"] = 17,
+	["New Kakyoin"] = 18,
+	["Black Polnareff"] = 19,
+	Petshop = 20,
+	Mariah = 22,
+	Hoingo = 23,
+	["Rubber Soul"] = 24,
+	Khan = 25
+}
+
 local trials = {}
 local trial = {}
 
@@ -1301,16 +1360,15 @@ local comboType = {
 	remote = 11,
 	recall = 12,
 	meaty = 13,
+	timeStop = 14,
+	timeStopEnd = 15,
+	double = 16,
+	doubleMeaty = 17,
+	action = 18,
+	standAction = 19
 }
 
 local comboDictionary = {} 
-
---Copies values from one table to another
-function tableCopy(source, dest) 
-	for k, v in pairs(source) do
-		dest[k] = v
-	end
-end
 
 tableCopy(comboType, comboDictionary)
 comboDictionary["player charge"] = comboType.pCharge
@@ -1319,6 +1377,18 @@ comboDictionary["stand charge"] = comboType.sCharge
 comboDictionary["projectile charge"] = comboType.bCharge
 comboDictionary["bullet charge"] = comboType.bCharge
 comboDictionary["return"] = comboType.recall
+comboDictionary["time stop"] = comboType.timeStop
+comboDictionary["time stop end"] = comboType.timeStopEnd
+comboDictionary["time stop finish"] = comboType.timeStopEnd
+comboDictionary["ub"] = comboType.double
+comboDictionary["unblockable"] = comboType.double
+comboDictionary["meaty double"] = comboType.doubleMeaty
+comboDictionary["meaty ub"] = comboType.doubleMeaty
+comboDictionary["meaty unblockable"] = comboType.doubleMeaty
+comboDictionary["double meaty"] = comboType.doubleMeaty
+comboDictionary["ub meaty"] = comboType.doubleMeaty
+comboDictionary["unblockable meaty"] = comboType.doubleMeaty
+comboDictionary["stand action"] = comboType.standAction
 
 local intToComboString = {
 	"id",
@@ -1334,6 +1404,12 @@ local intToComboString = {
 	"remote",
 	"recall",
 	"meaty",
+	"time stop",
+	"time stop end",
+	"double",
+	"double meaty",
+	"action",
+	"stand action"
 }
 
 -- creates a set similar to the java style collection
@@ -1350,6 +1426,11 @@ local recordingKeys = createSet({
 	"p1Recording",
 	"p2Recording"
 })
+
+local moveDefinitions = {}
+for i = 1, 22, 1 do
+	moveDefinitions[i] = {}
+end
 
 -------------------------------------------------
 -- json.lua 
@@ -1700,7 +1781,8 @@ function readSettings()
 	if err then
 		return
 	end
-	options = json.parse(f:read("*all"))
+	local parsedOptions = json.parse(f:read("*all"))
+	tableCopy(parsedOptions, options)
 	p1.recorded = parseRecording(options.p1Recording)
 	p1.recordedFacing = 1
 	p2.recorded = parseRecording(options.p2Recording)
@@ -1784,7 +1866,7 @@ function getTrialsJsons()
 	  	return files
 	end
 	for line in handle:lines() do
-		if line:match(".*[Tt][Rr][Ii][Aa][Ll].*json$") then 
+		if line:match(".*[Tt][Rr][Ii][Aa][Ll].*json$") then
 			files[#files + 1] = line
 		end
 	end
@@ -1792,9 +1874,143 @@ function getTrialsJsons()
 	return files
 end
 
+function readMoveDefinitions()
+	local f, err = io.open("move_id_def.txt", "r")
+	if err then
+		return false
+	end
+	local index = 1
+	for line in f:lines() do
+		index = addMoveDefinition(line, index)
+	end
+	f:close()
+end
+
+function addMoveDefinition(line, index)
+	if line == nil or #line == 0 then return index end
+	local charIndex = charToIndex[nameToId[line]]
+	if charIndex then 
+		return charIndex
+	end
+	local _, _, id, name = line:find("(%d+)%s+([^-]*)")
+	if id then
+		id = tonumber(id)
+		if name == nil or name == "" then
+			moveDefinitions[index][id] = false
+		else
+			moveDefinitions[index][id] = name
+		end
+	end
+	return index
+end
+
+-------------------------------------------------
+-- Memory Reader
+-------------------------------------------------
+
+function updateMemory()
+	readPlayerMemory(p1)
+	readPlayerMemory(p2)
+	readProjectileMemory()
+	readSystemMemory()
+	inputTables.previous = inputTables.current
+	inputTables.current = joypad.read() -- reads all inputs
+
+end
+
+function readPlayerMemory(player) 
+	player.previousHealth = player.health
+	player.previousCombo = player.combo
+	player.previousGuarding = player.guarding
+	player.previousAnimationState = player.animationState
+	player.previousRiseFall = player.riseFall
+	player.previousHitstun = player.hitstun
+	player.previousblockstun = player.blockstun
+	player.previousIps = player.ips
+	player.previousScaling = player.scaling
+	player.previousWakeupCount = player.wakeupCount
+	player.previousAirtechCount = player.airtechCount
+	player.previousDefenseAction = player.defenseAction
+	player.previousPushblockCount = player.pushblockCount
+	player.previousHitFreeze = player.hitFreeze
+	player.previousStunCount = player.stunCount
+	player.previousAttackId = player.attackId
+	player.previousStandAttackId = player.standAttackId
+	player.previousAttackHit = player.attackHit
+	player.previousStandAttackHit = player.standAttackHit
+	player.previousTandem = player.tandem
+	player.previousTandemCount = player.tandemCount
+	player.previousStand = player.stand
+	player.previousActionId = player.actionId
+	player.previousStandActionId = player.standActionId
+	for k, v in pairs(player.memory) do
+		player[k] = readByte(v)
+	end
+	for k, v in pairs(player.memory2) do
+		player[k] = readWordSigned(v)
+	end
+	for k, v in pairs (player.memory4) do
+		player[k] = readDWord(v)
+	end
+	if player.standGauge < player.standHealth then
+		player.standGauge = player.standHealth
+	end
+end
+
+function readProjectileMemory()
+	for i = 0, 63, 1 do
+		local projectile = projectiles[i + 1]
+		projectile.previousState = projectile.state
+		local address = 0x0203848C + i * 0x420
+		projectile.state = readByte(address)
+		if projectile.state > 0 then
+			projectile.facing = readByte(address + 0x0D)
+			projectile.char = readByte(address + 0x13)
+			projectile.hitbox = readWord(address + 0xAC)
+			projectile.x = readWordSigned(address + 0x5C)
+			projectile.y = readWordSigned(address + 0x60)
+			projectile.previousAttackId = projectile.attackId
+			projectile.attackId = readByte(address + 0xDC)
+			projectile.previousAttackHit = projectile.attackHit
+			projectile.attackHit = readByte(address + 0xDD)
+			if projectile.previousState == 0 then
+				projectile.consumed = false
+			end
+		end
+	end
+end
+
+function readSystemMemory()
+	system.screenFreeze = readByte(0x020314C6)
+	system.stageId = readByte(0x02031459)
+	system.screenX = readWordSigned(0x0203145C)
+	system.screenY = readWordSigned(0x02031470)
+	system.previousTimeStop = system.timeStop
+	system.timeStop = readByte(0x20314C2)
+	--system.timeStopState = readByte(0x2033ABD)
+	--system.screenZoom = 0
+end
+
 -------------------------------------------------
 -- Inputs
 -------------------------------------------------
+
+function updateInput()
+	p1.previousInputs = p1.inputs
+	p1.inputs = getPlayerInputHex("P1 ")
+	p2.previousInputs = p2.inputs
+	p2.inputs = getPlayerInputHex("P2 ")
+	if options.inputStyle == 1 then
+		p1.inputHistoryTable[1] = p1.inputs
+		p2.inputHistoryTable[1] = p2.inputs
+	elseif options.inputStyle == 2 then
+		updateSimpleHistory(p1)
+		updateSimpleHistory(p2)
+	elseif options.inputStyle == 3 then
+		updateFrameHistory(p1)
+		updateFrameHistory(p2)
+	end
+end
 
 --Returns whether a key is pressed once
 function pressed(key)
@@ -1871,99 +2087,6 @@ function swapBits(hex, p1, p2)
 	return bxor(hex, x)
 end
 
--------------------------------------------------
--- Memory Reader
--------------------------------------------------
-
-function memoryReader()
-	readPlayerMemory(p1)
-	readPlayerMemory(p2)
-	readProjectileMemory()
-	readSystemMemory()
-	inputTables.previous = inputTables.current
-	inputTables.current = joypad.read() -- reads all inputs
-
-end
-
-function readPlayerMemory(player) 
-	player.previousHealth = player.health
-	player.previousCombo = player.combo
-	player.previousGuarding = player.guarding
-	player.previousAnimationState = player.animationState
-	player.previousRiseFall = player.riseFall
-	player.previousHitstun = player.hitstun
-	player.previousblockstun = player.blockstun
-	player.previousIps = player.ips
-	player.previousScaling = player.scaling
-	player.previousWakeupCount = player.wakeupCount
-	player.previousAirtechCount = player.airtechCount
-	player.previousDefenseAction = player.defenseAction
-	player.previousPushblockCount = player.pushblockCount
-	player.previousHitFreeze = player.hitFreeze
-	player.previousStunCount = player.stunCount
-	player.previousAttackId = player.attackId
-	player.previousStandAttackId = player.standAttackId
-	player.previousAttackHit = player.attackHit
-	player.previousStandAttackHit = player.standAttackHit
-	player.previousTandem = player.tandem
-	player.previousTandemCount = player.tandemCount
-	player.previousStand = player.stand
-	for k, v in pairs(player.memory) do
-		player[k] = readByte(v)
-	end
-	for k, v in pairs(player.memory2) do
-		player[k] = readWordSigned(v)
-	end
-	for k, v in pairs (player.memory4) do
-		player[k] = readDWord(v)
-	end
-	if player.standGauge < player.standHealth then
-		player.standGauge = player.standHealth
-	end
-end
-
-function readProjectileMemory()
-	for i = 0, 63, 1 do
-		local projectile = projectiles[i + 1]
-		projectile.previousState = projectile.state
-		local address = 0x0203848C + i * 0x420
-		projectile.state = readByte(address)
-		if projectile.state > 0 then
-			projectile.facing = readByte(address + 0x0D)
-			projectile.char = readByte(address + 0x13)
-			projectile.hitbox = readWord(address + 0xAC)
-			projectile.x = readWordSigned(address + 0x5C)
-			projectile.y = readWordSigned(address + 0x60)
-			projectile.previousAttackId = projectile.attackId
-			projectile.attackId = readByte(address + 0xDC)
-			projectile.previousAttackHit = projectile.attackHit
-			projectile.attackHit = readByte(address + 0xDD)
-			if projectile.previousState == 0 then
-				projectile.consumed = false
-			end
-		end
-	end
-end
-
-function readSystemMemory()
-	system.screenFreeze = readByte(0x020314C6)
-	system.stageId = readByte(0x02031459)
-	system.screenX = readWordSigned(0x0203145C)
-	system.screenY = readWordSigned(0x02031470)
-	--system.screenZoom = 0
-end
-
--------------------------------------------------
--- Input Sorter
--------------------------------------------------
-
-function inputSorter() --sorts inputs
-	p1.previousInputs = p1.inputs
-	p1.inputs = getPlayerInputHex("P1 ")
-	p2.previousInputs = p2.inputs
-	p2.inputs = getPlayerInputHex("P2 ")
-end
-
 -- Gets the specified players inputs as a hex
 function getPlayerInputHex(player)
 	local hex = 0
@@ -1975,30 +2098,47 @@ function getPlayerInputHex(player)
 	return hex
 end
 
--------------------------------------------------
--- Input History
--------------------------------------------------
-
-function inputHistoryRefresher()
-	updatePlayerHistory(p1)
-	updatePlayerHistory(p2)
-end
-
-function updatePlayerHistory(player)
+-- Updates the the input history on the hud
+function updateSimpleHistory(player)
 	local direction = band(player.inputs, 0x0F)
 	local previousDirection = band(player.previousInputs, 0x0F)
-	if (player.inputs ~= player.previousInputs and player.inputs ~= 0) and
-			(player.previousInputs - previousDirection + player.inputs) ~= player.previousInputs and
-			(player.previousInputs - previousDirection ~= player.inputs - direction or direction ~= 0) and
-			(not (player.inputs - (player.previousInputs - previousDirection) < 0)) then
+	local buttons = band(player.inputs, 0xF0)
+	local previousButtons = band(player.previousInputs, 0xF0)
+	player.previousNewButtons = player.newButtons
+	player.newButtons = band(bxor(previousButtons, 0xF0), buttons)
+	if (player.previousNewButtons ~= player.newButtons and player.newButtons ~= 0) or 
+			(previousDirection ~= direction and direction ~= 0) then
 		for i = 13, 2, - 1 do
 			player.inputHistoryTable[i] = player.inputHistoryTable[i - 1]
 		end
-		if player.previousInputs - previousDirection ~= player.inputs - direction then
-			player.inputHistoryTable[1] = player.inputs - (player.previousInputs - previousDirection)
+		if previousButtons ~= buttons then
+			player.inputHistoryTable[1] = player.newButtons + direction
 		else
 			player.inputHistoryTable[1] = direction
 		end
+	end
+end
+
+function updateFrameHistory(player)
+	if player.inputs ~= player.previousInputs then
+		if band(player.inputHistoryTable[1], 0xFFFF) > 600 then
+			clearInputHistory(player)
+		else
+			for i = 13, 2, - 1 do
+				player.inputHistoryTable[i] = player.inputHistoryTable[i - 1]
+			end
+		end
+		-- First 2 bytes are frame count, 3rd is inputs
+		player.inputHistoryTable[1] = lShift(player.inputs, 16) + 1
+	else
+		player.inputHistoryTable[1] = player.inputHistoryTable[1] + 1
+	end
+end
+
+function clearInputHistory(player)
+	local int = options.inputStyle == 3 and -1 or 0
+	for i = 1, 13, 1 do 
+		player.inputHistoryTable[i] = int
 	end
 end
 
@@ -2006,13 +2146,13 @@ end
 -- Gameplay Loop
 -------------------------------------------------
 
-function gameplayLoop() --main loop for gameplay calculations
+function updateGameplayLoop() --main loop for gameplay calculations
 	updatePlayer(p1, p2)
 	updatePlayer(p2, p1)
-	-- updateFrameAdvantage(p1, p2)
 	writeByte(0x205CC1A, options.music and 0x80 or 0x00) -- Toggle music off or on
 	if not fcReplay then  
 		writeByte(0x20314B4, 0x63) -- Infinite Clock Time
+		writeByte(0x2034860, 0) -- Reset round to 0
 	end 
 	if not options.ips then -- IPS
 		writeByte(p1.memory.ips, 0x00)
@@ -2023,6 +2163,9 @@ function gameplayLoop() --main loop for gameplay calculations
 	end
 	if options.boingo then
 		writeDWord(0x020162E4, 0)
+	end
+	if options.level > 1 then
+		writeByte(0x02033210, options.level - 2)
 	end
 end
 
@@ -2165,26 +2308,11 @@ function updateHitReversal(player)
 	player.hitCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 5
 end
 
--- p1Frame = 0
--- p2Frame = 0
--- frameAdvantage = 0
-
--- function updateFrameAdvantage(player, other)
--- 	if not player.previousCanAct and player.canAct then
--- 		p1Frame = emu.framecount()
--- 	end
--- 	if not other.previousCanReversal and other.canReversal then
--- 		p2Frame = emu.framecount()
--- 		frameAdvantage = p2Frame - p1Frame
--- 	end
--- 	gui.text(50, 100, frameAdvantage)
--- end
-
 -------------------------------------------------
 -- Input Checker
 -------------------------------------------------
 
-function inputChecker()
+function updateInputCheck()
 	if fcReplay then return end
 	checkPlayerInput(p1, p2)
 	checkPlayerInput(p2, p1)
@@ -2353,7 +2481,7 @@ end
 -- Character Control
 -------------------------------------------------
 
-function characterControl()
+function updateCharacterControl()
 	if fcReplay then return end
 	if menu.state > 0 then return end
 
@@ -2435,9 +2563,15 @@ function controlPlayer(player, other)
 		local inputs = hexToPlayerInput(hex, player.name)
 		tableCopy(inputs, inputTables.overwrite)
 		player.playbackCount = player.playbackCount - 1
-		if player.playbackCount == 0 and player.loop then
-			player.playbackFlipped = player.facing ~= player.playbackFacing
-			player.playbackCount = #player.playback
+		if player.playbackCount == 0 then
+			if player.loop then
+				player.playbackFlipped = player.facing ~= player.playbackFacing
+				player.playbackCount = #player.playback
+			end
+			--todo
+			-- if trial.enabled then
+			-- 	trialModeStart()
+			-- end
 		end
 	-- Player control
 	elseif player.control then
@@ -2689,7 +2823,7 @@ function openMenu()
 			menu.index = 1
 			menu.options = rootOptions
 			updateMenuInfo()
-			--update character specific options
+			--update child options
 			options.p1Child = readByte(p1.memory.child) == 0xFF
 			options.p2Child = readByte(p2.memory.child) == 0xFF
 		end
@@ -2712,6 +2846,7 @@ function updateMenu()
 	elseif repeating(p1.buttons.right) then
 		menuRight()
 	end
+	updateMenuFlash()
 end
 
 function menuSelect()
@@ -2746,7 +2881,7 @@ function menuSelect()
 		menu.default = option.default
 	elseif option.type == optionType.trialCharacters then
 		if #trials == 0 then
-			menu.info = "trials.lua not found"
+			menu.info = "No trials jsons found"
 		else
 			menu.state = 5
 			menu.options = trialCharacterOptions
@@ -2814,7 +2949,7 @@ function menuClose()
 	menu.state = 0
 	gui.clearuncommitted()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
-	--update character specific options
+	--update child options
 	updateChild(p1, options.p1Child, 0x020348D5)
 	updateChild(p2, options.p2Child, 0x02034CF5)
 	if trial.enabled then
@@ -2833,8 +2968,7 @@ function menuLeft()
 		options[option.key] = (value == option.min and option.max or value - 1)
 	elseif option.type == optionType.list then
 		options[option.key] = (value == 1 and #option.list or value - 1)
-	-- elseif option.type == optionType.memory then
-	-- 	options[option.key] = (value == 0 and readByte(option.memory) or value - 1)
+		optionUpdated(option.key)
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
@@ -2869,8 +3003,7 @@ function menuRight()
 		options[option.key] = (value >= option.max and option.min or value + 1)
 	elseif option.type == optionType.list then
 		options[option.key] = (value >= #option.list and 1 or value + 1)
-	-- elseif option.type == optionType.memory then
-	-- 	options[option.key] = (value >= readByte(option.memory) and 0 or value + 1)
+		optionUpdated(option.key)
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
@@ -2937,7 +3070,7 @@ function menuDown()
 		end
 	elseif menu.state == 6 then --trials
 		if menu.index < 13 and #menu.options > 13 then
-			menu.index = menu.index + 12
+			menu.index = math.min(menu.index + 12, #menu.options - 1)
 		elseif menu.index == #menu.options then
 			menu.index = 1
 		else
@@ -3017,6 +3150,23 @@ function getFileOptions()
 	return optionsTable
 end
 
+function optionUpdated(key)
+	if key == "inputStyle" then
+		clearInputHistory(p1)
+		clearInputHistory(p2)
+	end
+end
+
+function updateMenuFlash()
+	menu.flash = (menu.flash + 1) % 120
+	local inc = menu.flash < 60 and menu.flash or 120 - menu.flash
+	local min = colors.menuSelectedMin
+	local max = colors.menuSelectedMax
+	for i = 1, 3, 1 do
+		menu.flashColor[i] = min[i] + (max[i] - min[i]) / 60 * inc
+	end
+end
+
 -------------------------------------------------
 -- Trials
 -------------------------------------------------
@@ -3033,16 +3183,21 @@ end
 
 function updateTrialCheck(tailCall)
 	local input = trial.combo[trial.index]
-	if input.type == comboType.meaty and p2.wakeupFrame then
-		if checkAttackId(input.id) then
+	if p2.wakeupFrame and not tailCall then
+		if input.type == comboType.meaty and checkAttackId(input.id) then
 			return advanceTrialIndex()
-		else
+		elseif input.type == comboType.doubleMeaty and 
+				checkAttackId(input.id[1]) and checkAttackId(input.id[2]) then
+			return advanceTrialIndex()
+		elseif input.type == comboType.timeStop and 
+				system.previousTimeStop == 0 and system.timeStop > 0 then 
+			return advanceTrialIndex()
+		elseif not (trial.index == 1 and trial.subIndex == 1) then
 			return trialFail()
 		end
-	end
-	if not (trial.index == 1 and trial.subIndex == 1) and not trialStun(input) then 
+	elseif not (trial.index == 1 and trial.subIndex == 1) and not trialStun(input) then
 		return trialFail()
-	elseif input.type == comboType.id then 
+	elseif input.type == comboType.id then
 		if checkAttackId(input.id) then
 			return advanceTrialIndex()
 		end
@@ -3057,25 +3212,25 @@ function updateTrialCheck(tailCall)
 			end
 		end
 	elseif input.type == comboType.tandem then
-		if p1.previousTandem == 0 and p1.tandem == 1 then 
+		if p1.previousTandem == 0 and p1.tandem == 1 then
 			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.inputs then
-		if p1.previousTandemCount ~= p1.tandemCount then
+		if p1.previousTandemCount ~= p1.tandemCount and not tailCall then
 			local address = 0x02032174 + (p1.tandemCount - 1) * 6
 			local tandemInput = tandemString(readByteRange(address, 6))
 			if tandemInput == input.id[trial.subIndex] then
 				return advanceTrialSubIndex(input)
-			elseif not tailCall then
+			else 
 				return trialFail()
 			end
 		end
 	elseif input.type == comboType.pCharge then
-		if p1.actionId == input.id then
+		if p1.previousActionId ~= input.id and p1.actionId == input.id then
 			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.sCharge then
-		if p1.standActionId == input.id then
+		if p1.previousStandActionId ~= input.id and p1.standActionId == input.id then
 			return advanceTrialIndex()
 		end
 	elseif input.type == comboType.bCharge then
@@ -3104,6 +3259,28 @@ function updateTrialCheck(tailCall)
 		end
 	elseif input.type == comboType.recall then
 		if p1.previousStand == 2 and p1.stand == 0 then
+			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.timeStop then
+		if system.previousTimeStop == 0 and system.timeStop > 0 then
+			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.timeStopEnd then
+		if system.previousTimeStop > 0 and system.timeStop == 0 then
+			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.double then
+		if checkAttackId(input.id[1]) and checkAttackId(input.id[2]) then
+			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.action then
+		if p1.attackHit > 0 and p1.attackId == input.id[1] and 
+				p1.previousActionId ~= input.id[2] and p1.actionId == input.id[2] then
+			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.standAction then
+		if p1.standAttackHit > 0 and p1.standAttackId == input.id[1] and 
+				p1.previousStandActionId ~= input.id[2] and p1.standActionId == input.id[2] then
 			return advanceTrialIndex()
 		end
 	end
@@ -3250,7 +3427,13 @@ function updateOptions()
 		writeDWord(0x020162E4, trial.trial.rng)
 	end
 	if trial.trial.meter ~= nil then
-		options.meterRefill = trial.trial.meter
+		local meterType = type(trial.trial.meter)
+		if meterType == "number" then
+			options.meterRefill = false
+			writeByte(p1.memory.meterRefill, trial.trial.meter)
+		elseif meterType == "boolean" then
+			options.meterRefill = trial.trial.meter
+		end
 	else
 		options.meterRefill = true
 	end
@@ -3293,6 +3476,8 @@ function updateOptions()
 	options.airTechDirection = 2
 	options.boingo = false
 	options.healthRefill = true
+	options.level = 1
+	options.inputStyle = 1
 	resetReversalOptions()
 end
 
@@ -3352,7 +3537,7 @@ function trialTailCall() -- determines whether the previous id is the same as th
 		inputId = input.id
 		inputTable = true
 	else
-		return true
+		return false
 	end
 	local previousInput = trial.combo[trial.index - 1]
 	local previousInputId
@@ -3367,7 +3552,7 @@ function trialTailCall() -- determines whether the previous id is the same as th
 	elseif previousInput.type == comboType.meaty then
 		return false
 	else
-		return true
+		return false
 	end
 	if inputTable then
 		if previousInputTable then
@@ -3451,7 +3636,7 @@ function trialStartRecording()
 		position = false
 	}
 	if not options.meterRefill then
-		recording.meter = false
+		recording.meter = readByte(p1.memory.meterRefill)
 	end
 	if not options.standGaugeRefill then
 		recording.standGauge = false
@@ -3468,11 +3653,14 @@ function updateTrialRecording()
 	local combo = trial.recording.combo
 	local attackId = getAttackId()
 	if attackId ~= -1 then
-		combo[#combo + 1] = {
-			type = p2.wakeupFrame and comboType.meaty or comboType.id,
-			name = tostring(#combo + 1),
-			id = attackId
-		}
+		local move = moveDefinitions[charToIndex[p1.character]][attackId]
+		if move ~= false then
+			combo[#combo + 1] = {
+				type = p2.wakeupFrame and comboType.meaty or comboType.id,
+				name = move or tostring(#combo + 1),
+				id = attackId
+			}
+		end
 	elseif p1.previousTandem == 0 and p1.tandem == 1 then 
 		combo[#combo + 1] = {
 			type = comboType.tandem,
@@ -3506,6 +3694,21 @@ function updateTrialRecording()
 		combo[#combo + 1] = {
 			name = "S (Recall)",
 			type = comboType.recall
+		}
+	elseif system.previousTimeStop == 0 and system.timeStop > 0 then
+		local tsName = {
+			[0] = "6BA6S ",
+			[11] = "6CA6S ",
+			[14] = "A6C4S "
+		}
+		combo[#combo + 1] = {
+			name = (tsName[p1.character] or "").."(Time Stop)",
+			type = comboType.timeStop
+		}
+	elseif system.previousTimeStop > 0 and system.timestop == 0 then
+		combo[#combo + 1] = {
+			name = "(Time Stop End)",
+			type = comboType.timeStopEnd
 		}
 	end
 end
@@ -3720,7 +3923,7 @@ end
 
 function trialOptionsVerification()
 	if #trials == 0 then
-		menu.info = "trials.lua not found"
+		menu.info = "No trials jsons found"
 	else
 		-- replace the current option with the submenu and select it
 		local option = menu.options[menu.index]
@@ -3743,107 +3946,22 @@ end
 function drawHud()
 	if options.guiStyle == 1 then return end
 
-	gui.text(18,15, p1.health) -- P1 Health at x:18 and y:15
-	gui.text(355,15, p2.health) -- P2 Health
-	gui.text(50, 24, p1.standHealth) -- P1's Stand Health
-	gui.text(326,24, p2.standHealth) -- P2's Stand Health
-	gui.text(135,216,tostring(p1.meter)) -- P1's meter fill
-	gui.text(242,216,tostring(p2.meter)) -- P2's meter fill
-
-	if options.p1Gui then
-		local historyLength = (options.guiStyle == 3 and 13 or 11)
-		for i = 1, historyLength, 1 do
-			local hex = p1.inputHistoryTable[i]
-			local buttonOffset = 0
-			if band(hex, 0x10) == 0x10 then --A
-				gui.text(hud.xP1+hud.offset*4,hud.yP1-1-((11)*i*hud.scroll),"A", options.inputHistoryA)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x20) == 0x20 then --B
-				gui.text(hud.xP1+hud.offset*4+buttonOffset,hud.yP1-1-((11)*i*hud.scroll),"B", options.inputHistoryB)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x40) == 0x40 then --C
-				gui.text(hud.xP1+hud.offset*4+buttonOffset,hud.yP1-1-((11)*i*hud.scroll),"C", options.inputHistoryC)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x80) == 0x80 then --S
-				gui.text(hud.xP1+hud.offset*4+buttonOffset,hud.yP1-1-((11)*i*hud.scroll),"S", options.inputHistoryS)
-			end
-			if band(hex, 0x0F) > 0 then
-				drawDpad(hud.xP1,hud.yP1-((11)*i*hud.scroll),hud.offset)
-			end
-			if band(hex, 0x01) == 0x01 then --Up
-				gui.box(hud.xP1+hud.offset+1, hud.yP1-(11*i*hud.scroll), hud.xP1+hud.offset*2-1, hud.yP1-hud.offset+1-(11*i*hud.scroll),"red")
-			end
-			if band(hex, 0x02) == 0x02 then --Down
-				gui.box(hud.xP1+hud.offset+1, hud.yP1+hud.offset-(11*i*hud.scroll), hud.xP1+hud.offset*2-1, hud.yP1+hud.offset*2-(11*i*hud.scroll)-1,"red")
-			end
-			if band(hex, 0x04) == 0x04 then --Left
-				gui.box(hud.xP1+1, hud.yP1+1-(11*i*hud.scroll), hud.xP1+hud.offset, hud.yP1+hud.offset-1-(11*i*hud.scroll),"red")
-			end
-			if band(hex, 0x08) == 0x08 then --Right
-				gui.box(hud.xP1+hud.offset*2, hud.yP1+1-(11*i*hud.scroll), hud.xP1+hud.offset*3-1, hud.yP1+hud.offset-1-(11*i*hud.scroll),"red")
-			end
-		end
-
-		if options.guiStyle ~= 3 then
-			gui.text(8,50,"P1 Damage: "..tostring(p2.previousDamage)) -- Damage of P1's last hit
-			gui.text(8,66,"P1 Combo: ")
-			gui.text(48,66, p1.displayComboCounter, p1.comboCounterColor) -- P1's combo count
-			gui.text(8,58,"P1 Combo Damage: "..tostring(p1.comboDamage)) -- Damage of P1's combo in total
-		end
+	if options.infoNumbers then
+		drawInfoNumbers()
 	end
 
+	if options.inputStyle == 1 then
+		drawSimpleInputs()
+	elseif options.inputStyle == 2 then
+		drawHistoryInputs()
+	elseif options.inputStyle == 3 then
+		drawFrameInputs()
+	end
+	
 	if (p1.recording) then
 		gui.text(152,32,"Recording", options.failColor)
 	elseif (p1.playbackCount > 0) then
 		gui.text(152,32,"Replaying", options.failColor)
-	end
-	
-	if options.p2Gui then
-		local historyLength = (options.guiStyle == 3 and 13 or 11)
-		for i = 1, historyLength, 1 do
-			local hex = p2.inputHistoryTable[i]
-			local buttonOffset=0
-			if band(hex, 0x10) == 0x10 then --A
-				gui.text(hud.xP2+hud.offset*4,hud.yP2-1-((11)*i*hud.scroll),"A",options.inputHistoryA)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x20) == 0x20 then --B
-				gui.text(hud.xP2+hud.offset*4+buttonOffset,hud.yP2-1-((11)*i*hud.scroll),"B",options.inputHistoryB)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x40) == 0x40 then --C
-				gui.text(hud.xP2+hud.offset*4+buttonOffset,hud.yP2-1-((11)*i*hud.scroll),"C",options.inputHistoryC)
-				buttonOffset=buttonOffset+6
-			end
-			if band(hex, 0x80) == 0x80 then --S
-				gui.text(hud.xP2+hud.offset*4+buttonOffset,hud.yP2-1-((11)*i*hud.scroll),"S",options.inputHistoryS)
-			end
-			if band(hex, 0x0F) > 0 then
-				drawDpad(hud.xP2,hud.yP2-((11)*i*hud.scroll),hud.offset)
-			end
-			if band(hex, 0x01) == 0x01 then --Up
-				gui.box(hud.xP2+hud.offset+1, hud.yP2-(11*i*hud.scroll), hud.xP2+hud.offset*2-1, hud.yP2-hud.offset+1-(11*i*hud.scroll),"red")
-			end
-			if band(hex, 0x02) == 0x2 then --Down
-				gui.box(hud.xP2+hud.offset+1, hud.yP2+hud.offset-(11*i*hud.scroll), hud.xP2+hud.offset*2-1, hud.yP2+hud.offset*2-(11*i*hud.scroll)-1,"red")
-			end
-			if band(hex, 0x04) == 0x04 then --Left
-				gui.box(hud.xP2+1, hud.yP2+1-(11*i*hud.scroll), hud.xP2+hud.offset, hud.yP2+hud.offset-1-(11*i*hud.scroll),"red")
-			end
-			if band(hex, 0x08) == 0x08 then --Right
-				gui.box(hud.xP2+hud.offset*2, hud.yP2+1-(11*i*hud.scroll), hud.xP2+hud.offset*3-1, hud.yP2+hud.offset-1-(11*i*hud.scroll),"red")
-			end
-		end
-
-		if options.guiStyle ~= 3 then
-			gui.text(300,50,"P2 Damage: " .. tostring(p1.previousDamage)) -- Damage of P2's last hit
-			gui.text(300,66,"P2 Combo: ")
-			gui.text(348,66, p2.displayComboCounter, p2.comboCounterColor) -- P2's combo count
-			gui.text(300,58,"P2 Combo Damage: " .. tostring(p2.comboDamage)) -- Damage of P2's combo in total
-		end
 	end
 
 	if (p2.recording) then
@@ -3854,60 +3972,12 @@ function drawHud()
 
 	if menu.state == 0 then
 		if options.guiStyle == 3 then
-			gui.text(146,40,"Damage: ") -- Damage of P1's last hit
-			guiTextAlignRight(236,40,p2.previousDamage) -- Damage of P1's last hit
-			gui.text(146,48,"Combo Damage: ") -- Damage of P1's combo in total
-			guiTextAlignRight(236,48,p1.comboDamage) -- Damage of P1's combo in total
-			gui.text(146,56,"Combo: ")
-			guiTextAlignRight(236,56,p1.displayComboCounter, p1.comboCounterColor)
-			gui.text(146,64,"IPS: ") -- IPS for P1's combo
-			if p1.previousIps == 0 or not options.ips then --It flickers on and off if you don't check the menu option
-				guiTextAlignRight(236, 64, "OFF", options.failColor)
-			else
-				guiTextAlignRight(236, 64, "ON", options.successColor)
-			end
-			gui.text(146,72,"Scaling: ") -- Scaling for P1's combo
-			if p1.previousScaling == 0 then
-				guiTextAlignRight(236, 72, "OFF", options.failColor)
-			else
-				guiTextAlignRight(236, 72, "ON", options.successColor)
-			end
-			gui.text(146, 80, "Meaty:") 
-			if p2.meaty then
-				guiTextAlignRight(236, 80, "ON", options.successColor)
-			else
-				guiTextAlignRight(236, 80, "OFF", options.failColor)
-			end
+			drawAdvancedHud()
 		elseif options.guiStyle == 4 then
-			gui.text(168, 50, "Meaty:") 
-			if p2.meaty then
-				guiTextAlignRight(214, 50, "YES", options.successColor)
-			else
-				guiTextAlignRight(214, 50, "NO", options.failColor)
-			end
-			drawWakeupIndicator(145, 62, p2.wakeupCount)
+			drawMeatyHud()
 		elseif options.guiStyle == 5 then
-			debugInfo = { 
-				"Attack ID:", p1.attackId,
-				"Stand Attack ID:", p1.standAttackId,
-				"Action ID:", p1.actionId,
-				"Stand Action ID:", p1.standActionId,
-				"Projectile 1 ID:", projectiles[1].attackId,
-				"Projectile 2 ID:", projectiles[2].attackId,
-				"Projectile 3 ID:", projectiles[3].attackId,
-				"Projectile 4 ID:", projectiles[4].attackId,
-				"Projectile 5 ID:", projectiles[5].attackId,
-			}
-			local x = 146
-			local x2 = 236
-			local y = 40
-			for i = 1, #debugInfo, 2 do
-				gui.text(x, y + 8 * i / 2, debugInfo[i])
-				gui.text(x2, y + 8 * i / 2, debugInfo[i + 1])
-			end
+			drawTrialDebugHud()
 		end
-		-- gui.text(146, 85, "Frame Advantage: ")
-		-- guiTextAlignRight(236, 85, frameAdvantage)
 	end
 
 	if trial.enabled then
@@ -3915,28 +3985,209 @@ function drawHud()
 	end
 
 	if debug then
-		debugInfo = {
-			p2.wakeupCount.." wakeup count",
-			p2.guardCount.." guard count",
-			p2.hitCount.." hit count",
-			p2.airtechCount.." airtech count",
-			p2.pushblockCount.." pushblock count",
-			(p2.wakeupFrame and "true" or "false").." wakeup frame",
-			p1.attackId.." attack id",
-			p1.attackHit.." attack hit",
-			p1.standAttackId.." stand attack id",
-			p1.standAttackHit.." stand attack hit",
-			p1.actionId.." action id",
-			p1.standActionId.." stand action id",
-			p2.hitstun.." hitstun",
-			readByte(0x02034D61).." hitstun2",
-			p2.y.." p2 y",
-			p2.defenseAction.." p2 defense action",
-			projectiles[1].attackId.." proj attack id",
-			projectiles[1].attackHit.." proj hit"
-		}
-		drawDebug(debugInfo, 180, 30)
+		drawDebug(180, 30)
 	end
+end
+
+function drawSimpleInputs()
+	if options.guiStyle ~= 3 then
+		if options.p1Gui then
+			drawFixedInput(p1.inputHistoryTable[1], 7, 80)
+		end
+		if options.p2Gui then 
+			drawFixedInput(p2.inputHistoryTable[1], 343, 80)
+		end
+	else
+		if options.p1Gui then
+			drawFixedInput(p1.inputHistoryTable[1], 7, 56)
+		end
+		if options.p2Gui then 
+			drawFixedInput(p2.inputHistoryTable[1], 343, 56)
+		end
+	end
+	drawSimpleHud()
+end
+
+function drawHistoryInputs()
+	if options.p1Gui then -- p1
+		local historyLength = (options.guiStyle == 3 and 13 or 11)
+		for i = 1, historyLength, 1 do
+			local hex = p1.inputHistoryTable[i]
+			drawInput(hex, 13, 200 - (11 * i))
+		end
+	end
+	if options.p2Gui then  -- p2
+		local historyLength = (options.guiStyle == 3 and 13 or 11)
+		for i = 1, historyLength, 1 do
+			local hex = p2.inputHistoryTable[i]
+			drawInput(hex, 337, 200 - (11 * i))
+		end
+	end
+	drawSimpleHud()
+end
+
+function drawFrameInputs()
+	if options.p1Gui then -- p1
+		for i = 1, 13, 1 do
+			local hex = p1.inputHistoryTable[i]
+			if hex ~= -1 then
+				local count = band(0xFFFF, hex)
+				local input = rShift(hex, 16)
+				guiTextAlignRight(22, 199 - (11 * i), count, colors.menuUnselected)
+				drawInput(input, 25, 200 - (11 * i))
+			end
+		end
+	end
+
+	if options.p2Gui then  -- p2
+		for i = 1, 13, 1 do
+			local hex = p2.inputHistoryTable[i]
+			if hex ~= -1 then
+				local count = band(0xFFFF, hex)
+				local input = rShift(hex, 16)
+				guiTextAlignRight(346, 199 - (11 * i), count, colors.menuUnselected)
+				drawInput(input, 349, 200 - (11 * i))
+			end
+		end
+	end
+end
+
+function drawInput(hex, x, y) -- Draws the dpad and buttons
+	local buttonOffset = 0
+	if band(hex, 0x10) == 0x10 then --A
+		gui.text(x + 12, y - 1, "A", options.inputHistoryA)
+		buttonOffset = buttonOffset + 6
+	end
+	if band(hex, 0x20) == 0x20 then --B
+		gui.text(x + 12 + buttonOffset, y - 1, "B", options.inputHistoryB)
+		buttonOffset = buttonOffset + 6
+	end
+	if band(hex, 0x40) == 0x40 then --C
+		gui.text(x + 12 + buttonOffset, y - 1, "C", options.inputHistoryC)
+		buttonOffset = buttonOffset + 6
+	end
+	if band(hex, 0x80) == 0x80 then --S
+		gui.text(x + 12 + buttonOffset, y - 1, "S", options.inputHistoryS)
+	end
+	if band(hex, 0x0F) > 0 then
+		drawDpad(x, y, 3)
+	end
+	if band(hex, 0x01) == 0x01 then --Up
+		gui.box(x + 4, y, x + 5, y - 2, colors.dpadActive)
+	end
+	if band(hex, 0x02) == 0x02 then --Down
+		gui.box(x + 4, y + 3, x + 5, y + 5, colors.dpadActive)
+	end
+	if band(hex, 0x04) == 0x04 then --Left
+		gui.box(x + 1, y + 1, x + 3, y + 2, colors.dpadActive)
+	end
+	if band(hex, 0x08) == 0x08 then --Right
+		gui.box(x + 6, y + 1, x + 8, y + 2, colors.dpadActive)
+	end 
+end
+
+function drawFixedInput(hex, x, y)
+	gui.text(x + 12, y - 2, "A", band(hex, 0x10) == 0x10 and colors.dpadActive or colors.menuUnselected) --A
+	gui.text(x + 18, y - 2, "B", band(hex, 0x20) == 0x20 and colors.dpadActive or colors.menuUnselected) --B
+	gui.text(x + 24, y - 2, "C", band(hex, 0x40) == 0x40 and colors.dpadActive or colors.menuUnselected) --C
+	gui.text(x + 30, y - 2, "S", band(hex, 0x80) == 0x80 and colors.dpadActive or colors.menuUnselected) --S
+	drawDpad(x, y, 3)
+	if band(hex, 0x01) == 0x01 then --Up
+		gui.box(x + 4, y, x + 5, y - 2, colors.dpadActive)
+	end
+	if band(hex, 0x02) == 0x02 then --Down
+		gui.box(x + 4, y + 3, x + 5, y + 5, colors.dpadActive)
+	end
+	if band(hex, 0x04) == 0x04 then --Left
+		gui.box(x + 1, y + 1, x + 3, y + 2, colors.dpadActive)
+	end
+	if band(hex, 0x08) == 0x08 then --Right
+		gui.box(x + 6, y + 1, x + 8, y + 2, colors.dpadActive)
+	end 
+end
+
+function drawSimpleHud()
+	if options.guiStyle ~= 3 then
+		if options.p1Gui then
+			gui.text(8,50,"P1 Damage: "..tostring(p2.previousDamage)) -- Damage of P1's last hit
+			gui.text(8,66,"P1 Combo: ")
+			gui.text(48,66, p1.displayComboCounter, p1.comboCounterColor) -- P1's combo count
+			gui.text(8,58,"P1 Combo Damage: "..tostring(p1.comboDamage)) -- Damage of P1's combo in total
+		end
+		if options.p2Gui then
+			gui.text(300,50,"P2 Damage: " .. tostring(p1.previousDamage)) -- Damage of P2's last hit
+			gui.text(300,66,"P2 Combo: ")
+			gui.text(348,66, p2.displayComboCounter, p2.comboCounterColor) -- P2's combo count
+			gui.text(300,58,"P2 Combo Damage: " .. tostring(p2.comboDamage)) -- Damage of P2's combo in total
+		end
+	end
+end
+
+function drawAdvancedHud()
+	gui.text(146,40,"Damage: ") -- Damage of P1's last hit
+	guiTextAlignRight(236,40,p2.previousDamage) -- Damage of P1's last hit
+	gui.text(146,48,"Combo Damage: ") -- Damage of P1's combo in total
+	guiTextAlignRight(236,48,p1.comboDamage) -- Damage of P1's combo in total
+	gui.text(146,56,"Combo: ")
+	guiTextAlignRight(236,56,p1.displayComboCounter, p1.comboCounterColor)
+	gui.text(146,64,"IPS: ") -- IPS for P1's combo
+	if p1.previousIps == 0 or not options.ips then --It flickers on and off if you don't check the menu option
+		guiTextAlignRight(236, 64, "OFF", options.failColor)
+	else
+		guiTextAlignRight(236, 64, "ON", options.successColor)
+	end
+	gui.text(146,72,"Scaling: ") -- Scaling for P1's combo
+	if p1.previousScaling == 0 then
+		guiTextAlignRight(236, 72, "OFF", options.failColor)
+	else
+		guiTextAlignRight(236, 72, "ON", options.successColor)
+	end
+	gui.text(146, 80, "Meaty:") 
+	if p2.meaty then
+		guiTextAlignRight(236, 80, "ON", options.successColor)
+	else
+		guiTextAlignRight(236, 80, "OFF", options.failColor)
+	end
+end
+
+function drawMeatyHud()
+	gui.text(168, 50, "Meaty:") 
+	if p2.meaty then
+		guiTextAlignRight(214, 50, "YES", options.successColor)
+	else
+		guiTextAlignRight(214, 50, "NO", options.failColor)
+	end
+	drawWakeupIndicator(145, 62, p2.wakeupCount)
+end
+
+function drawTrialDebugHud()
+	debugInfo = { 
+		"Attack ID:", p1.attackId,
+		"Stand Attack ID:", p1.standAttackId,
+		"Action ID:", p1.actionId,
+		"Stand Action ID:", p1.standActionId,
+		"Projectile 1 ID:", projectiles[1].attackId,
+		"Projectile 2 ID:", projectiles[2].attackId,
+		"Projectile 3 ID:", projectiles[3].attackId,
+		"Projectile 4 ID:", projectiles[4].attackId,
+		"Projectile 5 ID:", projectiles[5].attackId,
+	}
+	local x = 146
+	local x2 = 236
+	local y = 40
+	for i = 1, #debugInfo, 2 do
+		gui.text(x, y + 8 * i / 2, debugInfo[i])
+		gui.text(x2, y + 8 * i / 2, debugInfo[i + 1])
+	end
+end
+
+function drawInfoNumbers()
+	gui.text(18,15, p1.health) -- P1 Health at x:18 and y:15
+	gui.text(355,15, p2.health) -- P2 Health
+	gui.text(50, 24, p1.standHealth) -- P1's Stand Health
+	gui.text(326,24, p2.standHealth) -- P2's Stand Health
+	gui.text(135,216,tostring(p1.meter)) -- P1's meter fill
+	gui.text(242,216,tostring(p2.meter)) -- P2's meter fill
 end
 
 function guiTextAlignRight(x, y, text, color) 
@@ -3945,17 +4196,17 @@ function guiTextAlignRight(x, y, text, color)
 	gui.text(x - #t * 4, y, t, color)
 end
 
-function drawDpad(DpadX,DpadY,sideLength)
-	gui.box(DpadX,DpadY,DpadX+(sideLength*3),DpadY+sideLength,"black","white")
-	gui.box(DpadX+sideLength, DpadY-sideLength, DpadX+(sideLength*2), DpadY+(sideLength*2), "black", "white")
-	gui.box(DpadX+1, DpadY+1, DpadX+(sideLength*3)-1, DpadY+sideLength-1,"black")
+function drawDpad(dpadX, dpadY, sideLength)
+	gui.box(dpadX, dpadY, dpadX + (sideLength * 3), dpadY + sideLength, colors.dpadBack, colors.dpadBorder)
+	gui.box(dpadX + sideLength, dpadY - sideLength, dpadX + (sideLength * 2), dpadY + (sideLength * 2), colors.dpadBack, colors.dpadBorder)
+	gui.box(dpadX + 1, dpadY + 1, dpadX + (sideLength * 3) - 1, dpadY+sideLength - 1, colors.dpadBack)
 end
 
 -- Draws the menu overlay
 function drawMenu()
 	if menu.state == 0 then return end
-	gui.box(90, 36, 294, 208, colors.menuBackgroundColor, colors.menuBorderColor)
-	gui.text(110, 42, menu.title, colors.menuTitleColor)
+	gui.box(90, 36, 294, 208, colors.menuBackground, colors.menuBorder)
+	gui.text(110, 42, menu.title, colors.menuTitle)
 	if menu.state == 3 then --info
 		drawInfo()
 	elseif menu.state == 5 then --trials characters
@@ -3971,7 +4222,7 @@ end
 
 function drawList()
 	for i = 1, #menu.options, 1 do
-		local color = (menu.index == i and colors.menuSelectedColor or colors.menuUnselectedColor)
+		local color = (menu.index == i and menu.flashColor or colors.menuUnselected)
 		local option = menu.options[i]
 		gui.text(100, 48 + i * 12, option.name, color)
 		if option.type == optionType.bool then
@@ -3983,10 +4234,6 @@ function drawList()
 		elseif option.type == optionType.list then
 			local word = option.list[options[option.key]]
 			gui.text(200, 48 + i * 12, word, color)
-		-- elseif option.type == optionType.memory then
-		-- 	local number = options[option.key]
-		-- 	local word = (number == readByte(option.memory) and "Max" or number)
-		-- 	gui.text(200, 48 + i * 12, word, color)
 		elseif option.type == optionType.slider then
 			local value = getMenuColor(option.mask, option.shift)
 			gui.text(150, 48 + i * 12, value, color)
@@ -3995,27 +4242,50 @@ function drawList()
 	if menu.state == 4 then
 		local color = bor(options[menu.color], 0xFF)
 		gui.box(200, 60, 240, 100, color, color)
-		gui.text(186, 112, "Hold A to increase by 10", colors.menuTitleColor)
+		gui.text(186, 112, "Hold A to increase by 10", colors.menuTitle)
 	end
-	gui.text(110, 184, menu.info, colors.menuTitleColor)
+	gui.text(110, 196, menu.info, colors.menuTitle)
 end
 
 function drawInfo()
 	for i = 1, #menu.info, 1 do
-		gui.text(100, 48 + i * 12, menu.info[i], colors.menuUnselectedColor)
+		gui.text(100, 48 + i * 12, menu.info[i], colors.menuUnselected)
 	end
-	gui.text(110, 172, "Return", colors.menuSelectedColor)
+	gui.text(110, 172, "Return", menu.flashColor)
 end
 
 function drawWakeupIndicator(x, y, count)
-	gui.box(x, y, x + 92, y + 18, 0xFFFFFF00)
+	gui.box(x, y, x + 92, y + 18, colors.wakeupBorder)
 	if count > 0 then
 		local length = math.min(count, 29)
 		gui.box(x + 90 - length * 3, y + 2, x + 90, y + 16, colors.wakeupIndicator)
 	end
 end
 
-function drawDebug(debugInfo, x, y) 
+function drawDebug(x, y) 
+	local debugInfo = {
+		p2.wakeupCount.." wakeup count",
+		p2.guardCount.." guard count",
+		p2.hitCount.." hit count",
+		p2.airtechCount.." airtech count",
+		p2.pushblockCount.." pushblock count",
+		(p2.wakeupFrame and "true" or "false").." wakeup frame",
+		p1.attackId.." attack id",
+		p1.attackHit.." attack hit",
+		p1.standAttackId.." stand attack id",
+		p1.standAttackHit.." stand attack hit",
+		p1.actionId.." action id",
+		p1.standActionId.." stand action id",
+		p2.hitstun.." hitstun",
+		readByte(0x02034D61).." hitstun2",
+		p2.y.." p2 y",
+		p2.defenseAction.." p2 defense action",
+		projectiles[1].attackId.." proj attack id",
+		projectiles[1].attackHit.." proj hit",
+		system.screenX.." screen x",
+		p1.x.." p1 x",
+		p2.x.." p2 x",
+	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
 	end
@@ -4024,13 +4294,13 @@ end
 function drawTrialsCharacters()
 	for i = 1, #menu.options - 1, 1 do
 		local option = menu.options[i]
-		local color = (menu.index == i) and colors.menuSelectedColor or colors.menuUnselectedColor
+		local color = (menu.index == i) and menu.flashColor or colors.menuUnselected
 		local x = 100 + ((i - 1) % 2) * 100
 		local y = 60 + math.floor((i - 1) / 2) * 12
 		gui.text(x, y, option.name, color)
 		guiTextAlignRight(x + 86, y, trialCompletedCount(i).."/"..#trials[i].trials, color)
 	end
-	local color = (menu.index == 23) and colors.menuSelectedColor or colors.menuUnselectedColor
+	local color = (menu.index == 23) and menu.flashColor or colors.menuUnselected
 	gui.text(200, 192, "Return", color)
 end
 
@@ -4049,20 +4319,20 @@ end
 function drawTrials()
 	if menu.index ~= #menu.options then
 		local trial = menu.options[menu.index].trial
-		gui.text(100, 60, trial.name, colors.menuUnselectedColor)
+		gui.text(100, 60, trial.name, colors.menuUnselected)
 		local difficulty = type(trial.difficulty) == "number" and string.rep("* ", trial.difficulty) or trial.difficulty
-		gui.text(100, 72, "Difficulty: "..difficulty, colors.menuUnselectedColor)
-		gui.text(100, 84, "Author: "..trial.author, colors.menuUnselectedColor)
-		gui.text(100, 96, "Info:", colors.menuUnselectedColor)
+		gui.text(100, 72, "Difficulty: "..difficulty, colors.menuUnselected)
+		gui.text(100, 84, "Author: "..trial.author, colors.menuUnselected)
+		gui.text(100, 96, "Info:", colors.menuUnselected)
 		for i = 1, #trial.info, 1 do
-			gui.text(100, 100 + i * 8, trial.info[i], colors.menuUnselectedColor)
+			gui.text(100, 100 + i * 8, trial.info[i], colors.menuUnselected)
 		end
 		gui.text(202, 40, "Not in Use 1: Restart")
 		gui.text(202, 50, "Not in Use 2: Replay")
 	end
 	for i = 1, #menu.options - 1, 1 do
 		local option = menu.options[i]
-		local color = (menu.index == i) and colors.menuSelectedColor or colors.menuUnselectedColor
+		local color = (menu.index == i) and menu.flashColor or colors.menuUnselected
 		local successColor = option.success and "red" or "clear"
 		local x = 102 + ((i - 1) % 12) * 15
 		local y = 160 + math.floor((i - 1) / 12) * 13
@@ -4070,7 +4340,7 @@ function drawTrials()
 		gui.box(x, y, x + 12, y + 10, successColor, color)
 		gui.text(x + 3 + textOffset, y + 2, i, color)
 	end
-	local color = (menu.index == #menu.options) and colors.menuSelectedColor or colors.menuUnselectedColor
+	local color = (menu.index == #menu.options) and menu.flashColor or colors.menuUnselected
 	gui.text(200, 192, "Return", color)
 end
 
@@ -4080,10 +4350,10 @@ function drawTrialGui()
 		local index = trial.min + i - 1
 		local color
 		if trial.failIndex == 0 then
-			color = index < trial.index and options.comboCounterActiveColor or colors.menuUnselectedColor
+			color = index < trial.index and options.comboCounterActiveColor or colors.menuUnselected
 		else
 			color = index < trial.failIndex and options.comboCounterActiveColor or
-				index == trial.failIndex and options.failColor or colors.menuUnselectedColor
+				index == trial.failIndex and options.failColor or colors.menuUnselected
 		end
 		gui.text(14, 44 + i * 10, trial.combo[index].name, color)
 		if index == trial.index then
@@ -4098,13 +4368,14 @@ function drawTrialGui()
 			gui.text(10, 188, "Start + Up/Down: Scroll")
 		end
 	end
+	drawFixedInput(p1.inputHistoryTable[1], 175, 216)
 end
 
 function drawFileList()
 	for i = 1, #menu.options, 1 do
 		local option = menu.options[i]
-		local color = menu.index == i and colors.menuSelectedColor or 
-			options.trialsFilename == option.name and options.failColor or colors.menuUnselectedColor
+		local color = menu.index == i and menu.flashColor or 
+			options.trialsFilename == option.name and options.failColor or colors.menuUnselected
 		gui.text(100, 50 + i * 10, option.name, color)
 	end
 end
@@ -4146,7 +4417,7 @@ function drawHitboxes()
 		
 		--Attack
 		drawbox(0x203595C, px, py, flip, options.hitboxColor)
-		drawbox(0x2035964, px, py, flip, colors.orangeboxColor)
+		drawbox(0x2035964, px, py, flip, colors.orangebox)
 	end
 end
 
@@ -4204,7 +4475,7 @@ function drawPlayerHitboxes(hitbox, x, y, facing, character, data)
 	local boxOffset = 0x6700000 + character * 0x1002
 
 	drawbox2(atk1, boxOffset, x, y, flip, options.hitboxColor, data, 3)
-	drawbox2(atk2, boxOffset, x, y, flip, colors.orangeboxColor, data, 3)
+	drawbox2(atk2, boxOffset, x, y, flip, colors.orangebox, data, 3)
 	drawbox2(head, boxOffset, x, y, flip, options.hurtboxColor, data, 2)
 	drawbox2(torso, boxOffset, x, y, flip, options.hurtboxColor, data, 2)
 	drawbox2(legs, boxOffset, x, y, flip, options.hurtboxColor, data, 2)
@@ -4245,7 +4516,7 @@ input.registerhotkey(1, function()
 	if fcReplay then
 		options.guiStyle = (options.guiStyle == 2) and 1 or 2
 	else
-		options.guiStyle = (options.guiStyle == 4) and 1 or options.guiStyle + 1
+		options.guiStyle = (options.guiStyle == 5) and 1 or options.guiStyle + 1
 	end
 	gui.clearuncommitted()
 end)
@@ -4257,6 +4528,13 @@ end)
 
 input.registerhotkey(3, function()
 	options.music = not options.music
+end)
+
+input.registerhotkey(4, function()
+	options.inputStyle = (options.inputStyle == 3) and 1 or options.inputStyle + 1
+	clearInputHistory(p1)
+	clearInputHistory(p2)
+	gui.clearuncommitted()
 end)
 
 function replayOptions() 
@@ -4273,6 +4551,8 @@ function replayOptions()
 	options.throwTech = false
 	options.tandemCooldown = true
 	options.boingo = false
+	options.level = 1
+	options.inputStyle = 2
 	resetReversalOptions()
 end
 
@@ -4282,7 +4562,10 @@ emu.registerstart(function()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 	readSettings()
 	readTrials()
+	readMoveDefinitions()
 	createInputsFile()
+	clearInputHistory(p1)
+	clearInputHistory(p2)
 	if fcReplay then 
 		replayOptions()
 	end
@@ -4302,12 +4585,11 @@ end)
 -------------------------------------------------
 
 while true do 
-	memoryReader()
-	gameplayLoop()
-	inputSorter()
-	inputChecker()
-	inputHistoryRefresher()
-	characterControl()
+	updateMemory()
+	updateGameplayLoop()
+	updateInput()
+	updateInputCheck()
+	updateCharacterControl()
 	updateTrial()
 	updateHitboxes()
 	emu.frameadvance()
