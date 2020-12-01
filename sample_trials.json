@@ -460,10 +460,10 @@
                 "tandemCooldown": false,
                 "difficulty": 2,
                 "recording": ["ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81"],
-                "name": "Net link",
                 "info": [
                     "Nothing but net"
                 ],
+                "name": "Net link",
                 "position": false,
                 "p2": {
                     "y": 0,
@@ -882,8 +882,63 @@
         ]
     },
     {
-        "name": "Chaca",
+        "name": "Chaka",
         "trials": [
+            {
+                "difficulty": 2,
+                "direction": 0,
+                "ips": false,
+                "combo": [
+                    {
+                        "id": 20,
+                        "name": "623A GC (Guard Cancel)"
+                    },
+                    {
+                        "id": 3,
+                        "name": "5B+S"
+                    },
+                    {
+                        "id": 21,
+                        "name": "s.236AA"
+                    }
+                ],
+                "rng": 2626743981,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "parry": true,
+                "recording": ["dl7","rd2","r3","rd2","d2","rd1","ard1","ar2","a3","23","s1","sb6","b1","2","d1","rd3","r2","1","acb5","301"],
+                "name": "Guard Cancel",
+                "info": [
+                    "Simple confirm into super from a guard cancel"
+                ],
+                "position": false,
+                "p2": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "stand": 0,
+                    "x": 847,
+                    "standX": 792,
+                    "child": false
+                },
+                "standGauge": false,
+                "stage": {
+                    "id": 38,
+                    "x": 528,
+                    "y": 252
+                },
+                "p1": {
+                    "y": 0,
+                    "character": 7,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 0,
+                    "x": 774,
+                    "standX": 749,
+                    "child": false
+                }
+            }
         ]
     },
     {
@@ -1606,6 +1661,60 @@
     {
         "name": "Shadow Dio",
         "trials": [
+            {
+                "drill": 5,
+                "ips": false,
+                "combo": [
+                    {
+                        "id": 3,
+                        "name": "2A"
+                    },
+                    {
+                        "id": 2,
+                        "name": "5C"
+                    },
+                    {
+                        "id": 29,
+                        "name": "5S"
+                    }
+                ],
+                "direction": 0,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "recording": ["dl2","adl8","10","c5","6","s6","10","r3","4","r9","3","dl38","d1","22"],
+                "difficulty": 1,
+                "info": [
+                    "Loop 5 times to succeed!"
+                ],
+                "name": "Loop drill",
+                "position": false,
+                "p2": {
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "stand": 0,
+                    "x": 928,
+                    "standX": 608,
+                    "child": false
+                },
+                "rng": 401018469,
+                "stage": {
+                    "id": 39,
+                    "x": 576,
+                    "y": 252
+                },
+                "p1": {
+                    "y": 0,
+                    "character": 14,
+                    "standY": 80,
+                    "facing": 1,
+                    "stand": 0,
+                    "x": 880,
+                    "standX": 815,
+                    "child": false
+                }
+            }
         ]
     },
     {
@@ -1741,14 +1850,14 @@
                 },
                 "p1": {
                     "standX": 872,
-                    "child": false,
+                    "stand": 0,
                     "y": 0,
-                    "character": 22,
+                    "x": 967,
                     "standY": 0,
                     "facing": 1,
                     "level": 0,
-                    "x": 967,
-                    "stand": 0
+                    "character": 22,
+                    "child": false
                 }
             }
         ]

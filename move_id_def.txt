@@ -137,6 +137,41 @@ Black Polnareff
 
 Petshop
 
+-Normals
+0 5A
+1 5B
+29 4B
+2 5C
+6 2A
+30 2B
+7 2C
+8 3C
+12 5S
+
+-Dash Normals
+24 d.2A
+25 d.2B
+26 d.2C
+
+-Specials
+3 236A
+4 236B
+5 236C
+27 214A -First hit
+28 214A -Second hit
+10 214B/C
+9 Icicle
+12 - 41236S
+13 - 2S
+14 - 236S
+
+-Supers
+16 236AA
+21 236AA
+22 236AA
+11 - 214AA
+15 - AA6BC
+
 Mariah
 
 Hoingo

@@ -54,6 +54,7 @@ local options = {
 	meterRefill = true,
 	healthRefill = true,
 	standGaugeRefill = true,
+	infiniteRounds = true,
 	guiStyle = 2,
 	inputStyle = 2,
 	p1Gui = true,
@@ -143,16 +144,26 @@ local band = bit.band
 local bor = bit.bor
 local bxor = bit.bxor
 
--------------------------------------------------
--- Data
--------------------------------------------------
-
 --Copies values from one table to another
 function tableCopy(source, dest) 
 	for k, v in pairs(source) do
 		dest[k] = v
 	end
 end
+
+--Returns the index of an object in a table
+function tableIndex(t, obj) 
+	for i = 1, #t, 1 do
+		if t[i] == obj then
+			return i
+		end
+	end
+	return -1
+end
+
+-------------------------------------------------
+-- Data
+-------------------------------------------------
 
 local optionType = {
 	subMenu = 1,
@@ -167,7 +178,8 @@ local optionType = {
 	trial = 10,
 	files = 11,
 	file = 12, 
-	back = 13
+	key = 13,
+	back = 14
 }
 
 local systemOptions = {
@@ -225,21 +237,33 @@ local systemOptions = {
 	{
 		name = "Not In Use 1 Hotkey:",
 		key = "mediumKickHotkey",
-		type = optionType.list,
+		type = optionType.key,
 		list = {
-			"Record",
-			"Disabled"
+			"record",
+			"recordParry",
+			"disabled"
+		},
+		names = {
+			record = "Record",
+			recordParry = "Record Parry",
+			disabled = "Disabled"
 		}
 	},
 	{
 		name = "Not In Use 2 Hotkey:",
 		key = "strongKickHotkey",
-		type = optionType.list,
+		type = optionType.key,
 		list = {
-			"Replay",
-			"Replay P2",
-			"Input playback",
-			"Disabled"
+			"replay",
+			"replayP2",
+			"inputPlayback",
+			"disabled"
+		},
+		names = {
+			replay = "Replay",
+			replayP2 = "Replay P2",
+			inputPlayback = "Input Playback",
+			disabled = "Disabled"
 		}
 	},
 	{
@@ -262,6 +286,11 @@ local battleOptions = {
 	{
 		name = "Stand Gauge Refill:",
 		key = "standGaugeRefill",
+		type = optionType.bool
+	},
+	{
+		name = "Infinite Rounds:",
+		key = "infiniteRounds",
 		type = optionType.bool
 	},
 	{
@@ -536,123 +565,6 @@ local reversalOptions = {
 	}
 }
 
-local trialCharacterOptions = {
-	{
-		name = "Jotaro",
-		type = optionType.trialCharacter,
-		id = 0
-	},
-	{
-		name = "Kakyoin",
-		type = optionType.trialCharacter,
-		id = 1
-	},
-	{
-		name = "Avdol",
-		type = optionType.trialCharacter,
-		id = 2
-	},
-	{
-		name = "Polnareff",
-		type = optionType.trialCharacter,
-		id = 3
-	},
-	{
-		name = "Old Joseph",
-		type = optionType.trialCharacter,
-		id = 4
-	},
-	{
-		name = "Iggy",
-		type = optionType.trialCharacter,
-		id = 5
-	},
-	{
-		name = "Alessi",
-		type = optionType.trialCharacter,
-		id = 6
-	},
-	{
-		name = "Chaka",
-		type = optionType.trialCharacter,
-		id = 7
-	},
-	{
-		name = "Devo",
-		type = optionType.trialCharacter,
-		id = 8
-	},
-	{
-		name = "Midler",
-		type = optionType.trialCharacter,
-		id = 10
-	},
-	{
-		name = "Dio",
-		type = optionType.trialCharacter,
-		id = 11
-	},
-	{
-		name = "Shadow Dio",
-		type = optionType.trialCharacter,
-		id = 14
-	},
-	{
-		name = "Young Joseph",
-		type = optionType.trialCharacter,
-		id = 15
-	},
-	{
-		name = "Hol Horse",
-		type = optionType.trialCharacter,
-		id = 16
-	},
-	{
-		name = "Vanilla Ice",
-		type = optionType.trialCharacter,
-		id = 17
-	},
-	{
-		name = "New Kakyoin",
-		type = optionType.trialCharacter,
-		id = 18
-	},
-	{
-		name = "Black Polnareff",
-		type = optionType.trialCharacter,
-		id = 19
-	},
-	{
-		name = "Petshop",
-		type = optionType.trialCharacter,
-		id = 20
-	},
-	{
-		name = "Mariah",
-		type = optionType.trialCharacter,
-		id = 22
-	},
-	{
-		name = "Hoingo",
-		type = optionType.trialCharacter,
-		id = 23
-	},
-	{
-		name = "Rubber Soul",
-		type = optionType.trialCharacter,
-		id = 24
-	},
-	{
-		name = "Khan",
-		type = optionType.trialCharacter,
-		id = 25
-	},
-	{
-		name = "Return",
-		type = optionType.back
-	}
-}
-
 local trialOptions = {
 	{
 		name = "Save Recording",
@@ -877,6 +789,7 @@ local p1 = {
 	standAttackHit = 0,
 	actionId = 0,
 	standActionId = 0,
+	airtech = false,
 	newButtons = 0,
 	buttons = {},
 	memory = nil,
@@ -1017,7 +930,8 @@ p2.number = 2
 local system = {
 	frameAdvantage = 0,
 	previousFrame = emu.framecount() - 1,
-	screenFreeze = 0
+	screenFreeze = 0,
+	parry = 0,
 }
 
 local buttons = {
@@ -1316,6 +1230,31 @@ local charToIndex = {
 	[23] = 20,
 	[24] = 21,
 	[25] = 22
+}
+
+local indexToName = {
+	"Jotaro",
+	"Kakyoin",
+	"Avdol",
+	"Polnareff",
+	"Old Joseph",
+	"Iggy",
+	"Alessi",
+	"Chaka",
+	"Devo",
+	"Midler",
+	"Dio",
+	"Shadow Dio",
+	"Young Joseph",
+	"Hol Horse",
+	"Vanilla Ice",
+	"New Kakyoin",
+	"Black Polnareff",
+	"Petshop",
+	"Mariah",
+	"Hoingo",
+	"Rubber Soul",
+	"Khan"
 }
 
 local nameToId = {
@@ -1909,10 +1848,11 @@ end
 -------------------------------------------------
 
 function updateMemory()
+	readSystemMemory()
 	readPlayerMemory(p1)
 	readPlayerMemory(p2)
 	readProjectileMemory()
-	readSystemMemory()
+	
 	inputTables.previous = inputTables.current
 	inputTables.current = joypad.read() -- reads all inputs
 
@@ -2150,10 +2090,13 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	updatePlayer(p1, p2)
 	updatePlayer(p2, p1)
 	writeByte(0x205CC1A, options.music and 0x80 or 0x00) -- Toggle music off or on
-	if not fcReplay then  
-		writeByte(0x20314B4, 0x63) -- Infinite Clock Time
+
+	if fcReplay then return end  -- Don't write if replay
+
+	writeByte(0x20314B4, 0x63) -- Infinite Clock Time
+	if options.infiniteRounds then
 		writeByte(0x2034860, 0) -- Reset round to 0
-	end 
+	end
 	if not options.ips then -- IPS
 		writeByte(p1.memory.ips, 0x00)
 	end
@@ -2204,12 +2147,25 @@ function updatePlayer(player, other)
 		writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
 	end
 
-	-- Frame Data
-	-- player.previousCanReversal = player.canReversal
-	-- player.canReversal = canReversal(player)
-	-- player.previousCanAct = player.canAct
-	-- player.canAct = canAct(player)
-	
+	-- Air Tech
+	player.previousAirTech = player.airtech
+
+	player.airtech = player.height > 0 and player.hitstun == 1 and player.riseFall == 0xFF and
+		(player.previousRiseFall == 0x00 or --Rising to falling
+		(player.previousAnimationState == 1 and player.animationState == 2)) -- Spiked
+
+	-- If the air tech gets eaten by a screen freeze try again after the screen freeze ends
+	if system.screenFreeze > 0 then
+		if player.previousAirTech then
+			player.screenFreezeTech = true
+		end
+	else
+		if player.screenFreezeTech then
+			player.airtech = true
+			player.screenFreezeTech = false
+		end
+	end
+
 	-- Reversals
 
 	-- If the player is in defense action 28 or 30 and the wakeupFreeze is finished they are starting their wakeup
@@ -2321,6 +2277,26 @@ function updateInputCheck()
 	end
 end
 
+local hotkeyFunctions = {
+	record = function(player)
+		record(player)
+	end,
+	recordParry = function(player, other)
+		recordParry(player, other)
+	end,
+	replay = function(player)
+		replaying(player)
+	end,
+	replayP2 = function(player, other)
+		replayTransfer(player, other)
+	end,
+	inputPlayback = function(player, other)
+		inputPlayback(player)
+		inputPlayback(other)
+	end,
+	disabled = function() end
+}
+
 function checkPlayerInput(player, other)
 	for _, v in pairs(player.buttons) do
 		if inputTables.current[v] then
@@ -2390,30 +2366,26 @@ function checkPlayerInput(player, other)
 	end
 
 	if pressed(player.buttons.mk) then
-		if options.mediumKickHotkey == 1 then
-			record(player)
-		end
+		hotkeyFunctions[options.mediumKickHotkey](player, other)
+		
 	elseif pressed(player.buttons.sk) then
-		if options.strongKickHotkey ~= 4 then -- Need to rewrite how hotkeys work
-			if player.number == 1 and player.recording then
-				trialFinaliseRecording()
-			end
-		end
-		if options.strongKickHotkey == 1 then
-			replaying(player)
-		elseif options.strongKickHotkey == 2 then
-			replayTransfer(player, other)
-		elseif options.strongKickHotkey == 3 then
-			inputPlayback(player)
-			inputPlayback(other)
-		end
+		checkFinaliseRecording(player, options.strongKickHotkey) --todo if updating hotkeys
+		hotkeyFunctions[options.strongKickHotkey](player, other)
 	end
 
 	if held(player.buttons.sk, 15) then
-		if options.strongKickHotkey == 2 then
+		if options.strongKickHotkey == "replayP2" then
 			other.loop = true
 		else
 			player.loop = true
+		end
+	end
+end
+
+function checkFinaliseRecording(player, hotkey)
+	if hotkey ~= "disabled" then
+		if player.number == 1 and player.recording then
+			trialFinaliseRecording()
 		end
 	end
 end
@@ -2432,6 +2404,22 @@ function record(player)
 		if player.number == 1 then
 			trialFinaliseRecording()
 		end
+	end
+end
+
+function recordParry(player, other)
+	if player.number == 2 then return end
+	if player.recording then
+		other.playbackCount = 0
+		other.loop = false
+		other.recording = false
+		record(player)
+	elseif system.parry > 0 then
+		system.parry = 0
+	else
+		player.playbackCount = 0
+		player.loop = false
+		system.parry = 1
 	end
 end
 
@@ -2487,11 +2475,40 @@ function updateCharacterControl()
 
 	inputTables.overwrite = {}
 
+	controlPlayers()
 	controlPlayer(p1, p2)
 	controlPlayer(p2, p1)
 
 	if next(inputTables.overwrite) ~= nil then --empty table
 		joypad.set(inputTables.overwrite)
+	end
+end
+
+function controlPlayers()
+	if system.parry > 0 then
+		if system.parry == 1 then
+			p2.playback = { 0x01 }
+			p2.playbackCount = 1
+			if p2.y > 0 then
+				system.parry = 2
+			end
+		elseif system.parry == 2 then
+			if p2.y == 0 then
+				p2.playback = { 0x40 }
+				p2.playbackCount = 1
+				system.parry = 0
+				if trial.enabled then
+					if trial.parryReplay then
+						trialStartReplay()
+						trial.parryReplay = false
+					else
+						trial.parryDelay = true
+					end
+				else
+					record(p1)
+				end
+			end
+		end
 	end
 end
 
@@ -2521,7 +2538,7 @@ function controlPlayer(player, other)
 			end
 			player.blocking = false
 		-- Air Tech
-		elseif options.airTech and canAirTech(player) then
+		elseif options.airTech and player.airtech then
 			airTech(player, other)
 		--Perfect Air Tech 
 		elseif options.perfectAirTech and canPerfectAirTech(player) then
@@ -2567,6 +2584,9 @@ function controlPlayer(player, other)
 			if player.loop then
 				player.playbackFlipped = player.facing ~= player.playbackFacing
 				player.playbackCount = #player.playback
+			end
+			if player.recordParry then
+				player.recordParry = false
 			end
 			--todo
 			-- if trial.enabled then
@@ -2683,7 +2703,7 @@ function getReversal(player, other)
 	local button = reversal.buttons[options.reversalButton]
 	if options.reversalReplay ~= 1 then
 		if options.reversalReplay == 2 or options.reversalReplay == 3 then --Replay
-			local recordedPlayer = (options.strongKickHotkey == 2 and other or player)
+			local recordedPlayer = (options.strongKickHotkey == "replayP2" and other or player)
 			inputs = duplicateList(recordedPlayer.recorded, true, true)
 			player.playbackFacing = recordedPlayer.recordedFacing
 			if player.y > 0 then
@@ -2766,12 +2786,6 @@ end
 
 function canGuardAction(player)
 	return player.previousGuarding == 0 and player.guarding > 0
-end
-
-function canAirTech(player)
-	return player.height > 0 and player.hitstun == 1 and player.riseFall == 0xFF and
-		(player.previousRiseFall == 0x00 or --Rising to falling
-		(player.previousAnimationState == 1 and player.animationState == 2)) -- Spiked
 end
 
 function canPerfectAirTech(player)
@@ -2884,7 +2898,7 @@ function menuSelect()
 			menu.info = "No trials jsons found"
 		else
 			menu.state = 5
-			menu.options = trialCharacterOptions
+			menu.options = getTrialCharacterOptions()
 			menu.previousIndex = menu.index
 			menu.index = charToIndex[p1.character]
 			menu.title = "Combo Trials"
@@ -2927,7 +2941,7 @@ function menuCancel()
 	elseif menu.state == 6 then -- trials 
 		menu.state = 5
 		menu.index = menu.previousSubIndex
-		menu.options = trialCharacterOptions
+		menu.options = getTrialCharacterOptions()
 		menu.title = "Combo Trials"
 		trialModeStop()
 	elseif menu.state == 7 then -- files
@@ -2976,6 +2990,9 @@ function menuLeft()
 			inc = value
 		end
 		options[menu.color] = options[menu.color] - lShift(inc, option.shift)
+	elseif option.type == optionType.key then
+		local index = tableIndex(option.list, value)
+		options[option.key] = option.list[index == 1 and #option.list or index - 1]
 	elseif option.type == optionType.trialCharacter then
 		if menu.index ~= 23 then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
@@ -3011,6 +3028,9 @@ function menuRight()
 			inc = 255 - value
 		end
 		options[menu.color] = options[menu.color] + lShift(inc, option.shift)
+	elseif option.type == optionType.key then
+		local index = tableIndex(option.list, value)
+		options[option.key] = option.list[index >= #option.list and 1 or index + 1]
 	elseif option.type == optionType.trialCharacter then
 		if menu.index ~= 23 then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
@@ -3099,6 +3119,34 @@ function resetColor()
 	options[menu.color] = menu.default
 end
 
+function getTrialCharacterOptions()
+	local optionsTable = {}
+	for i = 1, 22, 1 do
+		optionsTable[i] = {
+			name = indexToName[i],
+			type = optionType.trialCharacter,
+			completed = trialCompletedCount(i)
+		}
+	end
+	optionsTable[#optionsTable + 1] = {
+		name = "Return",
+		type = optionType.back
+	}
+	return optionsTable
+end
+
+function trialCompletedCount(index)
+	local success = options.trialSuccess[options.trialsFilename][index]
+	local count = 0
+	while success > 0 do
+		if band(success, 1) == 1 then
+			count = count + 1
+		end
+		success = rShift(success, 1)
+	end
+	return count
+end
+
 function getTrialOptions(index)
 	local optionsTable = {}
 	local success = options.trialSuccess[options.trialsFilename][index]
@@ -3177,6 +3225,8 @@ function updateTrial()
 		updateTrialReplay()
 	elseif trial.reset then
 		updateTrialReset()
+	elseif trial.trial.parry and not trialStarted() and system.parry == 0 then
+		updateTrialParry()
 	end
 	updateTrialCheck(false)
 end
@@ -3192,10 +3242,10 @@ function updateTrialCheck(tailCall)
 		elseif input.type == comboType.timeStop and 
 				system.previousTimeStop == 0 and system.timeStop > 0 then 
 			return advanceTrialIndex()
-		elseif not (trial.index == 1 and trial.subIndex == 1) then
+		elseif trialStarted() then
 			return trialFail()
 		end
-	elseif not (trial.index == 1 and trial.subIndex == 1) and not trialStun(input) then
+	elseif trialStarted() and not trialStun(input) then
 		return trialFail()
 	elseif input.type == comboType.id then
 		if checkAttackId(input.id) then
@@ -3217,9 +3267,7 @@ function updateTrialCheck(tailCall)
 		end
 	elseif input.type == comboType.inputs then
 		if p1.previousTandemCount ~= p1.tandemCount and not tailCall then
-			local address = 0x02032174 + (p1.tandemCount - 1) * 6
-			local tandemInput = tandemString(readByteRange(address, 6))
-			if tandemInput == input.id[trial.subIndex] then
+			if checkTandemInput(input.id[trial.subIndex]) then
 				return advanceTrialSubIndex(input)
 			else 
 				return trialFail()
@@ -3286,8 +3334,17 @@ function updateTrialCheck(tailCall)
 	end
 end
 
-function tandemString(ids)
-	return string.format("%02X%02X%02X%02X%02X", ids[1], ids[2], ids[3], ids[5], ids[6])
+function trialStarted()
+	return (trial.drill and trial.drillSuccess > 0) or not (trial.index == 1 and trial.subIndex == 1)
+end
+
+function checkTandemInput(id)
+	local address = 0x02032174 + (p1.tandemCount - 1) * 6
+	local ids = readByteRange(address, 3)
+	if #id == 10 then
+		id = id:sub(1, 6)
+	end
+	return id == string.format("%02X%02X%02X", ids[1], ids[2], ids[3])
 end
 
 function checkAttackId(id)
@@ -3390,6 +3447,14 @@ function trialModeStart()
 	trial.wait = 0
 	trial.replay = false
 	trial.reset = false
+	trial.parryDelay = false
+
+	if trial.trial.drill then 
+		trial.drill = trial.trial.drill
+		trial.drillSuccess = 0
+	else
+		trial.drill = false
+	end
 
 	writeByte(p1.memory.standGaugeRefill, p1.standGaugeMax)
 	writeByte(p2.memory.standGaugeRefill, p2.standGaugeMax)
@@ -3404,6 +3469,7 @@ end
 function trialModeStop()
 	if not trial.enabled then return end
 	retrieveOptions()
+	system.parry = 0
 	trial.enabled = false
 end
 
@@ -3478,6 +3544,7 @@ function updateOptions()
 	options.healthRefill = true
 	options.level = 1
 	options.inputStyle = 1
+	options.infiniteRounds = true
 	resetReversalOptions()
 end
 
@@ -3500,13 +3567,14 @@ function advanceTrialIndex()
 		trial.min = math.min(math.max(trial.index - 6, 1), #trial.combo - 12)
 	end
 	if trial.index > #trial.combo then
-		trial.success = true
-		if p1.playbackCount == 0 then 
-			menu.options[menu.index].success = true
-			local trialSuccess = options.trialSuccess[options.trialsFilename]
-			local value = bor(trialSuccess[menu.previousSubIndex], lShift(1, trial.id - 1))
-			trialSuccess[menu.previousSubIndex] = value
-			trialSave()
+		system.parry = 0
+		if trial.drill then
+			trial.drillSuccess = trial.drillSuccess + 1
+			trial.index = 1
+			trial.subIndex = 1
+			trial.min = 1
+		else
+			trialSuccess()
 		end
 	elseif trialTailCall() then
 		return updateTrialCheck(true) --make a tail call to check for multiple hits on the same frame if the id's are different
@@ -3519,6 +3587,30 @@ function advanceTrialSubIndex(input)
 		return advanceTrialIndex()
 	elseif trialTailCall() then
 		return updateTrialCheck(true)
+	end
+end
+
+function trialSuccess()
+	trial.success = true
+	if p1.playbackCount ~= 0 then return end
+	menu.options[menu.index].success = true
+	local trialSuccess = options.trialSuccess[options.trialsFilename]
+	local value = bor(trialSuccess[menu.previousSubIndex], lShift(1, trial.id - 1))
+	trialSuccess[menu.previousSubIndex] = value
+	trialSave()
+end
+
+function trialFail()
+	if trial.success then return end
+	if trial.drill and trial.drillSuccess >= trial.drill then
+		trialSuccess()
+	else
+		trial.drillSuccess = 0
+		trial.failIndex = trial.index
+		trial.index = 1
+		trial.min = 1
+		trial.subIndex = 1
+		trial.drillSuccess = 0
 	end
 end
 
@@ -3576,14 +3668,6 @@ function trialTailCall() -- determines whether the previous id is the same as th
 		end
 	end
 	return true
-end
-
-function trialFail()
-	if trial.success then return end
-	trial.failIndex = trial.index
-	trial.index = 1
-	trial.min = 1
-	trial.subIndex = 1
 end
 
 function trialNext()
@@ -3644,6 +3728,9 @@ function trialStartRecording()
 	if p1.character == 0x16 then -- mariah
 		recording.p1.level = readByte(0x02033210)
 	end
+	if options.mediumKickHotkey == "recordParry" then
+		recording.parry = true
+	end
 	trial.recording = recording
 	trial.recordingSubIndex = 1
 	trial.recordingFacing = p1.facing
@@ -3669,17 +3756,18 @@ function updateTrialRecording()
 		trial.recordingSubIndex = 1
 	elseif p1.tandem == 1 and p1.previousTandemCount ~= p1.tandemCount then
 		local address = 0x02032174 + (p1.tandemCount - 1) * 6
-		local tandemInput = tandemString(readByteRange(address, 6))
+		local ids = readByteRange(address, 3)
+		local id = string.format("%02X%02X%02X", ids[1], ids[2], ids[3])
 		if trial.recordingSubIndex == 1 then
 			combo[#combo + 1] = {
 				name = tostring(#combo + 1),
 				type = comboType.inputs,
 				id = {
-					tandemInput
+					id
 				}
 			}
 		else
-			combo[#combo].id[trial.recordingSubIndex] = tandemInput
+			combo[#combo].id[trial.recordingSubIndex] = id
 		end
 		trial.recordingSubIndex = trial.recordingSubIndex + 1
 		if trial.recordingSubIndex > 3 then
@@ -3786,11 +3874,39 @@ function updateTrialReplay()
 		return
 	end
 
+	if trial.trial.parry then
+		system.parry = 1
+		trial.parryReplay = true
+	else
+		trialStartReplay()
+	end
+	trial.replay = false
+end
+
+function updateTrialParry()
+	if trial.wait > 0 then
+		trial.wait = trial.wait - 1
+		return
+	end
+
+	if updateTrialStand() then
+		return
+	end
+
+	if trial.parryDelay then
+		trial.parryDelay = false
+		trial.wait = 40
+		return
+	end
+
+	system.parry = 1
+end
+
+function trialStartReplay()
 	p1.playback = trial.recorded
 	p1.playbackCount = #trial.recorded
 	p1.playbackFacing = 1
 	p1.playbackFlipped = p1.facing ~= 1
-	trial.replay = false
 end
 
 function trialPlayback()
@@ -3888,6 +4004,8 @@ function trialForceStop()
 	trialModeStart()
 	p1.playbackCount = 0
 	p2.playbackCount = 0
+	system.parry = 0
+	trial.parryReplay = false
 end
 
 function parseTrialRecording()
@@ -4237,6 +4355,9 @@ function drawList()
 		elseif option.type == optionType.slider then
 			local value = getMenuColor(option.mask, option.shift)
 			gui.text(150, 48 + i * 12, value, color)
+		elseif option.type == optionType.key then
+			local word = option.names[options[option.key]]
+			gui.text(200, 48 + i * 12, word, color)
 		end
 	end
 	if menu.state == 4 then
@@ -4298,22 +4419,10 @@ function drawTrialsCharacters()
 		local x = 100 + ((i - 1) % 2) * 100
 		local y = 60 + math.floor((i - 1) / 2) * 12
 		gui.text(x, y, option.name, color)
-		guiTextAlignRight(x + 86, y, trialCompletedCount(i).."/"..#trials[i].trials, color)
+		guiTextAlignRight(x + 86, y, option.completed.."/"..#trials[i].trials, color)
 	end
 	local color = (menu.index == 23) and menu.flashColor or colors.menuUnselected
 	gui.text(200, 192, "Return", color)
-end
-
-function trialCompletedCount(index)
-	local success = options.trialSuccess[options.trialsFilename][index]
-	local count = 0
-	while success > 0 do
-		if band(success, 1) == 1 then
-			count = count + 1
-		end
-		success = rShift(success, 1)
-	end
-	return count
 end
 
 function drawTrials()
@@ -4361,6 +4470,10 @@ function drawTrialGui()
 		end
 	end
 	if menu.state == 0 then
+		if trial.drill then
+			gui.text(168, 72, "Loops")
+			guiTextAlignRight(218, 72, trial.drillSuccess.."/"..trial.drill)
+		end
 		if trial.success then
 			gui.text(178, 60, "Success!")
 			gui.text(10, 188, "Start: Next Trial")
@@ -4553,7 +4666,17 @@ function replayOptions()
 	options.boingo = false
 	options.level = 1
 	options.inputStyle = 2
+	options.infiniteRounds = false
 	resetReversalOptions()
+end
+
+function updateSettings() -- updates old settings to new
+	if type(options.mediumKickHotkey) == "number" then
+		options.mediumKickHotkey = "record"
+	end
+	if type(options.strongKickHotkey) == "number" then
+		options.strongKickHotkey = "replay"
+	end
 end
 
 emu.registerstart(function()
@@ -4561,6 +4684,7 @@ emu.registerstart(function()
 	writeByte(0x20312C1, 0x01) -- Unlock all characters
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 	readSettings()
+	updateSettings()
 	readTrials()
 	readMoveDefinitions()
 	createInputsFile()
