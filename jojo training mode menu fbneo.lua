@@ -161,6 +161,14 @@ function tableIndex(t, obj)
 	return -1
 end
 
+--Compares the contents of two indexed tables of the same length
+function tableCompare(tab1, tab2)
+	for i = 1, #tab1, 1 do
+		if tab1[i] ~= tab2[i] then return false end
+	end
+	return true
+end
+
 -------------------------------------------------
 -- Data
 -------------------------------------------------
@@ -790,6 +798,7 @@ local p1 = {
 	actionId = 0,
 	standActionId = 0,
 	airtech = false,
+	techable = 0,
 	newButtons = 0,
 	buttons = {},
 	memory = nil,
@@ -898,7 +907,8 @@ p2.memory = {
 	hitFreeze = 0x02034E7F,
 	wakeupFreeze = 0x02034D9A,
 	stunType = 0x02034E82,
-	stunCount = 0x02034E92
+	stunCount = 0x02034E92,
+	techable = 0x02034EE3
 }
 
 p2.memory2 = {
@@ -1283,7 +1293,10 @@ local nameToId = {
 }
 
 local trials = {}
-local trial = {}
+local trial = {
+	position = { 0, 0, 0, 0 },
+	previousPosition = { 0, 0, 0, 0 }
+}
 
 local comboType = {
 	id = 1,
@@ -1304,7 +1317,8 @@ local comboType = {
 	double = 16,
 	doubleMeaty = 17,
 	action = 18,
-	standAction = 19
+	standAction = 19,
+	reset = 20
 }
 
 local comboDictionary = {} 
@@ -1348,7 +1362,8 @@ local intToComboString = {
 	"double",
 	"double meaty",
 	"action",
-	"stand action"
+	"stand action",
+	"reset"
 }
 
 -- creates a set similar to the java style collection
@@ -1365,6 +1380,17 @@ local recordingKeys = createSet({
 	"p1Recording",
 	"p2Recording"
 })
+
+local commandGrabIds = {
+	[1] = createSet({ 52 }),
+	[4] = createSet({ 70 }),
+	[5] = createSet({ 29 }),
+	[10] = createSet({ 16 }),
+	[14] = createSet({ 48 }),
+	[18] = createSet({ 52 }),
+	[23] = createSet({ 42 }),
+	[24] = createSet({ 18 }),
+}
 
 local moveDefinitions = {}
 for i = 1, 22, 1 do
@@ -1883,6 +1909,8 @@ function readPlayerMemory(player)
 	player.previousStand = player.stand
 	player.previousActionId = player.actionId
 	player.previousStandActionId = player.standActionId
+	player.previousY = player.y
+	player.previousTechable = player.techable
 	for k, v in pairs(player.memory) do
 		player[k] = readByte(v)
 	end
@@ -1927,6 +1955,10 @@ function readSystemMemory()
 	system.screenY = readWordSigned(0x02031470)
 	system.previousTimeStop = system.timeStop
 	system.timeStop = readByte(0x20314C2)
+	system.slowDown = readByte(0x2006190)
+	if system.slowDown == 1 then
+		gui.text(100, 100, "SLOWDOWN")
+	end
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -2671,7 +2703,8 @@ function airTech(player, other, perfect)
 		end
 	end
 	if not perfect then
-		insertDelay(inputs, options.airTechDelay, 0)
+		local delay = (system.slowDown == 1 and options.airTechDelay % 2 == 0) and options.airTechDelay + 1 or options.airTechDelay
+		insertDelay(inputs, delay, 0)
 		player.airtechCount = player.airtechCount + options.airTechDelay
 	end
 	setPlayback(player, inputs)
@@ -3233,7 +3266,7 @@ end
 
 function updateTrialCheck(tailCall)
 	local input = trial.combo[trial.index]
-	if p2.wakeupFrame and not tailCall then
+	if p2.wakeupFrame then
 		if input.type == comboType.meaty and checkAttackId(input.id) then
 			return advanceTrialIndex()
 		elseif input.type == comboType.doubleMeaty and 
@@ -3243,6 +3276,12 @@ function updateTrialCheck(tailCall)
 				system.previousTimeStop == 0 and system.timeStop > 0 then 
 			return advanceTrialIndex()
 		elseif trialStarted() then
+			return trialFail()
+		end
+	elseif p2.previousY > 0 and p2.y == 0 and p2.previousTechable == 1 and p2.stand > 0 then
+		if input.type == comboType.reset and checkAttackId(input.id) then
+			return advanceTrialIndex()
+		else
 			return trialFail()
 		end
 	elseif trialStarted() and not trialStun(input) then
@@ -3341,7 +3380,9 @@ end
 function checkTandemInput(id)
 	local address = 0x02032174 + (p1.tandemCount - 1) * 6
 	local ids = readByteRange(address, 3)
-	if #id == 10 then
+	if ids[1] == 0x1A then -- if super just test second byte
+		return id:sub(3, 4) == string.format("%02X", ids[2])
+	elseif #id == 10 then -- if old 10 length format shorten first
 		id = id:sub(1, 6)
 	end
 	return id == string.format("%02X%02X%02X", ids[1], ids[2], ids[3])
@@ -3407,23 +3448,23 @@ function getAttackId()
 end
 
 function trialStun(input)
-	if p2.guarding > 0 and p2.previousGuarding == 0 then 
+	if p2.guarding > 0 and p2.previousGuarding == 0 then --blocking
 		return false
 	end
-	if p2.hitstun == 3 then 
+	if p2.hitstun == 3 then --grab
 		return true 
 	end
-	if p2.wakeupFrame then 
+	if p2.wakeupFrame then --wakeup frame
 		return false
 	end
-	if p2.y > 0 then
-		if p2.previousHitstun > 0 and p2.hitstun == 0 then 
+	if p2.y > 0 or (p2.y == 0 and p2.previousY > 0) then --in air or tech roll
+		if p2.previousHitstun > 0 and p2.hitstun == 0 then
 			return false 
 		end
 	else
 		if p2.defenseAction > 26 then 
 			return true
-		elseif p1.character == 0x04 and input.id == 70 then
+		elseif commandGrabIds[p1.character] and commandGrabIds[p1.character][input.id] then
 			if p2.previousHitstun > 0 and p2.hitstun == 0 then
 				return false
 			end
@@ -3827,6 +3868,7 @@ function trialReset()
 	else
 		trialModeStart()
 		trial.reset = true
+		trial.positionCounter = 0
 	end
 end
 
@@ -3853,6 +3895,7 @@ function trialReplay()
 		if trial.recorded then
 			trialModeStart()
 			trial.replay = true
+			trial.positionCounter = 0
 		end 
 	end
 end
@@ -3976,21 +4019,35 @@ function updateTrialPosition()
 	-- update positions of player and stand
 	writeWord(p1.facing, trial.trial.p1.facing)
 	writeWord(p2.facing, trial.trial.p2.facing)
+
+	tableCopy(trial.position, trial.previousPosition)
+
 	if p1.x ~= p1x then
+		trial.position[1] = p1.x
 		writeWord(p1.memory2.x, p1x)
 		updated = true
 	end
 	if p2.x ~= p2x then
+		trial.position[2] = p2.x
 		writeWord(p2.memory2.x, p2x)
 		updated = true
 	end
 	if (p1.stand > 0 or p1.character == 0x08) and p1.standX ~= p1sx then
+		trial.position[3] = p1.standX
 		writeWord(p1.memory2.standX, p1sx)
 		updated = true
 	end
 	if p2.stand > 0 and p2.standX ~= p2sx then
+		trial.position[4] = p2.standX
 		writeWord(p2.memory2.standX, p2sx)
 		updated = true
+	end
+
+	if updated and tableCompare(trial.position, trial.previousPosition) then
+		trial.positionCounter = trial.positionCounter + 1
+		if trial.positionCounter == 5 then
+			return false
+		end
 	end
 	-- return whether updated or not
 	return updated
@@ -4398,7 +4455,6 @@ function drawDebug(x, y)
 		p1.actionId.." action id",
 		p1.standActionId.." stand action id",
 		p2.hitstun.." hitstun",
-		readByte(0x02034D61).." hitstun2",
 		p2.y.." p2 y",
 		p2.defenseAction.." p2 defense action",
 		projectiles[1].attackId.." proj attack id",
