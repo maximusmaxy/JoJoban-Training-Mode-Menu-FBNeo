@@ -92,6 +92,14 @@ local options = {
 	trialSuccess = {},
 	p1Recording = {},
 	p2Recording = {},
+	recordingSlot = 1,
+	slot1 = true,
+	slot2 = false,
+	slot3 = false,
+	slot4 = false,
+	slot5 = false,
+	replayInterval = 0,
+	taunt = true
 }
 
 -----------------------
@@ -115,12 +123,14 @@ if fcReplay then
 	print("Alt + 3 to toggle music")
 	print("Alt + 4 to cyle input style")
 else
-	print("Coin to open up the menu.")
-	print("Hold start control your opponent.")
-	print("Special functions are bound to Not In Use 1 and 2. The functions can be reassigned in the menu.")
-	print("Holding down replay button will make it loop.")
-	print("Pressing MK on the menu will restore p2 stand gauge")
-	print("Pressing HK on the menu will restore p1 stand gauge")
+	print("Coin: Open up the menu")
+	print("Start: Control your opponent and lock direction when released")
+	print("Not in use 1: Record")
+	print("Not in use 2: Replay")
+	print("Press F5 to rebind your not in use keys")
+	print("Hold down replay to loop")
+	print("Not in use 1 on menu: Restore p2 stand gauge")
+	print("Not in use 2 on menu: Restore p1 stand gauge")
 end
 
 -------------------------------------------------
@@ -243,36 +253,9 @@ local systemOptions = {
 		type = optionType.bool
 	},
 	{
-		name = "Not In Use 1 Hotkey:",
-		key = "mediumKickHotkey",
-		type = optionType.key,
-		list = {
-			"record",
-			"recordParry",
-			"disabled"
-		},
-		names = {
-			record = "Record",
-			recordParry = "Record Parry",
-			disabled = "Disabled"
-		}
-	},
-	{
-		name = "Not In Use 2 Hotkey:",
-		key = "strongKickHotkey",
-		type = optionType.key,
-		list = {
-			"replay",
-			"replayP2",
-			"inputPlayback",
-			"disabled"
-		},
-		names = {
-			replay = "Replay",
-			replayP2 = "Replay P2",
-			inputPlayback = "Input Playback",
-			disabled = "Disabled"
-		}
+		name = "Taunt:",
+		key = "taunt",
+		type = optionType.bool
 	},
 	{
 		name = "Return",
@@ -558,8 +541,8 @@ local reversalOptions = {
 			"None",
 			"Recording",
 			"Buffered Recording",
-			"Inputs.txt",
-			"Buffered Inputs.txt"
+--			"Inputs.txt",
+--			"Buffered Inputs.txt"
 		}
 	},
 	{
@@ -599,6 +582,91 @@ local trialOptions = {
 	}
 }
 
+local recordReplaySettings = {
+	{
+		name = "Recording Slot:",
+		key = "recordingSlot",
+		type = optionType.int,
+		min = 1,
+		max = 5
+	},
+	{
+		name = "Replay Slot 1:",
+		key = "slot1",
+		type = optionType.bool
+	},
+	{
+		name = "Replay Slot 2:",
+		key = "slot2",
+		type = optionType.bool
+	},
+	{
+		name = "Replay Slot 3:",
+		key = "slot3",
+		type = optionType.bool
+	},
+	{
+		name = "Replay Slot 4:",
+		key = "slot4",
+		type = optionType.bool
+	},
+	{
+		name = "Replay Slot 5:",
+		key = "slot5",
+		type = optionType.bool
+	},
+	{
+		name = "Replay interval:",
+		key = "replayInterval",
+		type = optionType.int,
+		min = 0,
+		max = 100
+	},
+	{
+		name = "Not In Use 1 Hotkey:",
+		key = "mediumKickHotkey",
+		type = optionType.key,
+		list = {
+			"record",
+			"recordP2",
+			"recordParry",
+			"disabled"
+		},
+		names = {
+			record = "Record P1",
+			recordP2 = "Record P2",
+			recordParry = "Record Parry",
+			disabled = "Disabled"
+		}
+	},
+	{
+		name = "Not In Use 2 Hotkey:",
+		key = "strongKickHotkey",
+		type = optionType.key,
+		list = {
+			"replay",
+			"replayP2",
+			"inputPlayback",
+			"disabled"
+		},
+		names = {
+			replay = "Replay P1",
+			replayP2 = "Replay P2",
+			inputPlayback = "Input Playback",
+			disabled = "Disabled"
+		}
+	},
+	{
+		name = "Reset to Default",
+		type = optionType.func,
+		func = function() resetReplayOptions() end
+	},
+	{
+		name = "Return",
+		type = optionType.back
+	}
+}
+
 local rootOptions = {
 	{
 		name = "Enemy Settings",
@@ -614,6 +682,11 @@ local rootOptions = {
 		name = "System Settings",
 		type = optionType.subMenu,
 		options = systemOptions
+	},
+	{
+		name = "Record/Replay Settings",
+		type = optionType.subMenu,
+		options = recordReplaySettings
 	},
 	{
 		name = "Reversal Settings",
@@ -719,7 +792,6 @@ local parserDictionary = {
 local p1 = {
 	character = 0,
 	health = 0, 
-	previousHealth = 0,
 	damage = 0,
 	previousDamage = 0,
 	comboDamage = 0,
@@ -727,9 +799,7 @@ local p1 = {
 	standGauge = 0,
 	standGaugeMax = 0,
 	combo = 0,
-	previousCombo = 0,
 	control = false,
-	previousControl = false,
 	directionLock = 0,
 	directionLockFacing = 0,
 	inputs = 0,
@@ -748,16 +818,12 @@ local p1 = {
 	playbackFacing = 0,
 	playbackFlipped = false,
 	guarding = 0,
-	previousGuarding = 0,
 	animationState = 0,
-	previousAnimationState = 0,
 	guardAnimation = 0,
 	standGuardAnimation = 0,
 	riseFall = 0,
-	previousRiseFall = 0,
 	hitstun = 0,
 	blockstun = 0,
-	previousBlockstun = 0,
 	blocking = false,
 	canAct1 = 0,
 	canAct2 = 0,
@@ -765,32 +831,22 @@ local p1 = {
 	previousIps = 0,
 	ips = 0,
 	scaling = 0,
-	previousScaling = 0,
 	canReversal = false,
-	previousCanReversal = false,
 	reversalCount = 0,
 	canAct = false,
-	previousCanAct = false,
 	frameAdvantage = 0,
 	defenseAction = 0,
-	previousDefenseAction = 0,
 	wakeupCount = 0,
-	previousWakeupCount = 0,
 	guardCount = 0,
-	previousGuardCount = 0,
 	hitCount = 0,
-	previousHitCount = 0,
 	airtechCount = 0,
-	previousAirtechCount = 0,
 	pushblockCount = 0,
-	previousPushblockCount = 0,
 	wakeupFreeze = 0,
 	hitFreeze = 0,
 	previousHitFreeze = 0,
 	actionAddress = 0,
 	stunType = 0,
 	stunCount = 0,
-	previousStunCount = 0,
 	wakeupFrame = false,
 	meaty = false,
 	attackHit = 0,
@@ -942,6 +998,8 @@ local system = {
 	previousFrame = emu.framecount() - 1,
 	screenFreeze = 0,
 	parry = 0,
+	recordingSlots = 5,
+	playerSelect = 0
 }
 
 local buttons = {
@@ -1009,11 +1067,32 @@ local cancelInputs = {
 	p1.buttons.sk
 }
 
-local inputTables = {
+local transferButtons = {
+	buttons.a,
+	buttons.b,
+	buttons.c,
+	buttons.s,
+	buttons.up,
+	buttons.down,
+	buttons.left,
+	buttons.right
+}
+
+local playerSelectInputs = {
+	p1.buttons.a,
+	p1.buttons.b,
+	p1.buttons.c,
+	p1.buttons.s,
+	p1.buttons.start
+}
+
+local inputModule = {
 	current = {},
 	previous = {},
 	held = {},
-	overwrite = {}
+	overwrite = {},
+	transfer = false,
+	transferWait = false
 }
 
 local hitboxOffsets = {
@@ -1048,7 +1127,7 @@ local hitboxOffsets = {
 --Initialise input held count time
 function initButtons(player) 
 	for _, v in pairs(player.buttons) do
-		inputTables.held[v] = 0
+		inputModule.held[v] = 0
 	end
 end
 
@@ -1168,6 +1247,8 @@ for i = 1, 64, 1 do
 		previousAttackId = 0,
 		attackHit = 0,
 		previousAttackHit = 0,
+		actionId = 0,
+		previousActionId = 0,
 		consumed = false
 	}
 end
@@ -1318,7 +1399,8 @@ local comboType = {
 	doubleMeaty = 17,
 	action = 18,
 	standAction = 19,
-	reset = 20
+	projectileAction = 20,
+	reset = 21
 }
 
 local comboDictionary = {} 
@@ -1342,6 +1424,7 @@ comboDictionary["double meaty"] = comboType.doubleMeaty
 comboDictionary["ub meaty"] = comboType.doubleMeaty
 comboDictionary["unblockable meaty"] = comboType.doubleMeaty
 comboDictionary["stand action"] = comboType.standAction
+comboDictionary["projectile action"] = comboType.projectileAction
 
 local intToComboString = {
 	"id",
@@ -1363,6 +1446,7 @@ local intToComboString = {
 	"double meaty",
 	"action",
 	"stand action",
+	"projectile action",
 	"reset"
 }
 
@@ -1376,7 +1460,10 @@ function createSet(list)
 end
 
 local recordingKeys = createSet({
-	"recording",
+	"recording"
+})
+
+local recordingArrays = createSet({
 	"p1Recording",
 	"p2Recording"
 })
@@ -1520,6 +1607,14 @@ function insertJsonTable(sb, t, depth)
 			skip = true
 		elseif recordingKeys[k] then
 			value = "[\""..table.concat(v, "\",\"").."\"],"
+		elseif recordingArrays[k] then
+			sb[#sb + 1] = key.."["
+			for i = 1, #v, 1 do
+				sb[#sb + 1] = string.rep("    ", depth + 1).."[\""..table.concat(v[i], "\",\"").."\"],"
+			end
+			sb[#sb] = sb[#sb]:sub(1, -2)
+			sb[#sb + 1] = string.rep("    ", depth).."],"
+			skip = true
 		elseif valueType == "table" then
 			local curlyboy = not v[1] and next(v) ~= nil
 			sb[#sb + 1] = key..(curlyboy and "{" or "[")
@@ -1601,9 +1696,7 @@ end
 -- Reads the inputs.txt file and turns it into an array of hex values containing p1 and p2 inputs
 function readInputsFile()
 	p1.inputPlayback = {}
-	p1.inputPlaybackFacing = 1
 	p2.inputPlayback = {}
-	p2.inputPlaybackFacing = 0
 	local f, err = io.open("inputs.txt", "r")
 	if err then 
 		print("Error reading inputs.txt")
@@ -1654,8 +1747,8 @@ function createInputsFile()
 
 - Each new line is a frame of input unless specified with a number eg. 5 = nothing for 5 frames, da10 = down and A for 10 frames
 
-- Directions assume the player 1 is on the left and facing right, while player 2 is on the right facing left. The inputs will be 
-- flipped programaticaly if players swap sides so there is no need to rewrite your input for each side.
+- Directions assume that both player 1 and player 2 are facing to the right. The inputs will be flipped programaticaly if
+- players swap sides so there is no need to rewrite your input for each side.
 
 - To perform the input playback change one of the hotkeys in the menu to "Input playback" and press the hotkey
 
@@ -1692,9 +1785,15 @@ function writeSettings()
 		print("Could not save settings to \"menu settings.json\"")
 		return 
 	end
-	options.p1Recording = getParsedRecording(p1.recorded, p1.recordedFacing ~= 1)
-	options.p2Recording = getParsedRecording(p2.recorded, p2.recordedFacing ~= 0)
+	options.p1Recording = {}
+	options.p2Recording = {}
+	for i = 1, system.recordingSlots, 1 do
+		options.p1Recording[i] = getParsedRecording(p1.recorded[i])
+		options.p2Recording[i] = getParsedRecording(p2.recorded[i])
+	end
 	local settingsString = json.stringify(options)
+	options.p1Recording = p1.recorded
+	options.p2Recording = p2.recorded
 	local _, err = f:write(settingsString)
 	if err then
 		menu.info = "Error saving settings"
@@ -1704,15 +1803,15 @@ function writeSettings()
 	f:close()
 end
 
-function getParsedRecording(recording, swap)
+function getParsedRecording(recording)
 	if #recording == 0 then return {} end
 	local strings = {}
 	local count = 1
-	local hex = swap and swapHexDirection(recording[1]) or recording[1]
+	local hex = recording[1]
 	local previousHex = hex
 	local str = hexToInputString(hex)
 	for i = 2, #recording, 1 do
-		hex = swap and swapHexDirection(recording[i]) or recording[i]
+		hex = recording[i]
 		if hex == previousHex then
 			count = count + 1
 		else
@@ -1746,12 +1845,14 @@ function readSettings()
 	if err then
 		return
 	end
-	local parsedOptions = json.parse(f:read("*all"))
+	local optionString = f:read("*all")
+	if #optionString == 0 then
+		f:close()
+		os.remove("menu settings.json")
+		return
+	end
+	local parsedOptions = json.parse(optionString)
 	tableCopy(parsedOptions, options)
-	p1.recorded = parseRecording(options.p1Recording)
-	p1.recordedFacing = 1
-	p2.recorded = parseRecording(options.p2Recording)
-	p2.recordedFacing = 0
 	f:close()
 end
 
@@ -1878,10 +1979,6 @@ function updateMemory()
 	readPlayerMemory(p1)
 	readPlayerMemory(p2)
 	readProjectileMemory()
-	
-	inputTables.previous = inputTables.current
-	inputTables.current = joypad.read() -- reads all inputs
-
 end
 
 function readPlayerMemory(player) 
@@ -1898,6 +1995,8 @@ function readPlayerMemory(player)
 	player.previousAirtechCount = player.airtechCount
 	player.previousDefenseAction = player.defenseAction
 	player.previousPushblockCount = player.pushblockCount
+	player.previousGuardCount = player.guardCount
+	player.previousHitCount = player.hitCount
 	player.previousHitFreeze = player.hitFreeze
 	player.previousStunCount = player.stunCount
 	player.previousAttackId = player.attackId
@@ -1941,6 +2040,8 @@ function readProjectileMemory()
 			projectile.attackId = readByte(address + 0xDC)
 			projectile.previousAttackHit = projectile.attackHit
 			projectile.attackHit = readByte(address + 0xDD)
+			projectile.previousActionId = projectile.actionId
+			projectile.actionId = readByte(address + 0x92)
 			if projectile.previousState == 0 then
 				projectile.consumed = false
 			end
@@ -1956,9 +2057,11 @@ function readSystemMemory()
 	system.previousTimeStop = system.timeStop
 	system.timeStop = readByte(0x20314C2)
 	system.slowDown = readByte(0x2006190)
-	if system.slowDown == 1 then
-		gui.text(100, 100, "SLOWDOWN")
-	end
+	system.inMatch = readByte(0x2034DC0)
+	system.previousPlayerSelect = system.playerSelect
+	system.playerSelect = readByte(0x2033142)
+	system.coined = readByte(0x20314AA)
+	system.state = readByte(0x2031452) -- 1 character select, 2 pre battle, 3 battle 
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -1968,10 +2071,9 @@ end
 -------------------------------------------------
 
 function updateInput()
-	p1.previousInputs = p1.inputs
-	p1.inputs = getPlayerInputHex("P1 ")
-	p2.previousInputs = p2.inputs
-	p2.inputs = getPlayerInputHex("P2 ")
+	updatePlayerInput(p1)
+	updatePlayerInput(p2)
+
 	if options.inputStyle == 1 then
 		p1.inputHistoryTable[1] = p1.inputs
 		p2.inputHistoryTable[1] = p2.inputs
@@ -1984,9 +2086,98 @@ function updateInput()
 	end
 end
 
+function updatePlayerInput(player)
+	player.previousInputs = player.inputs
+	player.inputs = getPlayerInputHex(player.name)
+	for _, v in pairs(player.buttons) do
+		if inputModule.current[v] then
+			inputModule.held[v] = inputModule.held[v] + 1
+		else
+			inputModule.held[v] = 0
+		end
+	end
+end
+
+function updateInputBefore()
+	inputModule.previous = inputModule.current
+	inputModule.current = joypad.read() -- reads all inputs
+	inputModule.transfer = false
+
+	updatePlayerInputBefore(p1, p2)
+	updatePlayerInputBefore(p2, p1)
+
+	-- Disable taunt
+	if not options.taunt and system.inMatch > 0 then
+		inputModule.start = inputModule.current[p1.buttons.start]
+		inputModule.overwrite[p1.buttons.start] = false
+	else
+		inputModule.start = false
+	end
+
+	-- Character Select Control
+	updateSelectTransfer()
+
+	if inputModule.transfer then
+		transferInputs(inputModule.current, inputModule.overwrite)
+	end
+
+	tableCopy(inputModule.overwrite, inputModule.current)
+	joypad.set(inputModule.current)
+end
+
+function updatePlayerInputBefore(player, other)
+	if system.inMatch == 0 then return end
+	if player.previousControl and not player.control then
+		player.directionLock = band(getPlayerInputHex(other.name), 0x0F) 
+		player.directionLockFacing = player.facing
+	end
+	-- Input Playback
+	if player.playbackCount > 0 then
+		local hex =  player.playback[#player.playback - player.playbackCount + 1]
+		hex = (player.playbackFlipped and swapHexDirection(hex) or hex)
+		local inputs = hexToPlayerInput(hex, player.name)
+		tableCopy(inputs, inputModule.overwrite)
+		player.playbackCount = player.playbackCount - 1
+		if player.playbackCount == 0 then
+			if player.loop then
+				player.playback = duplicateList(getPlaybackRecording(player), false, false)
+				insertDelay(player.playback, options.replayInterval, 0)
+				player.playbackCount = #player.playback
+				player.playbackFlipped = player.facing ~= 1
+			end
+		end
+	elseif player.control or (player.recording and options.mediumKickHotkey == "recordP2") then
+		inputModule.transfer = true
+	elseif player.directionLock ~= 0 then
+		local direction = (player.facing == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
+		local directionInputs = hexToPlayerInput(direction, player.name)
+		tableCopy(directionInputs, inputModule.overwrite)
+	end
+end
+
+function updateSelectTransfer()
+	if system.state == 1 then -- character select
+		if system.playerSelect == 0 and pressedTable(playerSelectInputs) then -- None selected and p1 selects a char
+			if system.coined == 1 then
+				inputModule.overwrite[p2.buttons.start] = true
+			end
+			inputModule.transferWait = true
+		elseif system.playerSelect == 1 and system.coined == 3 then -- P1 selected P2 not selected, both coined
+			-- Wait until the select is released or it will auto select the character
+			if inputModule.transferWait then
+				inputModule.transferWait = heldTable(playerSelectInputs, 0)
+			else
+				inputModule.transfer = true
+			end
+		elseif system.playerSelect == 3 then
+			inputModule.transferWait = false
+		end
+	end
+end
+
 --Returns whether a key is pressed once
 function pressed(key)
-	return (not inputTables.previous[key] and inputTables.current[key])
+	return (not inputModule.previous[key] and inputModule.current[key])
 end
 
 --Checks a table of inputs for being pressed
@@ -1999,7 +2190,7 @@ end
 
 --This is like when you hold down a key on a computer and it spams it after a certain amount of time
 function repeating(key) 
-	local value = inputTables.held[key]
+	local value = inputModule.held[key]
 	if value == 0 then 
 		return false 
 	end
@@ -2011,7 +2202,7 @@ end
 
 --Input held for x frames
 function held(key, x)
-	return inputTables.held[key] > x
+	return inputModule.held[key] > x
 end
 
 function heldTable(table, x)
@@ -2060,10 +2251,10 @@ function swapBits(hex, p1, p2)
 end
 
 -- Gets the specified players inputs as a hex
-function getPlayerInputHex(player)
+function getPlayerInputHex(name)
 	local hex = 0
 	for k, v in pairs(inputDictionary) do
-		if inputTables.current[player..v] then
+		if inputModule.current[name..v] then
 			hex = bor(hex, k)
 		end
 	end
@@ -2111,6 +2302,16 @@ function clearInputHistory(player)
 	local int = options.inputStyle == 3 and -1 or 0
 	for i = 1, 13, 1 do 
 		player.inputHistoryTable[i] = int
+	end
+end
+
+function transferInputs(source, dest)
+	for i = 1, #transferButtons, 1 do
+		local p1key = "P1 "..transferButtons[i]
+		if source[p1key] then
+			dest[p1key] = false
+			dest["P2 "..transferButtons[i]] = true
+		end
 	end
 end
 
@@ -2223,7 +2424,7 @@ function updatePlayer(player, other)
 	end
 
 	-- Update reversal counters
-	if system.screenFreeze == 0 then -- not screen frozen
+	if system.screenFreeze == 0 and system.timeStop == 0 then -- not screen frozen
 
 		if player.wakeupCount > 0 then
 			player.wakeupCount = player.wakeupCount - 1
@@ -2231,14 +2432,14 @@ function updatePlayer(player, other)
 		end
 
 		if player.guardCount > 0 then
-			if player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount then
+			if freezeStunUpdated(player) then
 				updateGuardReversal(player)
 			end
 			player.guardCount = player.guardCount - 1
 		end
 
 		if player.hitCount > 0 then
-			if player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount then
+			if freezeStunUpdated(player) then
 				updateHitReversal(player)
 			end
 			player.hitCount = player.hitCount - 1
@@ -2284,16 +2485,25 @@ function getActionLength(address)
 end
 
 function updateGuardReversal(player)
-	player.guardCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 3 
-	-- Add 3 if a buffered motion
+	player.guardCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 3
+	-- Add the motion lenth if bufferable
 	if options.reversalReplay == 3 or options.reversalReplay == 5 or 
 	   (options.reversalReplay == 1 and options.reversalMotion ~= 1) then
-		player.guardCount = player.guardCount + 3
+		player.guardCount = player.guardCount + #system.reversal - 1
+		-- if a reversal replay then adjust based on final button index
+		if options.reversalReplay == 3 then
+			player.guardCount = player.guardCount - getFinalButtonIndex(system.reversal) + 1
+		end
 	end
 end
 
 function updateHitReversal(player)
 	player.hitCount = player.hitFreeze + stunType[band(player.stunType, 0x0F)] + 5
+end
+
+function freezeStunUpdated(player)
+	if player.hitFreeze == 0 and player.stunCount == 0 and player.previousHitFreeze ~= 1 then return false end
+	return player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount
 end
 
 -------------------------------------------------
@@ -2304,6 +2514,8 @@ function updateInputCheck()
 	if fcReplay then return end
 	checkPlayerInput(p1, p2)
 	checkPlayerInput(p2, p1)
+	updatePlayerRecording(p1)
+	updatePlayerRecording(p2)
 	if menu.state > 0 then
 		updateMenu()
 	end
@@ -2313,6 +2525,9 @@ local hotkeyFunctions = {
 	record = function(player)
 		record(player)
 	end,
+	recordP2 = function(player, other)
+		record(other)
+	end,
 	recordParry = function(player, other)
 		recordParry(player, other)
 	end,
@@ -2320,7 +2535,7 @@ local hotkeyFunctions = {
 		replaying(player)
 	end,
 	replayP2 = function(player, other)
-		replayTransfer(player, other)
+		replaying(other)
 	end,
 	inputPlayback = function(player, other)
 		inputPlayback(player)
@@ -2330,14 +2545,6 @@ local hotkeyFunctions = {
 }
 
 function checkPlayerInput(player, other)
-	for _, v in pairs(player.buttons) do
-		if inputTables.current[v] then
-			inputTables.held[v] = inputTables.held[v] + 1
-		else
-			inputTables.held[v] = 0
-		end
-	end
-
 	other.previousControl = other.control
 
 	if pressed(player.buttons.coin) then
@@ -2359,11 +2566,11 @@ function checkPlayerInput(player, other)
 	if trial.enabled then
 		--Scroll inputs
 		if trial.success then
-			if pressed(player.buttons.start) then
+			if pressed(player.buttons.start) or inputModule.start then
 				trialNext()
 			end
 		else
-			if inputTables.current[player.buttons.start] then
+			if inputModule.current[player.buttons.start] or inputModule.start then
 				if repeating(player.buttons.up) then
 					trial.min = (trial.min == 1 and 1 or trial.min - 1)
 				elseif repeating(player.buttons.down) then
@@ -2382,8 +2589,7 @@ function checkPlayerInput(player, other)
 		return
 	end
 
-	if inputTables.current[player.buttons.start] then --checks to see if P1 is holding start
-		
+	if inputModule.current[player.buttons.start] or inputModule.start then --checks to see if P1 is holding start
 		other.control = true
 
 		if pressed(player.buttons.mk) then
@@ -2422,20 +2628,28 @@ function checkFinaliseRecording(player, hotkey)
 	end
 end
 
+function updatePlayerRecording(player)
+	if player.recording then
+		local recording = player.recorded[options.recordingSlot]
+		recording[#recording + 1] = (player.recordedFacing == 1 and player.inputs or swapHexDirection(player.inputs))
+		if player.number == 1 then
+			updateTrialRecording()
+		end
+	end
+end
+
 function record(player)
 	player.playbackCount = 0
 	player.loop = false
 	player.recording = not player.recording
 	if player.recording then
-		player.recorded = {}
+		player.recorded[options.recordingSlot] = {}
 		player.recordedFacing = player.facing
 		if player.number == 1 then
 			trialStartRecording()
 		end
 	else
-		if player.number == 1 then
-			trialFinaliseRecording()
-		end
+		stopRecord(player)
 	end
 end
 
@@ -2444,7 +2658,7 @@ function recordParry(player, other)
 	if player.recording then
 		other.playbackCount = 0
 		other.loop = false
-		other.recording = false
+		stopRecord(other)
 		record(player)
 	elseif system.parry > 0 then
 		system.parry = 0
@@ -2457,44 +2671,60 @@ end
 
 function replaying(player)
 	player.loop = false
-	player.recording = false
+	stopRecord(player)
 	if player.playbackCount == 0 then
-		player.playback = player.recorded
-		player.playbackCount = #player.recorded
-		player.playbackFacing = player.recordedFacing
-		player.playbackFlipped = player.facing ~= player.recordedFacing
+		player.playback = getPlaybackRecording(player)
+		player.playbackCount = #player.playback
+		player.playbackFlipped = player.facing ~= 1
 	else
 		player.playbackCount = 0
 	end
 end
 
-function replayTransfer(player, other)
-	player.recording = false
-	player.loop = false
-	other.recording = false
-	other.loop = false
-	if other.playbackCount == 0 then
-		other.playback = player.recorded
-		other.playbackCount = #player.recorded
-		other.playbackFacing = player.recordedFacing
-		other.playbackFlipped = other.facing ~= player.recordedFacing
-	else
-		other.playbackCount = 0
+function getPlaybackRecording(player)
+	local recordings = {}
+	for i = 1, 5, 1 do
+		if options["slot"..i] then
+			recordings[#recordings + 1] = player.recorded[i]
+		end
 	end
+	if #recordings == 0 then return recordings end
+	return recordings[math.random(#recordings)]
 end
 
 function inputPlayback(player)
-	player.recording = false
+	stopRecord(player)
 	player.loop = false
 	if player.playbackCount == 0 then
 		readInputsFile()
 		player.playback = player.inputPlayback
 		player.playbackCount = #player.inputPlayback
-		player.playbackFacing = player.inputPlaybackFacing
-		player.playbackFlipped = player.facing ~= player.inputPlaybackFacing
+		player.playbackFlipped = player.facing ~= 1
 	else
 		player.playbackCount = 0
 	end
+end
+
+function stopRecord(player)
+	if not player.recording then return end
+	player.recording = false
+	if player.number == 1 then
+		trialFinaliseRecording()
+		updateReversal()
+	end
+	writeSettings()
+end
+
+function resetReplayOptions()
+	options.recordingSlot = 1
+	options.slot1 = true
+	options.slot2 = false
+	options.slot3 = false
+	options.slot4 = false
+	options.slot5 = false
+	options.replayInterval = 0
+	options.mediumKickHotkey = "record"
+	options.strongKickHotkey = "replay"
 end
 
 -------------------------------------------------
@@ -2503,17 +2733,14 @@ end
 
 function updateCharacterControl()
 	if fcReplay then return end
-	if menu.state > 0 then return end
 
-	inputTables.overwrite = {}
+	inputModule.overwrite = {}
+
+	if menu.state > 0 then return end
 
 	controlPlayers()
 	controlPlayer(p1, p2)
 	controlPlayer(p2, p1)
-
-	if next(inputTables.overwrite) ~= nil then --empty table
-		joypad.set(inputTables.overwrite)
-	end
 end
 
 function controlPlayers()
@@ -2545,95 +2772,54 @@ function controlPlayers()
 end
 
 function controlPlayer(player, other)
-	-- recording
-	if player.recording then
-		table.insert(player.recorded, player.inputs)
-		if player.number == 1 then
-			updateTrialRecording()
-		end
-	end
-	-- Direction Lock
-	if player.previousControl and not player.control then
-		player.directionLock = band(other.inputs, 0x0F) 
-		player.directionLockFacing = player.facing
-	end
 	-- Player 2 menu option controls
-	if player.number == 2 and player.playbackCount == 0 then
-		-- Guard Action
-		if options.guardAction > 1 and canGuardAction(player) then
-			--Push block
-			if options.guardAction == 2 then
-				pushBlock(player)
-			-- Guard Cancel
-			elseif options.guardAction == 3 then
-				guardCancel(player)
-			end
-			player.blocking = false
-		-- Air Tech
-		elseif options.airTech and player.airtech then
-			airTech(player, other)
-		--Perfect Air Tech 
-		elseif options.perfectAirTech and canPerfectAirTech(player) then
-			airTech(player, other, true)
-		-- Throw tech
-		elseif options.throwTech and player.throwTech > 0 then
-			throwTech(player)
+	if not (player.number == 2 or player.playbackCount == 0) then return end
+	-- Guard Action
+	if options.guardAction > 1 and canGuardAction(player) then
+		--Push block
+		if options.guardAction == 2 then
+			pushBlock(player)
+		-- Guard Cancel
+		elseif options.guardAction == 3 then
+			guardCancel(player)
 		end
-		-- Reversals
-		if options.forceStand > 1 and canReversal(player) and canStand(player) then
-			setPlayback(player, { 0x80 })
-			writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
-		else
-			if options.wakeupReversal and player.wakeupCount > 0 then
-				doReversal(player, other, player.wakeupCount)
-			end
-			if options.guardReversal then
-				if player.guardCount > 0 then
-					doReversal(player, other, player.guardCount)
-				end
-				if player.pushblockCount > 0 then
-					doReversal(player, other, player.pushblockCount)
-				end
-			end
-			if options.hitReversal then
-				 if player.hitCount > 0 then
-					doReversal(player, other, player.hitCount)
-				end
-				if player.airtechCount > 0 then
-					doReversal(player, other, player.airtechCount)
-				end
-			end
-		end
+		player.blocking = false
+	-- Air Tech
+	elseif options.airTech and player.airtech then
+		airTech(player)
+	--Perfect Air Tech 
+	elseif options.perfectAirTech and canPerfectAirTech(player) then
+		airTech(player, true)
+	-- Throw tech
+	elseif options.throwTech and player.throwTech > 0 then
+		throwTech(player)
 	end
-	-- Input Playback
-	if player.playbackCount > 0 then
-		local hex =  player.playback[#player.playback - player.playbackCount + 1]
-		hex = (player.playbackFlipped and swapHexDirection(hex) or hex)
-		local inputs = hexToPlayerInput(hex, player.name)
-		tableCopy(inputs, inputTables.overwrite)
-		player.playbackCount = player.playbackCount - 1
-		if player.playbackCount == 0 then
-			if player.loop then
-				player.playbackFlipped = player.facing ~= player.playbackFacing
-				player.playbackCount = #player.playback
-			end
-			if player.recordParry then
-				player.recordParry = false
-			end
-			--todo
-			-- if trial.enabled then
-			-- 	trialModeStart()
-			-- end
+	-- return if the player is now being controlled
+	if player.playbackCount > 0 then return end
+	-- Reversals
+	if options.forceStand > 1 and canReversal(player) and canStand(player) then
+		setPlayback(player, { 0x80 })
+		writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+	else
+		if options.wakeupReversal and player.wakeupCount > 0 then
+			doReversal(player, other, player.wakeupCount, player.previousWakeupCount)
 		end
-	-- Player control
-	elseif player.control then
-		local inputs = hexToPlayerInput(other.inputs, player.name)
-		tableCopy(inputs, inputTables.overwrite)
-	-- Direction Lock
-	elseif player.directionLock ~= 0 then
-		local direction = (player.facing == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
-		local inputs = hexToPlayerInput(direction, player.name)
-		tableCopy(inputs, inputTables.overwrite)
+		if options.guardReversal then
+			if player.guardCount > 0 then
+				doReversal(player, other, player.guardCount, player.previousGuardCount)
+			end
+			if player.pushblockCount > 0 then
+				doReversal(player, other, player.pushblockCount, player.previousPushblockCount)
+			end
+		end
+		if options.hitReversal then
+			if player.hitCount > 0 then
+				doReversal(player, other, player.hitCount, player.previousHitCount)
+			end
+			if player.airtechCount > 0 then
+				doReversal(player, other, player.airtechCount, player.previousAirtechCount)
+			end
+		end
 	end
 end
 
@@ -2680,7 +2866,7 @@ function insertDelay(inputs, number, hex)
 	end
 end
 
-function airTech(player, other, perfect)
+function airTech(player, perfect)
 	local inputs
 	local direction = options.airTechDirection == 5 and math.random(4) or options.airTechDirection
 	if direction == 1 then
@@ -2695,9 +2881,12 @@ function airTech(player, other, perfect)
 	local buffered = isReversalBuffered()
 	if player.height > 32 or buffered then
 		if buffered then
-			player.airtechCount = #getReversal(player, other) + 1
+			if options.hitReversal then
+				updateReversal()
+			end
+			player.airtechCount = #system.reversal + 1
 		elseif direction == 1 and player.stand == 0 then
-			player.airTechCount = 4
+			player.airtechCount = 4
 		else
 			player.airtechCount = 11
 		end
@@ -2717,6 +2906,9 @@ function pushBlock(player)
 	setPlayback(player, inputs)
 	player.pushblockCount = 18 + options.guardActionDelay
 	player.guardCount = 0
+	if options.guardReversal then
+		updateReversal()
+	end
 end
 
 function guardCancel(player)
@@ -2731,28 +2923,20 @@ function throwTech(player)
 	setPlayback(player, { 0x44 })
 end
 
-function getReversal(player, other)
+function updateReversal()
+	system.reversal = getReversal(p2, p1)
+end
+
+function getReversal(player)
 	local inputs
 	local button = reversal.buttons[options.reversalButton]
 	if options.reversalReplay ~= 1 then
 		if options.reversalReplay == 2 or options.reversalReplay == 3 then --Replay
-			local recordedPlayer = (options.strongKickHotkey == "replayP2" and other or player)
-			inputs = duplicateList(recordedPlayer.recorded, true, true)
-			player.playbackFacing = recordedPlayer.recordedFacing
-			if player.y > 0 then
-				player.playbackFlipped = player.facing ~= recordedPlayer.recordedFacing
-			else
-				player.playbackFlipped = other.facing == recordedPlayer.recordedFacing
-			end
+			inputs = duplicateList(getPlaybackRecording(player), true, true)
 		elseif options.reversalReplay == 4 or options.reversalReplay == 5 then --Inputs.txt
 			readInputsFile()
 			inputs = duplicateList(player.inputPlayback, true, true)
 			player.playbackFacing = player.inputPlaybackFacing
-			if player.y > 0 then
-				player.playbackFlipped = player.facing ~= player.inputPlaybackFacing
-			else
-				player.playbackFlipped = other.facing == player.inputPlaybackFacing
-			end
 		end
 	elseif options.reversalMotion ~= 1 then
 		inputs = duplicateList(reversal.motions[options.reversalMotion], true, true);
@@ -2763,8 +2947,12 @@ function getReversal(player, other)
 	return inputs
 end
 
-function doReversal(player, other, count)
-	local inputs = getReversal(player, other)
+function doReversal(player, other, count, previousCount)
+	-- If starting a new reversal and the reversal is a recording update to shuffle replay slots
+	if previousCount == 0 and count ~= 0 and (options.reversalReplay == 2 or options.reversalReplay == 3) then
+		updateReversal()
+	end
+	local inputs = system.reversal
 	if options.reversalReplay == 2 or options.reversalReplay == 4 then
 		if count == 1 then
 			player.loop = false
@@ -2779,15 +2967,15 @@ function doReversal(player, other, count)
 	else
 		reversalIndex = #inputs - count + 1
 		player.playbackFacing = 1
-		-- If on the ground use the other players facing because they might be flipped during the combo
-		if player.y > 0 then
-			player.playbackFlipped = player.facing ~= 1
-		else
-			player.playbackFlipped = other.facing == 1 
-		end
 	end
 	if reversalIndex < 1 or reversalIndex > #inputs then
 		return
+	end
+	-- If on the ground use the other players facing because they might be flipped during the combo
+	if player.y > 0 then
+		player.playbackFlipped = player.facing ~= 1
+	else
+		player.playbackFlipped = other.facing == 1
 	end
 	player.loop = false
 	player.playback = { inputs[reversalIndex] }
@@ -2862,6 +3050,13 @@ end
 function openMenu()
 	if menu.state == 0 then
 		writeByte(0x20713A3, 0x00); -- Bit mask that disables player input
+		--stop record/replay
+		stopRecord(p1)
+		stopRecord(p2)
+		p1.playbackCount = 0
+		p2.playbackCount = 0
+		system.parry = 0
+		--open menu
 		if trial.enabled then
 			menu.state = 6
 		else
@@ -2999,6 +3194,7 @@ function menuClose()
 	--update child options
 	updateChild(p1, options.p1Child, 0x020348D5)
 	updateChild(p2, options.p2Child, 0x02034CF5)
+	updateReversal()
 	if trial.enabled then
 		trialMenuClose()
 	else
@@ -3266,7 +3462,7 @@ end
 
 function updateTrialCheck(tailCall)
 	local input = trial.combo[trial.index]
-	if p2.wakeupFrame then
+	if p2.wakeupFrame and (p2.previousDefenseAction == 28 or p2.previousDefenseAction == 30) then
 		if input.type == comboType.meaty and checkAttackId(input.id) then
 			return advanceTrialIndex()
 		elseif input.type == comboType.doubleMeaty and 
@@ -3369,6 +3565,16 @@ function updateTrialCheck(tailCall)
 		if p1.standAttackHit > 0 and p1.standAttackId == input.id[1] and 
 				p1.previousStandActionId ~= input.id[2] and p1.standActionId == input.id[2] then
 			return advanceTrialIndex()
+		end
+	elseif input.type == comboType.projectileAction then
+		for i = 1, 32, 1 do
+			local projectile = projectiles[i]
+			if projectile.state > 0 then
+				if projectile.attackHit > 0 and projectile.attackId == input.id[1] and 
+						projectile.previousActionId ~= input.id[2] and projectile.actionId == input.id[2] then
+					return advanceTrialIndex()
+				end
+			end
 		end
 	end
 end
@@ -3843,10 +4049,9 @@ function updateTrialRecording()
 end
 
 function trialFinaliseRecording()
-	local hexes = duplicateList(p1.recorded, true, false)
+	local hexes = duplicateList(p1.recorded[options.recordingSlot], true, false)
 	if #hexes == 0 then return end
-	local swap = trial.recording.p1.facing ~= 1
-	trial.recording.recording = getParsedRecording(hexes, swap)
+	trial.recording.recording = getParsedRecording(hexes)
 end
 
 function trialRecordingSave()
@@ -4135,13 +4340,13 @@ function drawHud()
 	
 	if (p1.recording) then
 		gui.text(152,32,"Recording", options.failColor)
-	elseif (p1.playbackCount > 0) then
+	elseif (p1.playbackCount > 1) then
 		gui.text(152,32,"Replaying", options.failColor)
 	end
 
 	if (p2.recording) then
 		gui.text(200,32,"Recording", options.failColor)
-	elseif (p2.playbackCount > 0) then
+	elseif (p2.playbackCount > 1) then
 		gui.text(200,32,"Replaying", options.failColor)
 	end
 
@@ -4160,7 +4365,7 @@ function drawHud()
 	end
 
 	if debug then
-		drawDebug(180, 30)
+		drawDebug(160, 20)
 	end
 end
 
@@ -4459,9 +4664,11 @@ function drawDebug(x, y)
 		p2.defenseAction.." p2 defense action",
 		projectiles[1].attackId.." proj attack id",
 		projectiles[1].attackHit.." proj hit",
+		projectiles[1].actionId.." proj action id",
 		system.screenX.." screen x",
 		p1.x.." p1 x",
 		p2.x.." p2 x",
+		tostring(inputModule.transfer).." input transfer",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -4492,8 +4699,6 @@ function drawTrials()
 		for i = 1, #trial.info, 1 do
 			gui.text(100, 100 + i * 8, trial.info[i], colors.menuUnselected)
 		end
-		gui.text(202, 40, "Not in Use 1: Restart")
-		gui.text(202, 50, "Not in Use 2: Replay")
 	end
 	for i = 1, #menu.options - 1, 1 do
 		local option = menu.options[i]
@@ -4537,6 +4742,8 @@ function drawTrialGui()
 			gui.text(10, 188, "Start + Up/Down: Scroll")
 		end
 	end
+	gui.text(290, 52, "Not in Use 1: Restart")
+	gui.text(290, 62, "Not in Use 2: Preview")
 	drawFixedInput(p1.inputHistoryTable[1], 175, 216)
 end
 
@@ -4723,16 +4930,45 @@ function replayOptions()
 	options.level = 1
 	options.inputStyle = 2
 	options.infiniteRounds = false
+	options.taunt = true
 	resetReversalOptions()
 end
 
-function updateSettings() -- updates old settings to new
+-- Updates old settings to new
+function updateSettings() 
+	-- hotkey numbers to keys
 	if type(options.mediumKickHotkey) == "number" then
 		options.mediumKickHotkey = "record"
 	end
 	if type(options.strongKickHotkey) == "number" then
 		options.strongKickHotkey = "replay"
 	end
+	-- mariah level bugfix
+	if options.level == 0 then
+		options.level = 1
+	end
+	-- update single recording to multiple recording slots
+	if options.p1Recording[1] == nil then
+		for i = 1, system.recordingSlots, 1 do
+			options.p1Recording[i] = {}
+			options.p2Recording[i] = {}
+		end
+	elseif type(options.p1Recording[1]) == "string" then
+		local recording1 = options.p1Recording
+		local recording2 = options.p2Recording
+		options.p1Recording = { recording1 }
+		options.p2Recording = { recording2 }
+		for i = 2, system.recordingSlots, 1 do
+			options.p1Recording[i] = {}
+			options.p2Recording[i] = {}
+		end
+	end
+	for i = 1, system.recordingSlots, 1 do
+		options.p1Recording[i] = parseRecording(options.p1Recording[i])
+		options.p2Recording[i] = parseRecording(options.p2Recording[i])
+	end
+	p1.recorded = options.p1Recording
+	p2.recorded = options.p2Recording
 end
 
 emu.registerstart(function()
@@ -4746,6 +4982,7 @@ emu.registerstart(function()
 	createInputsFile()
 	clearInputHistory(p1)
 	clearInputHistory(p2)
+	updateReversal()
 	if fcReplay then 
 		replayOptions()
 	end
@@ -4758,6 +4995,10 @@ end)
 emu.registerexit(function()
 	gui.clearuncommitted()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
+end)
+
+emu.registerbefore(function()
+	updateInputBefore()
 end)
 
 -------------------------------------------------
