@@ -1173,7 +1173,7 @@ local reversal = {
 
 local wakeupOffsets = {
 	{ -1, 0 },
-	{ -2, -2 },
+	{ -2, -1 },
 	{ -2, -3 },
 	{ 0, 0 },
 	{ 0, 0 },
@@ -2057,11 +2057,11 @@ function readSystemMemory()
 	system.previousTimeStop = system.timeStop
 	system.timeStop = readByte(0x20314C2)
 	system.slowDown = readByte(0x2006190)
-	system.inMatch = readByte(0x2034DC0)
 	system.previousPlayerSelect = system.playerSelect
 	system.playerSelect = readByte(0x2033142)
 	system.coined = readByte(0x20314AA)
 	system.state = readByte(0x2031452) -- 1 character select, 2 pre battle, 3 battle 
+	system.inMatch = system.state == 3 or readByte(0x2034DC0) == 1 -- this byte is only ever in the 1 position during battle unless alessi is stand on
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -2107,7 +2107,7 @@ function updateInputBefore()
 	updatePlayerInputBefore(p2, p1)
 
 	-- Disable taunt
-	if not options.taunt and system.inMatch > 0 then
+	if not options.taunt and system.inMatch then
 		inputModule.start = inputModule.current[p1.buttons.start]
 		inputModule.overwrite[p1.buttons.start] = false
 	else
@@ -2126,7 +2126,7 @@ function updateInputBefore()
 end
 
 function updatePlayerInputBefore(player, other)
-	if system.inMatch == 0 then return end
+	if not system.inMatch then return end
 	if player.previousControl and not player.control then
 		player.directionLock = band(getPlayerInputHex(other.name), 0x0F) 
 		player.directionLockFacing = player.facing
@@ -2565,6 +2565,7 @@ function checkPlayerInput(player, other)
 	-- trial mode disables other inputs
 	if trial.enabled then
 		--Scroll inputs
+		if player.number ~= 1 then return end
 		if trial.success then
 			if pressed(player.buttons.start) or inputModule.start then
 				trialNext()
@@ -2605,9 +2606,7 @@ function checkPlayerInput(player, other)
 
 	if pressed(player.buttons.mk) then
 		hotkeyFunctions[options.mediumKickHotkey](player, other)
-		
 	elseif pressed(player.buttons.sk) then
-		checkFinaliseRecording(player, options.strongKickHotkey) --todo if updating hotkeys
 		hotkeyFunctions[options.strongKickHotkey](player, other)
 	end
 
@@ -2616,14 +2615,6 @@ function checkPlayerInput(player, other)
 			other.loop = true
 		else
 			player.loop = true
-		end
-	end
-end
-
-function checkFinaliseRecording(player, hotkey)
-	if hotkey ~= "disabled" then
-		if player.number == 1 and player.recording then
-			trialFinaliseRecording()
 		end
 	end
 end
@@ -2641,15 +2632,15 @@ end
 function record(player)
 	player.playbackCount = 0
 	player.loop = false
-	player.recording = not player.recording
 	if player.recording then
+		stopRecord(player)
+	else
+		player.recording = true
 		player.recorded[options.recordingSlot] = {}
 		player.recordedFacing = player.facing
 		if player.number == 1 then
 			trialStartRecording()
 		end
-	else
-		stopRecord(player)
 	end
 end
 
@@ -2739,7 +2730,6 @@ function updateCharacterControl()
 	if menu.state > 0 then return end
 
 	controlPlayers()
-	controlPlayer(p1, p2)
 	controlPlayer(p2, p1)
 end
 
@@ -2773,7 +2763,7 @@ end
 
 function controlPlayer(player, other)
 	-- Player 2 menu option controls
-	if not (player.number == 2 or player.playbackCount == 0) then return end
+	if player.playbackCount > 0 then return end
 	-- Guard Action
 	if options.guardAction > 1 and canGuardAction(player) then
 		--Push block
@@ -3695,6 +3685,8 @@ function trialModeStart()
 	trial.replay = false
 	trial.reset = false
 	trial.parryDelay = false
+	trial.parryReplay = false
+	system.parry = 0
 
 	if trial.trial.drill then 
 		trial.drill = trial.trial.drill
@@ -3705,6 +3697,8 @@ function trialModeStart()
 
 	writeByte(p1.memory.standGaugeRefill, p1.standGaugeMax)
 	writeByte(p2.memory.standGaugeRefill, p2.standGaugeMax)
+
+	
 	
 	if not trial.enabled then
 		storeOptions()
@@ -4162,7 +4156,9 @@ function trialPlayback()
 end
 
 function updateTrialStand()
-	return updateTrialPlayerStand(p1, trial.trial.p1.stand) or updateTrialPlayerStand(p2, trial.trial.p2.stand)
+	local p1update = updateTrialPlayerStand(p1, trial.trial.p1.stand)
+	local p2update = updateTrialPlayerStand(p2, trial.trial.p2.stand)
+	return p1update or p2update
 end
 
 function updateTrialPlayerStand(player, stand)
@@ -4547,10 +4543,12 @@ function drawTrialDebugHud()
 		"Action ID:", p1.actionId,
 		"Stand Action ID:", p1.standActionId,
 		"Projectile 1 ID:", projectiles[1].attackId,
+		"Projectile 1 Action:", projectiles[1].actionId,
 		"Projectile 2 ID:", projectiles[2].attackId,
 		"Projectile 3 ID:", projectiles[3].attackId,
 		"Projectile 4 ID:", projectiles[4].attackId,
 		"Projectile 5 ID:", projectiles[5].attackId,
+
 	}
 	local x = 146
 	local x2 = 236
@@ -4668,7 +4666,7 @@ function drawDebug(x, y)
 		system.screenX.." screen x",
 		p1.x.." p1 x",
 		p2.x.." p2 x",
-		tostring(inputModule.transfer).." input transfer",
+		tostring(system.inMatch).." in match",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -5010,8 +5008,8 @@ while true do
 	updateGameplayLoop()
 	updateInput()
 	updateInputCheck()
-	updateCharacterControl()
 	updateTrial()
+	updateCharacterControl()
 	updateHitboxes()
 	emu.frameadvance()
 end
