@@ -133,6 +133,79 @@ Vanilla Ice
 
 New Kakyoin
 
+-Stand OFF Normals
+
+0 5A
+1 5B
+2 5C (close)
+3 662A
+4 2A
+5 JA
+21 5C
+22 2B
+23 2C
+27 -2C(2)
+45 JB
+46 JC
+48 3B
+45 JB
+46 JC
+48 3B
+53 -JC(2)
+54 66B
+55 66C (standless)
+74 662B
+75 662C
+76 -662C(2)
+80 66C
+81 -66C(2)
+
+-Stand OFF Specials
+
+28 236A / S.236AA
+29 214A
+40 236AA
+50 -236AA(2)
+58 236AA (First hit)
+
+-Stand ON Normals
+
+6 S.5A
+8 S.4C
+10 S.5B
+11 S.5C
+12 S.2A
+13 S.2B
+14 S.2C (chained)
+15 S.JA
+17 S.JC
+19 S.665B / S.JB
+24 S.5C(2)
+30 S.5A -Chain
+34 s.5B -Chain
+35 s.5C -Chain
+37 s.2B -Chain
+38 S.2C
+
+-Stand ON Specials
+
+41 S.214A
+42 S.214B
+43 S.214C
+65 -S.236A(2)
+73 S.236AA
+
+-214AA Directions
+
+62 S.214AA(DownBack)
+61 S.214AA(Down)
+60 S.214AA(DownFront)
+63 S.214AA(Back)
+59 S.214AA(Forward)
+64 S.214AA(UpBack)
+51 S.214AA(Up)
+56 S.214AA(UpForward)
+
 Black Polnareff
 
 Petshop
