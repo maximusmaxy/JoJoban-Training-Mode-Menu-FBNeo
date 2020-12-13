@@ -99,7 +99,8 @@ local options = {
 	slot4 = false,
 	slot5 = false,
 	replayInterval = 0,
-	taunt = true
+	taunt = true,
+	stageIndex = 1,
 }
 
 -----------------------
@@ -256,6 +257,22 @@ local systemOptions = {
 		name = "Taunt:",
 		key = "taunt",
 		type = optionType.bool
+	},
+	{
+		name = "Force Stage:",
+		key = "stageIndex",
+		type = optionType.list,
+		list = {
+			"Disabled",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+			"6",
+			"7",
+			"8"
+		}
 	},
 	{
 		name = "Return",
@@ -1484,6 +1501,17 @@ for i = 1, 22, 1 do
 	moveDefinitions[i] = {}
 end
 
+local stageRns = {
+	0x0300,
+	0x0600, 
+	0x0100, 
+	0x0400, 
+	0x0700, 
+	0x0200, 
+	0x0500,
+	0x0000
+}
+
 -------------------------------------------------
 -- json.lua 
 -- By tylerneylon
@@ -2061,7 +2089,7 @@ function readSystemMemory()
 	system.playerSelect = readByte(0x2033142)
 	system.coined = readByte(0x20314AA)
 	system.state = readByte(0x2031452) -- 1 character select, 2 pre battle, 3 battle 
-	system.inMatch = system.state == 3 or readByte(0x2034DC0) == 1 -- this byte is only ever in the 1 position during battle unless alessi is stand on
+	system.inMatch = system.state == 3
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -2107,7 +2135,7 @@ function updateInputBefore()
 	updatePlayerInputBefore(p2, p1)
 
 	-- Disable taunt
-	if not options.taunt and system.inMatch then
+	if not options.taunt and system.inMatch and band(system.coined, 1) == 1 then
 		inputModule.start = inputModule.current[p1.buttons.start]
 		inputModule.overwrite[p1.buttons.start] = false
 	else
@@ -2329,6 +2357,7 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	writeByte(0x20314B4, 0x63) -- Infinite Clock Time
 	if options.infiniteRounds then
 		writeByte(0x2034860, 0) -- Reset round to 0
+		writeByte(0x2034884, 0)
 	end
 	if not options.ips then -- IPS
 		writeByte(p1.memory.ips, 0x00)
@@ -2342,6 +2371,9 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	end
 	if options.level > 1 then
 		writeByte(0x02033210, options.level - 2)
+	end
+	if options.stageIndex > 1 then
+		updateStage()
 	end
 end
 
@@ -2503,7 +2535,15 @@ end
 
 function freezeStunUpdated(player)
 	if player.hitFreeze == 0 and player.stunCount == 0 and player.previousHitFreeze ~= 1 then return false end
+	if player.hitFreeze == player.previousHitFreeze and player.hitFreeze ~= 0 then return true end
 	return player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount
+end
+
+function updateStage()
+	--local address = readDWord(0x0200E8E8 + p1.character * 4) + p2.character * 8
+	if system.state == 2 then
+		writeDWord(0x205C1B8, stageRns[options.stageIndex - 1])
+	end
 end
 
 -------------------------------------------------
@@ -3217,16 +3257,20 @@ function menuLeft()
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		end
 	elseif option.type == optionType.trial then
-		if menu.index % 12 == 1 then
-			if #menu.options < 14 or menu.index == 13 then
-				menu.index = #menu.options - 1
-			else
-				menu.index = 12
-			end
+		if menu.index == 1 then
+			menu.index = math.min(12, #menu.options - 1)
+		elseif menu.index == 13 then
+			menu.index = math.min(24, #menu.options - 1)
+		elseif menu.index == 25 then
+			menu.index = #menu.options
 		else
 			menu.index = menu.index - 1
 		end
 		updateMenuTrial()
+	elseif option.type == optionType.back and menu.state == 6 then --trials
+		if #menu.options > 25 then
+			menu.index = #menu.options - 1
+		end
 	end
 end
 
@@ -3256,13 +3300,21 @@ function menuRight()
 		end
 	elseif option.type == optionType.trial then
 		if menu.index == #menu.options - 1 then
-			menu.index = menu.index > 12 and 13 or 1
+			if #menu.options > 25 then
+				menu.index = #menu.options
+			else
+				menu.index = menu.index > 12 and 13 or 1
+			end
 		elseif menu.index % 12 == 0 then
 			menu.index = menu.index - 11
 		else
 			menu.index = menu.index + 1
 		end
 		updateMenuTrial()
+	elseif option.type == optionType.back and menu.state == 6 then --trials
+		if #menu.options > 25 then
+			menu.index = 25
+		end
 	end
 end
 
@@ -3281,9 +3333,17 @@ function menuUp()
 		end
 	elseif menu.state == 6 then --trials
 		if menu.index == #menu.options then
-			menu.index = #menu.options > 1 and #menu.options - 1 or 1
+			if #menu.options > 25 then
+				menu.index = 24
+			else
+				menu.index = #menu.options > 1 and #menu.options - 1 or 1
+			end
 		elseif menu.index < 13 then
-			menu.index = #menu.options
+			if menu.index + 24 < #menu.options then
+				menu.index = menu.index + 24
+			else
+				menu.index = #menu.options
+			end
 		else
 			menu.index = menu.index - 12
 		end
@@ -3308,10 +3368,12 @@ function menuDown()
 			menu.index = menu.index + 2
 		end
 	elseif menu.state == 6 then --trials
-		if menu.index < 13 and #menu.options > 13 then
-			menu.index = math.min(menu.index + 12, #menu.options - 1)
-		elseif menu.index == #menu.options then
-			menu.index = 1
+		if menu.index == #menu.options then
+			menu.index = math.min(#menu.options - 1, 12)
+		elseif menu.index + 12 < #menu.options then
+			menu.index = menu.index + 12
+		elseif menu.index > 24 then
+			menu.index = menu.index - 24
 		else
 			menu.index = #menu.options
 		end
@@ -3650,7 +3712,7 @@ function trialStun(input)
 	if p2.hitstun == 3 then --grab
 		return true 
 	end
-	if p2.wakeupFrame then --wakeup frame
+	if p2.wakeupFrame and (p2.previousDefenseAction == 28 or p2.previousDefenseAction == 30) then --wakeup frame
 		return false
 	end
 	if p2.y > 0 or (p2.y == 0 and p2.previousY > 0) then --in air or tech roll
@@ -3698,8 +3760,6 @@ function trialModeStart()
 	writeByte(p1.memory.standGaugeRefill, p1.standGaugeMax)
 	writeByte(p2.memory.standGaugeRefill, p2.standGaugeMax)
 
-	
-	
 	if not trial.enabled then
 		storeOptions()
 	end
@@ -3767,6 +3827,13 @@ function updateOptions()
 			options.p2Child = false
 		end
 		updateChild(p2, trial.trial.p2.child, 0x02034CF5)
+	end
+	if trial.trial.tandemChain then
+		local tandemChain = trial.trial.tandemChain
+		for i = 0, 31, 1 do
+			writeByte(0x02032178 + i * 6, band(tandemChain, 1))
+			tandemChain = rShift(tandemChain, 1)
+		end
 	end
 	options.guiStyle = 2
 	options.p1Gui = false
@@ -3917,6 +3984,7 @@ function trialNext()
 	else
 		menu.index = menu.index + 1
 		trialModeStart()
+		updateTrialStand()
 	end
 end
 
@@ -3938,6 +4006,7 @@ function trialStartRecording()
 			standX = p1.standX,
 			standY = p1.standY,
 			facing = p1.facing,
+			standFacing = readByte(0x2035239),
 			child = p1.child == 0xFF
 		},
 		p2 = {
@@ -3948,6 +4017,7 @@ function trialStartRecording()
 			standX = p2.standX,
 			standY = p2.standY,
 			facing = p2.facing,
+			standFacing = readByte(0x2035659),
 			child = p2.child == 0xFF
 		},
 		stage = {
@@ -3958,7 +4028,8 @@ function trialStartRecording()
 		combo = {},
 		direction = p2.directionLockFacing == 1 and p2.directionLock or swapHexDirection(p2.directionLock),
 		rng = readDWord(0x020162E4),
-		position = false
+		position = false,
+		tandemChain = getTandemChain()
 	}
 	if not options.meterRefill then
 		recording.meter = readByte(p1.memory.meterRefill)
@@ -3975,6 +4046,15 @@ function trialStartRecording()
 	trial.recording = recording
 	trial.recordingSubIndex = 1
 	trial.recordingFacing = p1.facing
+end
+
+--Read every 5th byte of tandem for tandem chain state prior to recording and restore it on replay to fix issues with characters like devo
+function getTandemChain()
+	local tandemChain = 0
+	for i = 0, 31, 1 do
+		tandemChain = tandemChain + lShift(readByte(0x02032178 + i * 6), i)
+	end
+	return tandemChain
 end
 
 function updateTrialRecording()
@@ -4049,12 +4129,14 @@ function trialFinaliseRecording()
 end
 
 function trialRecordingSave()
-	if not trial.recording then
+	local charTrials = trials[charToIndex[trial.recording.p1.character]].trials
+	if  #charTrials >= 32 then
+		menu.info = "Trial limit of 32 reached!"
+	elseif not trial.recording then
 		menu.info = "No recording found!"
 	elseif #trial.recording.combo == 0 then
 		menu.info = "No combo found!"
 	elseif menu.info ~= "Recording added to trials!" then -- Prevent accidental duplication
-		local charTrials = trials[charToIndex[trial.recording.p1.character]].trials
 		charTrials[#charTrials + 1] = trial.recording
 		menu.info = "Recording added to trials!"
 		trial.export = true
@@ -4162,7 +4244,7 @@ function updateTrialStand()
 end
 
 function updateTrialPlayerStand(player, stand)
-	if player.stand == stand then 
+	if player.stand == stand then
 		return false
 	elseif (player.stand == 0 and stand > 0) or (player.stand == 1 and stand == 0) or player.stand == 2 then
 		player.playback = { 0x80 }
@@ -4218,8 +4300,7 @@ function updateTrialPosition()
 		p2sx = p1x - p2sd
 	end
 	-- update positions of player and stand
-	writeWord(p1.facing, trial.trial.p1.facing)
-	writeWord(p2.facing, trial.trial.p2.facing)
+	updateTrialFacing()
 
 	tableCopy(trial.position, trial.previousPosition)
 
@@ -4250,8 +4331,24 @@ function updateTrialPosition()
 			return false
 		end
 	end
+
 	-- return whether updated or not
 	return updated
+end
+
+function updateTrialFacing()
+	writeByte(p1.memory.facing, trial.trial.p1.facing)
+	writeByte(p2.memory.facing, trial.trial.p2.facing)
+	if trial.trial.p1.standFacing then
+		writeByte(p1.memory.standFacing, trial.trial.p1.standFacing)
+		writeByte(0x203514D, trial.trial.p1.standFacing)
+		writeByte(0x2035239, trial.trial.p1.standFacing)
+	end
+	if trial.trial.p2.standFacing then
+		writeByte(p2.memory.standFacing, trial.trial.p2.standFacing)
+		writeByte(0x203556D, trial.trial.p2.standFacing)
+		writeByte(0x2035659, trial.trial.p2.standFacing)
+	end
 end
 
 function trialMenuClose()
@@ -4658,7 +4755,6 @@ function drawDebug(x, y)
 		p1.actionId.." action id",
 		p1.standActionId.." stand action id",
 		p2.hitstun.." hitstun",
-		p2.y.." p2 y",
 		p2.defenseAction.." p2 defense action",
 		projectiles[1].attackId.." proj attack id",
 		projectiles[1].attackHit.." proj hit",
@@ -4666,10 +4762,22 @@ function drawDebug(x, y)
 		system.screenX.." screen x",
 		p1.x.." p1 x",
 		p2.x.." p2 x",
-		tostring(system.inMatch).." in match",
+		p2.hitFreeze.." p2 hitfreeze",
+		p2.stunCount.." p2 stunCount",
+		readByte(0x2035239).." stand side",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
+	end
+	local tc = readByte(0x02032D76)
+	for i = 0, 14, 1 do
+		local ids = readByteRange(0x02032174 + i * 6, 6)
+		local str = string.format("%02X%02X%02X%02X%02X%02X", ids[1], ids[2], ids[3], ids[4], ids[5], ids[6])
+		gui.text(100, 40 + i * 8, str)
+		local current = tc - 1
+		if i == current then
+			gui.text(90, 40 + i * 8, "->")
+		end
 	end
 end
 
@@ -4709,7 +4817,7 @@ function drawTrials()
 		gui.text(x + 3 + textOffset, y + 2, i, color)
 	end
 	local color = (menu.index == #menu.options) and menu.flashColor or colors.menuUnselected
-	gui.text(200, 192, "Return", color)
+	gui.text(240, 192, "Return", color)
 end
 
 function drawTrialGui()
@@ -4929,6 +5037,7 @@ function replayOptions()
 	options.inputStyle = 2
 	options.infiniteRounds = false
 	options.taunt = true
+	options.stageIndex = 1
 	resetReversalOptions()
 end
 
