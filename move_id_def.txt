@@ -124,6 +124,57 @@ Midler
 Dio
 
 Shadow Dio
+-Normals
+0 5A
+1 5B
+2 5C
+3 2A
+4 2B
+5 2C (first hit)
+31 2C (second hit)
+27 3C
+6 j.A
+7 j.B
+8 j.C
+
+-Dashing Normals
+9 66A
+10 66B
+11 66C
+
+-Stand attacks
+28 4S
+29 5S
+30 2S
+44 Guard Cancel
+49 j.4S
+50 j.5S
+51 j.2S
+
+-Specials
+21 63214A
+22 63214B
+23 63214C
+24 63214A (fully charged)
+25 63214B (fully charged)
+26 63214C (fully charged)
+32 41236S (last hit)
+33 41236S (first hit)
+34 41236S (second hit)
+35 41236A/B/C
+36 41236A/B/C
+37 41236A/B/C
+38 41236A/B/C
+48 623A/B/C
+
+-Supers
+39 214AA
+40 (Spores hit)
+41 236AA
+42 (Knives hit)
+43 (Knives hit)
+52 623AA
+53 623AA (followup)
 
 Young Joseph
 

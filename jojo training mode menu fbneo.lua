@@ -10,6 +10,7 @@
 -- GaryButternubs: Finding ram addresses.
 -- Unknown: The creator of the hit editor lua. We probably wouldn't have live hitboxes without you.
 -- tylerneylon: Json parser https://gist.github.com/tylerneylon/59f4bcf316be525b30ab
+-- guruslum: Child mode and delayed health/meter refill scripts
 
 -------------------
 -- CONFIGURATION --
@@ -51,8 +52,8 @@ local options = {
 	mediumKickHotkey = 1,
 	strongKickHotkey = 1,
 	music = false,
-	meterRefill = true,
-	healthRefill = true,
+	meterRefill = 2,
+	healthRefill = 2,
 	standGaugeRefill = true,
 	infiniteRounds = true,
 	guiStyle = 2,
@@ -101,6 +102,10 @@ local options = {
 	replayInterval = 0,
 	taunt = true,
 	stageIndex = 1,
+	killDenial = false,
+	p1Character = 1,
+	p2Character = 1,
+	trialHud = true,
 }
 
 -----------------------
@@ -180,9 +185,99 @@ function tableCompare(tab1, tab2)
 	return true
 end
 
+-- creates a set similar to the java style collection
+function createSet(list)
+	local set = {}
+	for _, l in ipairs(list) do 
+		set[l] = true 
+	end
+	return set
+end
+
 -------------------------------------------------
 -- Data
 -------------------------------------------------
+
+local stage = {
+	left = 32,
+	leftZoomed = -16,
+	right = 352,
+	rightZoomed = 400,
+	noParallax = createSet({ 17, 41 }),
+	offCenter = createSet({ 3, 19, 20, 21, 22 }),
+	names = {
+		"Lock Up",
+		"Health Room",
+		"In an Airplane",
+		"Tigerbaum Garden",
+		"Hotel (Devil)",
+		"Remains",
+		"Hotel (Justice)",
+		"Amusement Park",
+		"Small Island",
+		"Desert (Noon)",
+		"Ruins",
+		"Country Town (Noon)",
+		"Underground Sewer",
+		"Inside House",
+		"Dio's Coffin",
+		"Clock Tower",
+		"Suburbs",
+		"On the Bridge",
+		"Country Town Twilight",
+		"Desert (Morning)",
+		"Desert (Twilight)",
+		"Desert (Evening)",
+		"Desert (Midnight)",
+		"Dio's Coffin 2",
+		"Remains 2",
+		"Small Island 2",
+		"Country Town (Night)",
+		"Ice Stage (Destroyed)",
+		"Suburbs 2",
+		"Suburbs 3",
+		"Clock Tower 2",
+		"Dio's Mansion",
+		"Map",
+		"Remains 3",
+		"Hotel (Devil) 2",
+		"Small Island 3",
+		"Ruins 2",
+		"Sewer 2",
+		"Ice Stage (Clean)",
+		"Dio's Coffin 3",
+		"Clock Tower 3",
+		"On The Bridge 2",
+	}
+}
+
+local characters = {
+	"Jotaro",
+	"Kakyoin",
+	"Avdol",
+	"Polnareff",
+	"Old Joseph",
+	"Iggy",
+	"Alessi",
+	"Chaka",
+	"Devo",
+	--"N'Doul",
+	"Midler",
+	"Dio",
+	--"Boss Ice",
+	--"Death 13",
+	"Shadow Dio",
+	"Young Joseph",
+	"Hol Horse",
+	"Vanilla Ice",
+	"New Kakyoin",
+	"Black Polnareff",
+	"Petshop",
+	"Mariah",
+	"Hoingo",
+	"Rubber Soul",
+	"Khan"
+}
 
 local optionType = {
 	subMenu = 1,
@@ -198,81 +293,65 @@ local optionType = {
 	files = 11,
 	file = 12, 
 	key = 13,
-	back = 14
+	listSelect = 14,
+	back = 15
 }
 
 local systemOptions = {
 	{
-		name = "Hitboxes",
-		key = "hitboxes",
-		type = optionType.list, 
+		name = "Meter Refill:",
+		key = "meterRefill",
+		type = optionType.list,
 		list = {
 			"Disabled",
-			"Enabled"
+			"Instant",
+			"Delayed"
 		}
 	},
 	{
-		name = "Music:",
-		key = "music",
-		type = optionType.bool
-	},
-	{
-		name = "Hud Style:",
-		key = "guiStyle",
+		name = "Health Refill:",
+		key = "healthRefill",
 		type = optionType.list,
 		list = {
-			"None",
-			"Simple",
-			"Advanced",
-			"Wakeup Indicator",
-			"Trial Debug",
+			"Disabled",
+			"Instant",
+			"Delayed"
 		}
 	},
 	{
-		name = "Input Display Style:",
-		key = "inputStyle",
-		type = optionType.list,
-		list = {
-			"Simple",
-			"History",
-			"Frames",
-		}
-	},
-	{
-		name = "Player 1 Hud:",
-		key = "p1Gui", 
+		name = "Stand Gauge Refill:",
+		key = "standGaugeRefill",
 		type = optionType.bool
 	},
 	{
-		name = "Player 2 Hud:",
-		key = "p2Gui",
+		name = "IPS:",
+		key = "ips",
 		type = optionType.bool
 	},
 	{
-		name = "Info Numbers:",
-		key = "infoNumbers",
+		name = "Kill Denial:",
+		key = "killDenial",
 		type = optionType.bool
 	},
+	{
+		name = "Infinite Rounds:",
+		key = "infiniteRounds",
+		type = optionType.bool
+	},
+	{
+		name = "Tandem Cooldown",
+		key = "tandemCooldown",
+		type = optionType.bool
+	}, 
 	{
 		name = "Taunt:",
 		key = "taunt",
 		type = optionType.bool
 	},
 	{
-		name = "Force Stage:",
-		key = "stageIndex",
-		type = optionType.list,
-		list = {
-			"Disabled",
-			"1",
-			"2",
-			"3",
-			"4",
-			"5",
-			"6",
-			"7",
-			"8"
-		}
+		name = "Music:",
+		key = "music",
+		type = optionType.bool
 	},
 	{
 		name = "Return",
@@ -282,35 +361,30 @@ local systemOptions = {
 
 local battleOptions = {
 	{
-		name = "Meter Refill:",
-		key = "meterRefill",
-		type = optionType.bool
+		name = "P1 Character:",
+		key = "p1Character",
+		type = optionType.list,
+		list = characters
 	},
 	{
-		name = "Health Refill:",
-		key = "healthRefill",
-		type = optionType.bool
-	},
+		name = "P2 Character:",
+		key = "p2Character",
+		type = optionType.list,
+		list = characters
+	},	
+	-- {
+	-- 	name = "Stage",
+	-- 	key = "stageIndex",
+	-- 	type = optionType.listSelect,
+	-- 	list = stage.names
+	-- },
 	{
-		name = "Stand Gauge Refill:",
-		key = "standGaugeRefill",
-		type = optionType.bool
+		name = "Stage:",
+		key = "stageIndex",
+		type = optionType.int,
+		min = 0, 
+		max = 41
 	},
-	{
-		name = "Infinite Rounds:",
-		key = "infiniteRounds",
-		type = optionType.bool
-	},
-	{
-		name = "IPS:",
-		key = "ips",
-		type = optionType.bool
-	},
-	{
-		name = "Tandem Cooldown",
-		key = "tandemCooldown",
-		type = optionType.bool
-	}, 
 	{
 		name = "P1 Child:",
 		key = "p1Child",
@@ -412,6 +486,64 @@ local enemyOptions = {
 		key = "throwTech",
 		type = optionType.bool,
 	}, 
+	{
+		name = "Return",
+		type = optionType.back
+	}
+}
+
+local hudOptions = {
+	{
+		name = "Hitboxes",
+		key = "hitboxes",
+		type = optionType.list, 
+		list = {
+			"Disabled",
+			"Enabled"
+		}
+	},
+	{
+		name = "Hud Style:",
+		key = "guiStyle",
+		type = optionType.list,
+		list = {
+			"None",
+			"Simple",
+			"Advanced",
+			"Wakeup Indicator",
+			"Trial Debug",
+		}
+	},
+	{
+		name = "Input Display Style:",
+		key = "inputStyle",
+		type = optionType.list,
+		list = {
+			"Simple",
+			"History",
+			"Frames",
+		}
+	},
+	{
+		name = "Player 1 Hud:",
+		key = "p1Gui", 
+		type = optionType.bool
+	},
+	{
+		name = "Player 2 Hud:",
+		key = "p2Gui",
+		type = optionType.bool
+	},
+	{
+		name = "Info Numbers:",
+		key = "infoNumbers",
+		type = optionType.bool
+	},
+	{
+		name = "Trial Hud:",
+		key = "trialHud",
+		type = optionType.bool
+	},
 	{
 		name = "Return",
 		type = optionType.back
@@ -701,6 +833,11 @@ local rootOptions = {
 		options = systemOptions
 	},
 	{
+		name = "Hud Settings",
+		type = optionType.subMenu,
+		options = hudOptions
+	},
+	{
 		name = "Record/Replay Settings",
 		type = optionType.subMenu,
 		options = recordReplaySettings
@@ -873,6 +1010,7 @@ local p1 = {
 	airtech = false,
 	techable = 0,
 	newButtons = 0,
+	healthDelay = 0,
 	buttons = {},
 	memory = nil,
 	memory2 = nil,
@@ -895,14 +1033,14 @@ p1.memory = {  --0x203488C
 	character = 0x203489F,
 	health = 0x205BB28,
 	standHealth = 0x205BB48,
-	healthRefill = 0x20349CD,
 	combo = 0x205BB38,
 	meter = 0x205BB64,
-	meterRefill = 0x2034863,
-	standGaugeRefill = 0x203520D,
+	meterBar = 0x2034862,
+	meterNumber = 0x2034863,
 	standGaugeMax = 0x02035211,
 	guarding = 0x00000000, --placeholder need to find this later
 	facing = 0x2034899,
+	side = 0x20349F9, 
 	animationState = 0x00000000, --placeholder need to find this later
 	riseFall  = 0x00000000, --placeholder need to find this later
 	hitstun = 0x00000000, --placeholder need to find this later
@@ -931,10 +1069,13 @@ p1.memory = {  --0x203488C
 	tandem = 0x02034A39,
 	tandemCount = 0x02032D74,
 	actionId = 0x0203491E,
-	standActionId = 0x0203515E
+	standActionId = 0x0203515E,
+	cc = 0x2034A38
 }
 
 p1.memory2 = {
+	healthRefill = 0x20349CC,
+	standGaugeRefill = 0x203520C,
 	hitbox = 0x02034938, --AC
 	standHitbox = 0x2035178,
 	x = 0x20348E8,
@@ -952,11 +1093,10 @@ p2.memory = {
 	character = 0x2034CBF,
 	health = 0x205BB29,
 	standHealth = 0x205BB49,
-	healthRefill = 0x2034DED,
 	combo = 0x205BB39,
 	meter = 0x205BB65,
-	meterRefill = 0x2034887,
-	standGaugeRefill = 0x203562D,
+	meterBar = 0x2034886,
+	meterNumber = 0x2034887,
 	standGaugeMax = 0x02035631,
 	guarding = 0x02034E51,
 	facing = 0x2034CB9,
@@ -981,10 +1121,13 @@ p2.memory = {
 	wakeupFreeze = 0x02034D9A,
 	stunType = 0x02034E82,
 	stunCount = 0x02034E92,
-	techable = 0x02034EE3
+	techable = 0x02034EE3,
+	cc = 0x2034E58,
 }
 
 p2.memory2 = {
+	healthRefill = 0x2034DEC,
+	standGaugeRefill = 0x203562C,
 	hitbox = 0x02034D58,
 	standHitbox = 0x02035598,
 	x = 0x2034D08,
@@ -1007,8 +1150,12 @@ p2.standGauge = p2.standHealth
 
 p1.name = "P1 "
 p1.number = 1
+p1.address = 0x203488C
+p1.standAddress = 0x20350CC
 p2.name = "P2 "
 p2.number = 2
+p2.address = 0x2034CAC
+p2.standAddress = 0x20354EC
 
 local system = {
 	frameAdvantage = 0,
@@ -1016,7 +1163,9 @@ local system = {
 	screenFreeze = 0,
 	parry = 0,
 	recordingSlots = 5,
-	playerSelect = 0
+	playerSelect = 0,
+	p1Swap = 0,
+	p2Swap = 0,
 }
 
 local buttons = {
@@ -1270,49 +1419,49 @@ for i = 1, 64, 1 do
 	}
 end
 
-local stageBorder = { -- { left border, right border }
-	{ 3, 397 },
-	{ 3, 381 },
-	{ -253, 621 },
-	{ 64, 576 }, 
-	{ 3, 381 },
-	{ -256, 800 },
-	{ 3, 381 },
-	{ 80, 560 },
-	{ 48, 848 },
-	{ 0, 0 },
-	{ 48, 592 },
-	{ 192, 704 },
-	{ -192, 704 },
-	{ 56, 840 },
-	{ 48, 576 },
-	{ 48, 592 },
-	{ -384, 912 },
-	{ -512, 832 },
-	{ -192, 704 },
-	{ -384, 992 }, 
-	{ -384, 992 }, 
-	{ -384, 992 }, 
-	{ -384, 992 }, 
-	{ 48, 576 },
-	{ -256, 800 },
-	{ 48, 848 },
-	{ -192, 704 },
-	{ 56, 840 },
-	{ -384, 912 },
-	{ -384, 912 },
-	{ 48, 592 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ -256, 800 },
-	{ 3, 381 },
-	{ 48, 848 }, 
-	{ 48, 592 }, 
-	{ -192, 704 },
-	{ 56, 840 }, 
-	{ 48, 576 },
-	{ 48, 592 }, 
-	{ -512, 832 }
+local stageBorder = { -- { left border, right border, parallax adjustment, center? }
+	{ 3, 397, 0 }, --0
+	{ 3, 381, 0 },
+	{ -253, 621, 0 },
+	{ 64, 576, 13, 320 }, --off center, r = 20
+	{ 3, 381, 0 },
+	{ -256, 800, 64 },
+	{ 3, 381, 69 },
+	{ 80, 560, 75 },
+	{ 48, 848, 25 },
+	{ 0, 0, 0 }, --na
+	{ 48, 592, 16 }, --10
+	{ 192, 704, 28 },
+	{ -192, 704, 0 },
+	{ 56, 840, 0 },
+	{ 48, 576, 0 },
+	{ 48, 592, 16 },
+	{ -384, 912, 0 },
+	{ -512, 832, 0 }, --parallax doesn't scroll
+	{ -192, 704, 28 },
+	{ -384, 992, 80, 256 }, --off center r = 92
+	{ -384, 992, 80, 256 }, --20 off center
+	{ -384, 992, 80, 256 }, --off center
+	{ -384, 992, 80, 256 }, --off center
+	{ 48, 576, 0 },
+	{ -256, 800, 64 },
+	{ 48, 848, 25 },
+	{ -192, 704, 28 },
+	{ 56, 840, 0 },
+	{ -384, 912, 0 },
+	{ -384, 912, 0 },
+	{ 48, 592, 16 }, --30
+	{ 0, 0, 0 }, --na
+	{ 0, 0, 0 }, --na
+	{ -256, 800, 64},
+	{ 3, 381, 0 },
+	{ 48, 848, 25 },
+	{ 48, 592, 16 },
+	{ -192, 704, 0 },
+	{ 56, 840, 0 },
+	{ 48, 576, 0 },
+	{ 48, 592, 16 }, --40
+	{ -512, 832, 0 } --parallax doesn't scroll
 }
 
 local charToIndex = {
@@ -1388,6 +1537,34 @@ local nameToId = {
 	Hoingo = 23,
 	["Rubber Soul"] = 24,
 	Khan = 25
+}
+
+local idToName = {
+	[0] = "Jotaro",
+	[1] = "Kakyoin",
+	[2] = "Avdol",
+	[3] = "Polnareff",
+	[4] = "Old Joseph",
+	[5] = "Iggy",
+	[6] = "Alessi",
+	[7] = "Chaka",
+	[8] = "Devo",
+	[9] = "N'Doul",
+	[10] = "Midler",
+	[11] = "Dio",
+	[12] = "Boss Ice",
+	[13] = "Death 13",
+	[14] = "Shadow Dio",
+	[15] = "Young Joseph",
+	[16] = "Hol Horse",
+	[17] = "Vanilla Ice",
+	[18] = "New Kakyoin",
+	[19] = "Black Polnareff",
+	[20] = "Petshop",
+	[22] = "Mariah",
+	[23] = "Hoingo",
+	[24] = "Rubber Soul",
+	[25] = "Khan"
 }
 
 local trials = {}
@@ -1467,15 +1644,6 @@ local intToComboString = {
 	"reset"
 }
 
--- creates a set similar to the java style collection
-function createSet(list)
-	local set = {}
-	for _, l in ipairs(list) do 
-		set[l] = true 
-	end
-	return set
-end
-
 local recordingKeys = createSet({
 	"recording"
 })
@@ -1501,15 +1669,52 @@ for i = 1, 22, 1 do
 	moveDefinitions[i] = {}
 end
 
-local stageRns = {
-	0x0300,
-	0x0600, 
-	0x0100, 
-	0x0400, 
-	0x0700, 
-	0x0200, 
-	0x0500,
-	0x0000
+local romHacks = {
+	active = {},
+	cache = {},
+	killDenial = {
+		--[0x6188F6C] = 0xE301, -- Kill denial
+		--[0x6186DDC] = 0xE301, --??
+		--[0x618708C] = 0xE301, --??
+		[0x6183AE6] = 0xE301, -- Kill check
+		[0x6184648] = 0xE301, -- Stand kill check
+		--[0x6186FB2] = 0xE301, --??
+		[0x6187520] = 0xE301, -- Increase player hitstop
+		[0x6187532] = 0xE201, -- Increase player v stand hitstop
+		[0x6187566] = 0xE301, -- Increase stand hitstop
+		[0x6187592] = 0xE301, -- Increase stand v stand hitstop
+		[0x6187630] = 0xE201, -- Increase projectile hitstop
+		[0x61880C2] = 0xE301, -- Timestop kill check
+		[0x618A18E] = 0xE301, -- Grab kill check
+	},
+	stageSwap = {
+		[0x6176C10] = 0xE200, -- Check for dev region
+		[0x6179212] = 0x0008, -- Start check
+		[0x6179220] = 0x0018, -- Previous C check
+		[0x6179282] = 0x0008, -- Start check
+		[0x6179290] = 0x0008, -- A check
+		[0x617929C] = 0xE200, -- Stage id number, modified manually
+	},
+	p1Swap = {
+		[0x6044D44] = 0x0018, -- Check for dev region
+		--Next 3 instructions put 0x1040 (Start + C) into R5
+		[0x604BF42] = 0xE510, -- Mov #$10, R5   R5 = 0x10
+		[0x604BF48] = 0x4518, -- Shll8 R5       R5 = 0x1000
+		[0x604BF62] = 0x7540, -- Add #$40, R5   R5 = 0x1040
+		[0x604BF44] = 0xE440, -- 0x40 (C) into R4 
+		[0x604BF6A] = 0x0009, -- Clear R4 update
+		[0x604BFE6] = 0xE300, -- Character id number, modified manually
+	},
+	p2Swap = {
+		[0x6044D44] = 0x0018, -- Check for dev region
+		--Next 3 instructions put 0x1040 (Start + C) into R5
+		[0x604BF5C] = 0xE510, -- Mov #$10, R5   R5 = 0x10
+		[0x604BF5E] = 0x4518, -- Shll8 R5       R5 = 0x1000
+		[0x604BF62] = 0x7540, -- Add #$40, R5   R5 = 0x1040
+		[0x604BF60]	= 0xE440, -- 0x40 (C) into R4 
+		[0x604BF6A] = 0x0009, -- Clear R4 update
+		[0x604BFE6] = 0xE300, -- Character id number, modified manually
+	}
 }
 
 -------------------------------------------------
@@ -1673,6 +1878,7 @@ function insertJsonTable(sb, t, depth)
 end
 
 json.null = {}  -- This is a one-off table to represent the null value.
+json.literals = {['true'] = true, ['false'] = false, ['null'] = json.null}
 
 function json.parse(str, pos, end_delim)
 	pos = pos or 1
@@ -1707,8 +1913,7 @@ function json.parse(str, pos, end_delim)
 	elseif first == end_delim then  -- End of an object or array.
 		return nil, pos + 1
 	else  -- Parse true, false, or null.
-		local literals = {['true'] = true, ['false'] = false, ['null'] = json.null}
-		for lit_str, lit_val in pairs(literals) do
+		for lit_str, lit_val in pairs(json.literals) do
 			local lit_end = pos + #lit_str - 1
 			if str:sub(pos, lit_end) == lit_str then return lit_val, lit_end + 1 end
 		end
@@ -1999,6 +2204,83 @@ function addMoveDefinition(line, index)
 end
 
 -------------------------------------------------
+-- Romhacks
+-------------------------------------------------
+
+function writeHack(hack)
+	-- If already active return
+	if romHacks.active[hack] then return false end
+	-- Check if caching is needed
+	local cache = false
+	-- Create cache for original bytes
+	if not romHacks.cache[hack] then
+		romHacks.cache[hack] = {}
+		cache = true
+	end
+	for k, v in pairs(romHacks[hack]) do
+		-- Store original bytes
+		if cache then
+			romHacks.cache[hack][k] = readWord(k) 
+		end
+		-- Write new bytes
+		writeWord(k, v) 
+	end
+	-- Mark as active
+	romHacks.active[hack] = true
+	return true
+end
+
+function restoreHack(hack)
+	-- If not active or no cache (shouldn't happen?) then return
+	if not romHacks.active[hack] or not romHacks.cache[hack] then return false end
+	-- Restore original bytes
+	for k, v in pairs(romHacks.cache[hack]) do
+		writeWord(k, v)
+	end
+	-- Mark as inactive 
+	romHacks.active[hack] = false
+	return true
+end
+
+function updateHacks()
+	updateHack("killDenial", options.killDenial)
+end
+
+function updateHack(hack, option)
+	if option then
+		writeHack(hack)
+	else
+		restoreHack(hack)
+	end
+end
+
+function updateStage(id)
+	if id ~= system.stageId then
+		--hack the stage id to a specific value
+		romHacks.stageSwap[0x617929C] = 0xE200 + id
+		writeHack("stageSwap")
+		return true
+	end
+	return false
+end
+
+function updateCharacter(player, id)
+	if player.character ~= id then
+		if player.number == 1 then
+			romHacks.p1Swap[0x604BFE6] = 0xE300 + id
+			writeHack("p1Swap")
+			system.p1Swap = 2
+		else
+			romHacks.p2Swap[0x604BFE6] = 0xE300 + id
+			writeHack("p2Swap")
+			system.p2Swap = 2
+		end
+		return true
+	end
+	return false
+end
+
+-------------------------------------------------
 -- Memory Reader
 -------------------------------------------------
 
@@ -2090,6 +2372,8 @@ function readSystemMemory()
 	system.coined = readByte(0x20314AA)
 	system.state = readByte(0x2031452) -- 1 character select, 2 pre battle, 3 battle 
 	system.inMatch = system.state == 3
+	system.zoomState = readByte(0x2048DA8) -- 0 zoomed in, 1 zooming out, 2 zoomed out, 3 zooming in
+	system.betweenRounds = readByte(0x020314A2) > 0
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -2354,6 +2638,7 @@ function updateGameplayLoop() --main loop for gameplay calculations
 
 	if fcReplay then return end  -- Don't write if replay
 
+	writeByte(0x20312C1, 0x01) -- Unlock all characters
 	writeByte(0x20314B4, 0x63) -- Infinite Clock Time
 	if options.infiniteRounds then
 		writeByte(0x2034860, 0) -- Reset round to 0
@@ -2372,8 +2657,16 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	if options.level > 1 then
 		writeByte(0x02033210, options.level - 2)
 	end
-	if options.stageIndex > 1 then
-		updateStage()
+	if romHacks.active.stageSwap then
+		restoreHack("stageSwap")
+	end
+	if system.p1Swap > 0 then
+		updatePlayerSwap(p1, system.p1Swap, "p1Swap")
+		system.p1Swap = system.p1Swap - 1
+	end
+	if system.p2Swap > 0 then
+		updatePlayerSwap(p2, system.p2Swap, "p2Swap")
+		system.p2Swap = system.p2Swap - 1
 	end
 end
 
@@ -2397,19 +2690,54 @@ function updatePlayer(player, other)
 	end
 
 	--Health Regen
-	if options.healthRefill and ((player.previousCombo > 0 or other.damage ~= 0) and (player.combo == 0)) then
-		writeByte(other.memory.healthRefill, 0x90)
+	if options.healthRefill > 1 and ((player.previousCombo > 0 or other.damage ~= 0) and (player.combo == 0)) then
+		if options.healthRefill == 2 then
+			writeWord(other.memory2.healthRefill, 0x90)
+		elseif options.healthRefill == 3 then
+			other.healthDelay = 60
+		end
 		other.damage = 0
 	end
 
+	if other.combo > 0 or player.hitstun == 3 or player.hitstun == 4 or system.timeStop > 0 or system.betweenRounds then
+		player.healthDelay = 0
+	end
+
+	if player.healthDelay > 0 then
+		if player.healthDelay == 1 then
+			player.healthRefill = math.min(player.healthRefill + 2, 0x90)
+			writeWord(player.memory2.healthRefill, player.healthRefill)
+			if player.healthRefill < 0x90 then
+				player.healthDelay = 2
+			end
+		end
+		if system.screenFreeze == 0 then
+			player.healthDelay = player.healthDelay - 1
+		end
+	end
+
 	--Meter refill
-	if options.meterRefill then
-		writeByte(player.memory.meterRefill, 0x680A)
+	if options.meterRefill > 1 and system.timeStop == 0 and system.screenFreeze == 0 then
+		if options.meterRefill == 2 then
+			writeByte(player.memory.meterNumber, 0x0A)
+		elseif options.meterRefill == 3 then
+			player.meterBar = player.meterBar + 1
+			if player.meterBar >= 104 then
+				player.meterBar = 0
+				player.meterNumber = player.meterNumber + 1
+				if player.meterNumber >= 10 then
+					player.meterBar = 104
+					player.meterNumber = 10
+				end
+			end
+			writeByte(player.memory.meterNumber, player.meterNumber)
+			writeByte(player.memory.meterBar, player.meterBar)
+		end
 	end
 
 	--Stand refill 
-	if options.standGaugeRefill and player.standHealth == 0 then
-		writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+	if options.standGaugeRefill and player.standHealth <= 0 and player.cc == 0 then
+		writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
 	end
 
 	-- Air Tech
@@ -2499,6 +2827,11 @@ function updatePlayer(player, other)
 			player.meaty = false
 		end
 	end
+
+	-- Kill denial
+	if options.killDenial and player.healthRefill < 0 then
+		writeWord(player.memory2.healthRefill, 0)
+	end
 end
 
 function getActionLength(address)
@@ -2539,10 +2872,18 @@ function freezeStunUpdated(player)
 	return player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount
 end
 
-function updateStage()
-	--local address = readDWord(0x0200E8E8 + p1.character * 4) + p2.character * 8
-	if system.state == 2 then
-		writeDWord(0x205C1B8, stageRns[options.stageIndex - 1])
+function updatePlayerSwap(player, count, hack)
+	if count == 2 then
+		restoreHack(hack)
+	elseif count == 1 then
+		local address = player.address
+		writeByte(address + 0x1B2, 0) --clear round start animation wait timer
+		writeByte(address + 0xE4, 1) --clear round start animation
+		writeByte(address + 0xE5, 0) --clear round start animation
+		writeWord(0x205BAFC, 0) --clear hud update wait timer
+		writeByte(0x2034AA2, 0) --enable borders
+		writeByte(0x2034AA3, 1) --enable screen scroll
+		writeByte(0x20314A2, 0) --enable zoom
 	end
 end
 
@@ -2593,11 +2934,11 @@ function checkPlayerInput(player, other)
 
 	if menu.state > 0 then 
 		if pressed(player.buttons.mk) then
-			writeByte(other.memory.standGaugeRefill, other.standGaugeMax)
+			writeWord(other.memory2.standGaugeRefill, other.standGaugeMax)
 		end
 
 		if pressed(player.buttons.sk) then
-			writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+			writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
 		end
 		return
 	end
@@ -2634,11 +2975,11 @@ function checkPlayerInput(player, other)
 		other.control = true
 
 		if pressed(player.buttons.mk) then
-			writeByte(other.memory.standGaugeRefill, other.standGaugeMax)
+			writeWord(other.memory2.standGaugeRefill, other.standGaugeMax)
 		end
 
 		if pressed(player.buttons.sk) then
-			writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+			writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
 		end
 	else
 		other.control = false
@@ -2829,7 +3170,7 @@ function controlPlayer(player, other)
 	-- Reversals
 	if options.forceStand > 1 and canReversal(player) and canStand(player) then
 		setPlayback(player, { 0x80 })
-		writeByte(player.memory.standGaugeRefill, player.standGaugeMax)
+		writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
 	else
 		if options.wakeupReversal and player.wakeupCount > 0 then
 			doReversal(player, other, player.wakeupCount, player.previousWakeupCount)
@@ -3095,9 +3436,12 @@ function openMenu()
 			menu.index = 1
 			menu.options = rootOptions
 			updateMenuInfo()
-			--update child options
-			options.p1Child = readByte(p1.memory.child) == 0xFF
-			options.p2Child = readByte(p2.memory.child) == 0xFF
+			--update unmanaged options
+			options.p1Child = p1.child == 0xFF
+			options.p2Child = p2.child == 0xFF
+			options.stageIndex = system.stageId
+			options.p1Character = tableIndex(characters, idToName[p1.character])
+			options.p2Character = tableIndex(characters, idToName[p2.character])
 		end
 	else
 		menuClose()
@@ -3132,6 +3476,7 @@ function menuSelect()
 		updateMenuInfo()
 	elseif option.type == optionType.bool then
 		options[option.key] = not options[option.key]
+		optionUpdated(option.key)
 	elseif option.type == optionType.func then
 		option.func()
 	elseif option.type == optionType.back then
@@ -3221,7 +3566,7 @@ function menuClose()
 	menu.state = 0
 	gui.clearuncommitted()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
-	--update child options
+	--update unamanaged options
 	updateChild(p1, options.p1Child, 0x020348D5)
 	updateChild(p2, options.p2Child, 0x02034CF5)
 	updateReversal()
@@ -3237,8 +3582,10 @@ function menuLeft()
 	local value = options[option.key]
 	if option.type == optionType.bool then
 		options[option.key] = not value
+		optionUpdated(option.key)
 	elseif option.type == optionType.int then
 		options[option.key] = (value == option.min and option.max or value - 1)
+		optionUpdated(option.key)
 	elseif option.type == optionType.list then
 		options[option.key] = (value == 1 and #option.list or value - 1)
 		optionUpdated(option.key)
@@ -3279,8 +3626,10 @@ function menuRight()
 	local value = options[option.key]
 	if option.type == optionType.bool then
 		options[option.key] = not value
+		optionUpdated(option.key)
 	elseif option.type == optionType.int then
 		options[option.key] = (value >= option.max and option.min or value + 1)
+		optionUpdated(option.key)
 	elseif option.type == optionType.list then
 		options[option.key] = (value >= #option.list and 1 or value + 1)
 		optionUpdated(option.key)
@@ -3479,11 +3828,26 @@ function getFileOptions()
 	return optionsTable
 end
 
-function optionUpdated(key)
-	if key == "inputStyle" then
+local optionUpdateFunctions = {
+	inputStyle = function()
 		clearInputHistory(p1)
 		clearInputHistory(p2)
+	end,
+	killDenial = updateHacks,
+	stageIndex = function()
+		updateStage(options.stageIndex)
+	end,
+	p1Character = function()
+		updateCharacter(p1, nameToId[characters[options.p1Character]])
+	end,
+	p2Character = function()
+		updateCharacter(p2, nameToId[characters[options.p2Character]])
 	end
+}
+
+function optionUpdated(key)
+	local func = optionUpdateFunctions[key]
+	if func then func() end
 end
 
 function updateMenuFlash()
@@ -3709,7 +4073,7 @@ function trialStun(input)
 	if p2.guarding > 0 and p2.previousGuarding == 0 then --blocking
 		return false
 	end
-	if p2.hitstun == 3 then --grab
+	if p2.hitstun == 3 or p2.hitstun == 4 then --grab
 		return true 
 	end
 	if p2.wakeupFrame and (p2.previousDefenseAction == 28 or p2.previousDefenseAction == 30) then --wakeup frame
@@ -3757,8 +4121,8 @@ function trialModeStart()
 		trial.drill = false
 	end
 
-	writeByte(p1.memory.standGaugeRefill, p1.standGaugeMax)
-	writeByte(p2.memory.standGaugeRefill, p2.standGaugeMax)
+	writeWord(p1.memory2.standGaugeRefill, p1.standGaugeMax)
+	writeWord(p2.memory2.standGaugeRefill, p2.standGaugeMax)
 
 	if not trial.enabled then
 		storeOptions()
@@ -3796,13 +4160,13 @@ function updateOptions()
 	if trial.trial.meter ~= nil then
 		local meterType = type(trial.trial.meter)
 		if meterType == "number" then
-			options.meterRefill = false
-			writeByte(p1.memory.meterRefill, trial.trial.meter)
+			options.meterRefill = 1
+			writeByte(p1.memory.meterNumber, trial.trial.meter)
 		elseif meterType == "boolean" then
-			options.meterRefill = trial.trial.meter
+			options.meterRefill = (trial.trial.meter and 2 or 1)
 		end
 	else
-		options.meterRefill = true
+		options.meterRefill = 2
 	end
 	if trial.trial.standGauge ~= nil then
 		options.standGaugeRefill = trial.trial.standGauge
@@ -3849,7 +4213,7 @@ function updateOptions()
 	options.airTech = true
 	options.airTechDirection = 2
 	options.boingo = false
-	options.healthRefill = true
+	options.healthRefill = 2
 	options.level = 1
 	options.inputStyle = 1
 	options.infiniteRounds = true
@@ -3984,7 +4348,7 @@ function trialNext()
 	else
 		menu.index = menu.index + 1
 		trialModeStart()
-		updateTrialStand()
+		trialMenuClose()
 	end
 end
 
@@ -4031,7 +4395,7 @@ function trialStartRecording()
 		position = false,
 		tandemChain = getTandemChain()
 	}
-	if not options.meterRefill then
+	if options.meterRefill == 1 then
 		recording.meter = readByte(p1.memory.meterRefill)
 	end
 	if not options.standGaugeRefill then
@@ -4114,7 +4478,7 @@ function updateTrialRecording()
 			name = (tsName[p1.character] or "").."(Time Stop)",
 			type = comboType.timeStop
 		}
-	elseif system.previousTimeStop > 0 and system.timestop == 0 then
+	elseif system.previousTimeStop > 0 and system.timeStop == 0 then
 		combo[#combo + 1] = {
 			name = "(Time Stop End)",
 			type = comboType.timeStopEnd
@@ -4154,6 +4518,27 @@ function trialReset()
 end
 
 function updateTrialReset()
+	if trial.wait > 0 then
+		trial.wait = trial.wait - 1
+		return
+	end
+
+	--update stage
+	if updateStage(trial.trial.stage.id) then
+		trial.wait = 5
+		return 
+	end
+
+	--update characters
+	if updateCharacter(p1, trial.trial.p1.character) then
+		trial.wait = 5
+		return
+	end
+	if updateCharacter(p2, trial.trial.p2.character) then
+		trial.wait = 5
+		return
+	end
+
 	--update stand
 	if updateTrialStand() then
 		return
@@ -4213,10 +4598,6 @@ function updateTrialParry()
 		return
 	end
 
-	if updateTrialStand() then
-		return
-	end
-
 	if trial.parryDelay then
 		trial.parryDelay = false
 		trial.wait = 40
@@ -4230,7 +4611,7 @@ function trialStartReplay()
 	p1.playback = trial.recorded
 	p1.playbackCount = #trial.recorded
 	p1.playbackFacing = 1
-	p1.playbackFlipped = p1.facing ~= 1
+	p1.playbackFlipped = p1.side ~= 1
 end
 
 function trialPlayback()
@@ -4262,6 +4643,7 @@ end
 
 -- Updates your the position of the player and stand relative to the recorded stages borders and facing direction
 function updateTrialPosition()
+	-- update positions of player and stand
 	local p1x, p1sx, p2x, p2sx
 	local updated = false
 	-- position difference between p1, p2 and stands
@@ -4271,37 +4653,83 @@ function updateTrialPosition()
 	-- borders of stage and recorded stage
 	local sx = stageBorder[system.stageId + 1][1]
 	local sx2 = stageBorder[system.stageId + 1][2]
-	local rx = stageBorder[trial.trial.stage.id + 1][1]
-	local rx2 = stageBorder[trial.trial.stage.id + 1][2]
+	local sp = stageBorder[system.stageId + 1][3]
+	local tx = stageBorder[trial.trial.stage.id + 1][1]
+	local tx2 = stageBorder[trial.trial.stage.id + 1][2]
+	local tp = stageBorder[trial.trial.stage.id + 1][3]
+	-- screen position
+	local screenX = system.screenX
+	local trialScreenX = trial.trial.stage.x
+	local newScreenX
+
+	-- update facing direction
+	writeByte(p1.memory.facing, trial.trial.p1.facing)
+	writeByte(p2.memory.facing, trial.trial.p2.facing)
+	if trial.trial.p1.standFacing then
+		local facing = trial.trial.p1.standFacing
+		writeByte(p1.memory.standFacing, facing)
+		writeByte(0x203514D, facing)
+		writeByte(0x2035239, facing)
+	end
+	if trial.trial.p2.standFacing then
+		local facing = trial.trial.p2.standFacing
+		writeByte(p2.memory.standFacing, facing)
+		writeByte(0x203556D, facing)
+		writeByte(0x2035659, facing)
+	end
+
 	-- update position relative to the border you are facing towards
 	if trial.trial.p1.facing == 1 then
 		-- relative distance from right border
-		p1x = sx2 - (rx2 - trial.trial.p1.x)
+		p1x = sx2 - (tx2 - trial.trial.p1.x)
+		-- modifier based on zoom state
+		local zx = (system.zoomState == 0 or system.zoomState == 3) and stage.left or stage.leftZoomed
 		-- if the relative distance is outside of current stage bounds 
-		if p1x < sx then
+		if p1x < sx + zx then
 			-- hug left border
-			p1x = sx
+			p1x = sx + zx
 		end
 		-- update position relative to player 1
 		p1sx = p1x + p1sd
 		p2x = p1x + p2d
 		p2sx = p1x + p2sd
+		-- update screen position
+		newScreenX = sx2 - (tx2 - trialScreenX)
+		if newScreenX < sx then
+			newScreenX = sx
+		end
 	else
 		-- relative distance from left border
-		p1x = sx + (trial.trial.p1.x - rx)
+		p1x = sx + (trial.trial.p1.x - tx)
+		-- modifier based on zoom state
+		local zx = (system.zoomState == 0 or system.zoomState == 3) and stage.right or stage.rightZoomed
 		-- if the relative distance is outside of current stage bounds 
-		if p1x > sx2 then
+		if p1x > sx2 + zx then
 			-- hug right border
-			p1x = sx2
+			p1x = sx2 + zx
 		end
 		--update position relative to player 1
 		p1sx = p1x - p1sd
 		p2x = p1x - p2d
 		p2sx = p1x - p2sd
+		-- update screen position
+		newScreenX = sx + (trialScreenX - tx)
+		if newScreenX > sx2 then
+			newScreenX = sx2
+		end
 	end
-	-- update positions of player and stand
-	updateTrialFacing()
 
+	-- update screen position
+	writeWord(0x0203145C, newScreenX)
+
+	--move parrallax position relative to screen position
+	if not stage.noParallax[system.stageId] then
+		local sHalf = stage.offCenter[system.stageId] and stageBorder[system.stageId + 1][4] - sx or math.floor(sx2 - sx / 2)
+		local sMod = (sHalf - sp) / sHalf
+		local sOffset = sHalf + sMod * (newScreenX - sHalf)
+		writeWord(0x02031464, sOffset)
+	end
+	
 	tableCopy(trial.position, trial.previousPosition)
 
 	if p1.x ~= p1x then
@@ -4336,23 +4764,9 @@ function updateTrialPosition()
 	return updated
 end
 
-function updateTrialFacing()
-	writeByte(p1.memory.facing, trial.trial.p1.facing)
-	writeByte(p2.memory.facing, trial.trial.p2.facing)
-	if trial.trial.p1.standFacing then
-		writeByte(p1.memory.standFacing, trial.trial.p1.standFacing)
-		writeByte(0x203514D, trial.trial.p1.standFacing)
-		writeByte(0x2035239, trial.trial.p1.standFacing)
-	end
-	if trial.trial.p2.standFacing then
-		writeByte(p2.memory.standFacing, trial.trial.p2.standFacing)
-		writeByte(0x203556D, trial.trial.p2.standFacing)
-		writeByte(0x2035659, trial.trial.p2.standFacing)
-	end
-end
-
 function trialMenuClose()
-	updateTrialStand()
+	trial.reset = true
+	trial.positionCounter = 0
 end
 
 function trialForceStop()
@@ -4430,17 +4844,19 @@ function drawHud()
 	elseif options.inputStyle == 3 then
 		drawFrameInputs()
 	end
-	
-	if (p1.recording) then
-		gui.text(152,32,"Recording", options.failColor)
-	elseif (p1.playbackCount > 1) then
-		gui.text(152,32,"Replaying", options.failColor)
-	end
-
-	if (p2.recording) then
-		gui.text(200,32,"Recording", options.failColor)
-	elseif (p2.playbackCount > 1) then
-		gui.text(200,32,"Replaying", options.failColor)
+	if trial.enabled then
+		drawTrialGui()
+	else
+		if (p1.recording) then
+			gui.text(152,32,"Recording", options.failColor)
+		elseif (p1.playbackCount > 1) then
+			gui.text(152,32,"Replaying", options.failColor)
+		end
+		if (p2.recording) then
+			gui.text(200,32,"Recording", options.failColor)
+		elseif (p2.playbackCount > 1) then
+			gui.text(200,32,"Replaying", options.failColor)
+		end
 	end
 
 	if menu.state == 0 then
@@ -4453,9 +4869,7 @@ function drawHud()
 		end
 	end
 
-	if trial.enabled then
-		drawTrialGui()
-	end
+
 
 	if debug then
 		drawDebug(160, 20)
@@ -4645,7 +5059,6 @@ function drawTrialDebugHud()
 		"Projectile 3 ID:", projectiles[3].attackId,
 		"Projectile 4 ID:", projectiles[4].attackId,
 		"Projectile 5 ID:", projectiles[5].attackId,
-
 	}
 	local x = 146
 	local x2 = 236
@@ -4756,15 +5169,18 @@ function drawDebug(x, y)
 		p1.standActionId.." stand action id",
 		p2.hitstun.." hitstun",
 		p2.defenseAction.." p2 defense action",
-		projectiles[1].attackId.." proj attack id",
-		projectiles[1].attackHit.." proj hit",
-		projectiles[1].actionId.." proj action id",
-		system.screenX.." screen x",
-		p1.x.." p1 x",
-		p2.x.." p2 x",
-		p2.hitFreeze.." p2 hitfreeze",
-		p2.stunCount.." p2 stunCount",
-		readByte(0x2035239).." stand side",
+		string.format("%08X p1 action address", p1.actionAddress),
+		string.format("%08X p1 action frame", readDWord(p1.memory4.actionAddress - 8)),
+		string.format("%08X p1 action frame previous", readDWord(p1.memory4.actionAddress - 4)),
+		readByte(0x2034A3E).." p1 round start timer",
+		-- projectiles[1].attackId.." proj attack id",
+		-- projectiles[1].attackHit.." proj hit",
+		-- projectiles[1].actionId.." proj action id",
+		-- system.screenX.." screen x",
+		-- readWord(0x02031464).." screen px",
+		-- p1.x.." p1 x",
+		-- p2.x.." p2 x",
+		system.stageId.." stage id",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -4821,6 +5237,7 @@ function drawTrials()
 end
 
 function drawTrialGui()
+	if not options.trialHud then return end
 	local length = math.min(13, #trial.combo)
 	for i = 1, length, 1 do
 		local index = trial.min + i - 1
@@ -4847,6 +5264,9 @@ function drawTrialGui()
 		elseif #trial.combo > 13 then
 			gui.text(10, 188, "Start + Up/Down: Scroll")
 		end
+	end
+	if p1.playbackCount > 1 then
+		gui.text(179, 34, "Preview", options.failColor)
 	end
 	gui.text(290, 52, "Not in Use 1: Restart")
 	gui.text(290, 62, "Not in Use 2: Preview")
@@ -5023,8 +5443,8 @@ function replayOptions()
 	options.guiStyle = 2
 	options.p1Gui = true
 	options.p2Gui = true
-	options.healthRefill = false
-	options.meterRefill = false
+	options.healthRefill = 1
+	options.meterRefill = 1
 	options.ips = true
 	options.airTech = false
 	options.guardAction = 1
@@ -5037,7 +5457,7 @@ function replayOptions()
 	options.inputStyle = 2
 	options.infiniteRounds = false
 	options.taunt = true
-	options.stageIndex = 1
+	options.killDenial = false
 	resetReversalOptions()
 end
 
@@ -5076,11 +5496,17 @@ function updateSettings()
 	end
 	p1.recorded = options.p1Recording
 	p2.recorded = options.p2Recording
+	-- update refill types
+	if type(options.healthRefill) == "boolean" then
+		options.healthRefill = 2
+	end
+	if type(options.meterRefill) == "boolean" then
+		options.meterRefill = 2
+	end
 end
 
 emu.registerstart(function()
 	writeByte(0x20713A8, 0x09) -- Infinite Credits
-	writeByte(0x20312C1, 0x01) -- Unlock all characters
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
 	readSettings()
 	updateSettings()
@@ -5093,6 +5519,8 @@ emu.registerstart(function()
 	if fcReplay then 
 		replayOptions()
 	end
+	updateHacks()
+	
 end)
 
 gui.register(function()
@@ -5102,6 +5530,12 @@ end)
 emu.registerexit(function()
 	gui.clearuncommitted()
 	writeByte(0x20713A3, 0xFF) -- Bit mask that enables player input
+	-- restore romhacks
+	for k, v in pairs(romHacks.active) do
+		if v then
+			restoreHack(k)
+		end
+	end
 end)
 
 emu.registerbefore(function()
