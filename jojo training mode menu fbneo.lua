@@ -17,7 +17,7 @@
 -------------------
 
 local fcReplay = false --Determines whether it's a fightcade replay or not
-local debug = false -- Fbneo doesn't have watches so draw the variables on the screen
+local debug = false --Fbneo doesn't have watches so draw the variables on the screen
 
 -- The available built in colors are: 
 -- "clear", "red", "green", "blue", "white", "black", "gray", "grey", "orange", "yellow", "green", "teal", "cyan", "purple" and "magenta"
@@ -106,6 +106,7 @@ local options = {
 	p1Character = 1,
 	p2Character = 1,
 	trialHud = true,
+	disableHud = false,
 }
 
 -----------------------
@@ -261,11 +262,8 @@ local characters = {
 	"Alessi",
 	"Chaka",
 	"Devo",
-	--"N'Doul",
 	"Midler",
 	"Dio",
-	--"Boss Ice",
-	--"Death 13",
 	"Shadow Dio",
 	"Young Joseph",
 	"Hol Horse",
@@ -276,7 +274,10 @@ local characters = {
 	"Mariah",
 	"Hoingo",
 	"Rubber Soul",
-	"Khan"
+	"Khan",
+	"N'Doul",
+	"Boss Ice",
+	"Death 13",
 }
 
 local optionType = {
@@ -371,13 +372,7 @@ local battleOptions = {
 		key = "p2Character",
 		type = optionType.list,
 		list = characters
-	},	
-	-- {
-	-- 	name = "Stage",
-	-- 	key = "stageIndex",
-	-- 	type = optionType.listSelect,
-	-- 	list = stage.names
-	-- },
+	},
 	{
 		name = "Stage:",
 		key = "stageIndex",
@@ -538,6 +533,12 @@ local hudOptions = {
 		name = "Info Numbers:",
 		key = "infoNumbers",
 		type = optionType.bool
+	},
+	{
+		name = "Remove Game Hud:",
+		key = "disableHud",
+		type = optionType.bool,
+		info = "Enable/Disable from character select"
 	},
 	{
 		name = "Trial Hud:",
@@ -1524,8 +1525,11 @@ local nameToId = {
 	Alessi = 6,
 	Chaka = 7,
 	Devo = 8, 
+	["N'Doul"] = 9,
 	Midler = 10,
 	Dio = 11,
+	["Boss Ice"] = 12,
+	["Death 13"] = 13,
 	["Shadow Dio"] = 14,
 	["Young Joseph"] = 15,
 	["Hol Horse"] = 16,
@@ -1594,7 +1598,8 @@ local comboType = {
 	action = 18,
 	standAction = 19,
 	projectileAction = 20,
-	reset = 21
+	reset = 21,
+	meatyReset = 22,
 }
 
 local comboDictionary = {} 
@@ -1619,6 +1624,7 @@ comboDictionary["ub meaty"] = comboType.doubleMeaty
 comboDictionary["unblockable meaty"] = comboType.doubleMeaty
 comboDictionary["stand action"] = comboType.standAction
 comboDictionary["projectile action"] = comboType.projectileAction
+comboDictionary["meaty reset"] = comboType.meatyReset
 
 local intToComboString = {
 	"id",
@@ -1714,6 +1720,10 @@ local romHacks = {
 		[0x604BF60]	= 0xE440, -- 0x40 (C) into R4 
 		[0x604BF6A] = 0x0009, -- Clear R4 update
 		[0x604BFE6] = 0xE300, -- Character id number, modified manually
+	},
+	comboCounter = {
+		[0x61A1118] = 0x0000, --p1 combo counter
+		[0x61A1048] = 0x2E50, --p2 combo counter
 	}
 }
 
@@ -2244,6 +2254,7 @@ end
 
 function updateHacks()
 	updateHack("killDenial", options.killDenial)
+	updateHack("comboCounter", options.disableHud)
 end
 
 function updateHack(hack, option)
@@ -2668,6 +2679,9 @@ function updateGameplayLoop() --main loop for gameplay calculations
 		updatePlayerSwap(p2, system.p2Swap, "p2Swap")
 		system.p2Swap = system.p2Swap - 1
 	end
+	if options.disableHud then
+		removeGameHud()
+	end
 end
 
 function updatePlayer(player, other) 
@@ -2867,7 +2881,7 @@ function updateHitReversal(player)
 end
 
 function freezeStunUpdated(player)
-	if player.hitFreeze == 0 and player.stunCount == 0 and player.previousHitFreeze ~= 1 then return false end
+	if player.hitFreeze == 0 and player.stunCount == 0 and player.previousHitFreeze ~= 1 and player.previousStunCount == stunType[player.stunType] then return false end
 	if player.hitFreeze == player.previousHitFreeze and player.hitFreeze ~= 0 then return true end
 	return player.hitFreeze > player.previousHitFreeze or player.stunCount < player.previousStunCount
 end
@@ -2885,6 +2899,14 @@ function updatePlayerSwap(player, count, hack)
 		writeByte(0x2034AA3, 1) --enable screen scroll
 		writeByte(0x20314A2, 0) --enable zoom
 	end
+end
+
+function removeGameHud()
+	writeWord(0x205BAFE, 0xF201) --Hp bars
+	writeWord(0x205BB00, 0xEF01) --P1 meter
+	writeWord(0x205BB02, 0x4001) --P2 meter
+	writeWord(0x205BB7C, 0xF031) --Stand On/First Hit ect.
+	writeByte(0x205BB30, 0xF0) --Combo counter
 end
 
 -------------------------------------------------
@@ -3503,7 +3525,7 @@ function menuSelect()
 			menu.state = 5
 			menu.options = getTrialCharacterOptions()
 			menu.previousIndex = menu.index
-			menu.index = charToIndex[p1.character]
+			menu.index = charToIndex[p1.character] or 1
 			menu.title = "Combo Trials"
 		end
 	elseif option.type == optionType.trialCharacter then
@@ -3842,7 +3864,8 @@ local optionUpdateFunctions = {
 	end,
 	p2Character = function()
 		updateCharacter(p2, nameToId[characters[options.p2Character]])
-	end
+	end,
+	disableHud = updateHacks
 }
 
 function optionUpdated(key)
@@ -3890,6 +3913,14 @@ function updateTrialCheck(tailCall)
 		elseif trialStarted() then
 			return trialFail()
 		end
+	elseif input.type == comboType.meatyReset then
+		if p2.previousHitCount == 3 or p2.previousHitCount == 2 then
+			if checkAttackId(input.id) then
+				return advanceTrialIndex()
+			end
+		elseif trialStarted() and not trialStun(input) then
+			return trialFail()
+		end		
 	elseif p2.previousY > 0 and p2.y == 0 and p2.previousTechable == 1 and p2.stand > 0 then
 		if input.type == comboType.reset and checkAttackId(input.id) then
 			return advanceTrialIndex()
@@ -4090,7 +4121,7 @@ function trialStun(input)
 			if p2.previousHitstun > 0 and p2.hitstun == 0 then
 				return false
 			end
-		elseif p2.hitCount == 2 then 
+		elseif p2.hitCount == 2 then
 			return false
 		end
 	end
@@ -4134,6 +4165,7 @@ end
 function trialModeStop()
 	if not trial.enabled then return end
 	retrieveOptions()
+	updateHacks()
 	system.parry = 0
 	trial.enabled = false
 end
@@ -4144,56 +4176,66 @@ function storeOptions()
 end
 
 function updateOptions()
-	if trial.trial.ips ~= nil then
+	local t = trial.trial
+	if t.ips ~= nil then
 		options.ips = trial.ips
 	end
-	if trial.trial.tandemCooldown ~= nil then
-		options.tandemCooldown = trial.trial.tandemCooldown
+	if t.tandemCooldown ~= nil then
+		options.tandemCooldown = t.tandemCooldown
 	end
-	if trial.trial.direction ~= nil then
-		p2.directionLock = trial.trial.direction
+	if t.direction ~= nil then
+		p2.directionLock = t.direction
 		p2.directionLockFacing = 1
 	end
-	if trial.trial.rng ~= nil then
-		writeDWord(0x020162E4, trial.trial.rng)
+	if t.rng ~= nil then
+		writeDWord(0x020162E4, t.rng)
 	end
-	if trial.trial.meter ~= nil then
-		local meterType = type(trial.trial.meter)
+	if t.health ~= nil then
+		if not t.health then
+			writeWord(p1.memory2.healthRefill, t.p1.hp or 144)
+			writeWord(p2.memory2.healthRefill, t.p2.hp or 144)
+		end
+		options.healthRefill = t.health and 2 or 1
+	else
+		options.healthRefill = 2
+	end
+	if t.meter ~= nil then
+		local meterType = type(t.meter)
 		if meterType == "number" then
 			options.meterRefill = 1
-			writeByte(p1.memory.meterNumber, trial.trial.meter)
+			writeByte(p1.memory.meterNumber, t.meter)
 		elseif meterType == "boolean" then
-			options.meterRefill = (trial.trial.meter and 2 or 1)
+			options.meterRefill = (t.meter and 2 or 1)
 		end
 	else
 		options.meterRefill = 2
 	end
-	if trial.trial.standGauge ~= nil then
-		options.standGaugeRefill = trial.trial.standGauge
+	if t.standGauge ~= nil then
+		options.standGaugeRefill = t.standGauge
 	else
 		options.standGaugeRefill = true
 	end
-	if trial.trial.p1 then
-		if trial.trial.p1.child ~= nil then
-			options.p1Child = trial.trial.p1.child
+	if t.p1 then
+		if t.p1.child ~= nil then
+			options.p1Child = t.p1.child
 		else
 			options.p1Child = false
 		end
 		updateChild(p1, options.p1Child, 0x020348D5)
 		if p1.character == 0x16 then -- mariah
-			writeByte(0x02033210, trial.trial.p1.level or 0)
+			writeByte(0x02033210, t.p1.level or 0)
 		end
 	end
-	if trial.trial.p2 then
-		if trial.trial.p2.child ~= nil then
-			options.p2Child = trial.trial.p2.child
+	if t.p2 then
+		if t.p2.child ~= nil then
+			options.p2Child = t.p2.child
 		else
 			options.p2Child = false
 		end
-		updateChild(p2, trial.trial.p2.child, 0x02034CF5)
+		updateChild(p2, t.p2.child, 0x02034CF5)
 	end
-	if trial.trial.tandemChain then
-		local tandemChain = trial.trial.tandemChain
+	if t.tandemChain then
+		local tandemChain = t.tandemChain
 		for i = 0, 31, 1 do
 			writeByte(0x02032178 + i * 6, band(tandemChain, 1))
 			tandemChain = rShift(tandemChain, 1)
@@ -4213,10 +4255,11 @@ function updateOptions()
 	options.airTech = true
 	options.airTechDirection = 2
 	options.boingo = false
-	options.healthRefill = 2
 	options.level = 1
 	options.inputStyle = 1
 	options.infiniteRounds = true
+	options.killDenial = t.drill or false
+	updateHacks()
 	resetReversalOptions()
 end
 
@@ -4395,6 +4438,11 @@ function trialStartRecording()
 		position = false,
 		tandemChain = getTandemChain()
 	}
+	if options.healthRefill == 1 then
+		recording.health = false
+		recording.p1.hp = p1.healthRefill
+		recording.p2.hp = p2.healthRefill
+	end
 	if options.meterRefill == 1 then
 		recording.meter = readByte(p1.memory.meterRefill)
 	end
@@ -4425,7 +4473,8 @@ function updateTrialRecording()
 	local combo = trial.recording.combo
 	local attackId = getAttackId()
 	if attackId ~= -1 then
-		local move = moveDefinitions[charToIndex[p1.character]][attackId]
+		local char = charToIndex[p1.character]
+		local move = char and moveDefinitions[char][attackId] or nil
 		if move ~= false then
 			combo[#combo + 1] = {
 				type = p2.wakeupFrame and comboType.meaty or comboType.id,
@@ -4493,7 +4542,12 @@ function trialFinaliseRecording()
 end
 
 function trialRecordingSave()
-	local charTrials = trials[charToIndex[trial.recording.p1.character]].trials
+	local char = charToIndex[trial.recording.p1.character]
+	if not char then
+		menu.info = "Boss character trials not supported"
+		return
+	end
+	local charTrials = trials[char].trials
 	if  #charTrials >= 32 then
 		menu.info = "Trial limit of 32 reached!"
 	elseif not trial.recording then
@@ -5168,11 +5222,15 @@ function drawDebug(x, y)
 		p1.actionId.." action id",
 		p1.standActionId.." stand action id",
 		p2.hitstun.." hitstun",
+		p2.hitFreeze.." hit stop",
+		p2.stunCount.." hitstun count",
+		p2.stunType.." stun type",
 		p2.defenseAction.." p2 defense action",
 		string.format("%08X p1 action address", p1.actionAddress),
 		string.format("%08X p1 action frame", readDWord(p1.memory4.actionAddress - 8)),
 		string.format("%08X p1 action frame previous", readDWord(p1.memory4.actionAddress - 4)),
-		readByte(0x2034A3E).." p1 round start timer",
+		readDWord(0x020162E4).." RNG 1",
+		readDWord(0x205C1B8).." RNG 2",
 		-- projectiles[1].attackId.." proj attack id",
 		-- projectiles[1].attackHit.." proj hit",
 		-- projectiles[1].actionId.." proj action id",
@@ -5180,7 +5238,6 @@ function drawDebug(x, y)
 		-- readWord(0x02031464).." screen px",
 		-- p1.x.." p1 x",
 		-- p2.x.." p2 x",
-		system.stageId.." stage id",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -5458,6 +5515,7 @@ function replayOptions()
 	options.infiniteRounds = false
 	options.taunt = true
 	options.killDenial = false
+	options.disableHud = false
 	resetReversalOptions()
 end
 
@@ -5540,6 +5598,12 @@ end)
 
 emu.registerbefore(function()
 	updateInputBefore()
+end)
+
+savestate.registerload(function()
+	if menu.state > 0 then
+		writeByte(0x20713A3, 0x00); -- Bit mask that disables player input
+	end
 end)
 
 -------------------------------------------------
