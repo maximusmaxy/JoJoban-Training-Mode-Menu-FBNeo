@@ -40,6 +40,17 @@ local colors = {
 	wakeupBorder = 0xFFFFFF00
 }
 
+-- Sound IDs can be found in the 3rd option of the diagnostics menu
+
+local sounds = {
+	open = 0x00FD,
+	close = 0x00FD,
+	select = 0x016C, --0x013D, 
+	cancel = 0x00FD,
+	move = 0x016B, --0x007E,
+	error = 0x00F2,
+}
+
 -- These are the default values for the menu options and you can change them to what you desire
 -- They will be replaced when the settings are saved to menu settings.txt
 
@@ -107,6 +118,8 @@ local options = {
 	p2Character = 1,
 	trialHud = true,
 	disableHud = false,
+	infiniteTimestop = false,
+	menuSound = true,
 }
 
 -----------------------
@@ -298,6 +311,15 @@ local optionType = {
 	back = 15
 }
 
+local hudStyles = {
+	"None",
+	"Simple",
+	"Advanced",
+	"Wakeup Indicator",
+	"Trial Debug",
+	"Attack Info"
+}
+
 local systemOptions = {
 	{
 		name = "Meter Refill:",
@@ -337,6 +359,11 @@ local systemOptions = {
 	{
 		name = "Infinite Rounds:",
 		key = "infiniteRounds",
+		type = optionType.bool
+	},
+	{
+		name = "Infinite Timestop:",
+		key = "infiniteTimestop",
 		type = optionType.bool
 	},
 	{
@@ -501,13 +528,7 @@ local hudOptions = {
 		name = "Hud Style:",
 		key = "guiStyle",
 		type = optionType.list,
-		list = {
-			"None",
-			"Simple",
-			"Advanced",
-			"Wakeup Indicator",
-			"Trial Debug",
-		}
+		list = hudStyles
 	},
 	{
 		name = "Input Display Style:",
@@ -543,6 +564,11 @@ local hudOptions = {
 	{
 		name = "Trial Hud:",
 		key = "trialHud",
+		type = optionType.bool
+	},
+	{
+		name = "Menu Sound:",
+		key = "menuSound",
 		type = optionType.bool
 	},
 	{
@@ -698,7 +724,10 @@ local reversalOptions = {
 	{
 		name = "Reset to Default",
 		type = optionType.func,
-		func = function() resetReversalOptions() end
+		func = function() 
+			resetReversalOptions()
+			playSound(sounds.select, 0x4040)
+		end
 	},
 	{
 		name = "Return",
@@ -779,12 +808,14 @@ local recordReplaySettings = {
 		list = {
 			"record",
 			"recordP2",
+			"recordAntiAir",
 			"recordParry",
 			"disabled"
 		},
 		names = {
 			record = "Record P1",
 			recordP2 = "Record P2",
+			recordAntiAir = "Record Anti-air",
 			recordParry = "Record Parry",
 			disabled = "Disabled"
 		}
@@ -809,7 +840,10 @@ local recordReplaySettings = {
 	{
 		name = "Reset to Default",
 		type = optionType.func,
-		func = function() resetReplayOptions() end
+		func = function() 
+			resetReplayOptions()
+			playSound(sounds.select, 0x4040)
+		end
 	},
 	{
 		name = "Return",
@@ -1101,6 +1135,7 @@ p2.memory = {
 	standGaugeMax = 0x02035631,
 	guarding = 0x02034E51,
 	facing = 0x2034CB9,
+	side = 0x2034E19,
 	animationState = 0x02034D93,
 	riseFall = 0x002034DA8,
 	hitstun = 0x02034D91,
@@ -1162,11 +1197,14 @@ local system = {
 	frameAdvantage = 0,
 	previousFrame = emu.framecount() - 1,
 	screenFreeze = 0,
+	antiAir = 0,
 	parry = 0,
 	recordingSlots = 5,
 	playerSelect = 0,
 	p1Swap = 0,
 	p2Swap = 0,
+	attackId = 0,
+	attackAddr = 0,
 }
 
 local buttons = {
@@ -1224,14 +1262,20 @@ end
 
 local selectInputs = {
 	p1.buttons.a,
-	p1.buttons.s
+	p1.buttons.s,
+	p2.buttons.a,
+	p2.buttons.s
 }
 
 local cancelInputs = {
 	p1.buttons.b,
 	p1.buttons.c,
 	p1.buttons.mk,
-	p1.buttons.sk
+	p1.buttons.sk,
+	p2.buttons.b,
+	p2.buttons.c,
+	p2.buttons.mk,
+	p2.buttons.sk
 }
 
 local transferButtons = {
@@ -2142,27 +2186,32 @@ end
 function exportTrial()
 	if not trial.export then
 		menu.info = "No new trials to export"
+		playSound(sounds.error, 0x4040)
 		return
 	end
 	local backup =  "_backup_"..options.trialsFilename
 	local success = os.rename(options.trialsFilename, backup)
 	if not success then
 		menu.info = "Error backing up to "..backup
+		playSound(sounds.error, 0x4040)
 		return
 	end
 	local f, err = io.open(options.trialsFilename, "w")
 	if err then
 		menu.info = "Error accessing "..options.trialsFilename
+		playSound(sounds.error, 0x4040)
 		return
 	end
 	local trialString = json.stringify(trials)
 	local _, err = f:write(trialString)
 	if err then
 		menu.info = "Error exporting trial"
+		playSound(sounds.error, 0x4040)
 	else
 		menu.info = "Trials exported successfully"
 		trial.export = false
 		os.remove(backup)
+		playSound(sounds.select, 0x4040)
 	end
 	f:close()
 end
@@ -2449,7 +2498,7 @@ function updateInputBefore()
 end
 
 function updatePlayerInputBefore(player, other)
-	if not system.inMatch then return end
+	if not system.inMatch or menu.state > 0 then return end
 	if player.previousControl and not player.control then
 		player.directionLock = band(getPlayerInputHex(other.name), 0x0F) 
 		player.directionLockFacing = player.facing
@@ -2472,7 +2521,7 @@ function updatePlayerInputBefore(player, other)
 	elseif player.control or (player.recording and options.mediumKickHotkey == "recordP2") then
 		inputModule.transfer = true
 	elseif player.directionLock ~= 0 then
-		local direction = (player.facing == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
+		local direction = (player.side == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
 		local directionInputs = hexToPlayerInput(direction, player.name)
 		tableCopy(directionInputs, inputModule.overwrite)
 	end
@@ -2749,6 +2798,11 @@ function updatePlayer(player, other)
 		end
 	end
 
+	--Infinite Timestop
+	if system.timeStop == 1 and options.infiniteTimestop then
+		writeByte(player.memory.meterNumber, 0x0A)
+	end
+
 	--Stand refill 
 	if options.standGaugeRefill and player.standHealth <= 0 and player.cc == 0 then
 		writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
@@ -2931,6 +2985,9 @@ local hotkeyFunctions = {
 	recordP2 = function(player, other)
 		record(other)
 	end,
+	recordAntiAir = function(player, other)
+		recordAntiAir(player, other)
+	end,
 	recordParry = function(player, other)
 		recordParry(player, other)
 	end,
@@ -3047,6 +3104,22 @@ function record(player)
 	end
 end
 
+function recordAntiAir(player, other)
+	if player.number == 2 then return end
+	if player.recording then
+		other.playbackCount = 0
+		other.loop = false
+		stopRecord(other)
+		record(player)
+	elseif system.antiAir > 0 then
+		system.antiAir = 0
+	else
+		player.playbackCount = 0
+		player.loop = false
+		system.antiAir = 1
+	end
+end
+
 function recordParry(player, other)
 	if player.number == 2 then return end
 	if player.recording then
@@ -3137,7 +3210,31 @@ function updateCharacterControl()
 end
 
 function controlPlayers()
-	if system.parry > 0 then
+	if system.antiAir > 0 then
+		if system.antiAir == 1 then
+			p2.playback = { 0x01 }
+			p2.playbackCount = 1
+			if p2.y > 0 then
+				if trial.enabled then
+					if trial.antiAirReplay then
+						system.antiAir = 0
+						trial.antiAirReplay = false
+						trialStartReplay()
+					else
+						system.antiAir = 2
+					end
+				else
+					system.antiAir = 0
+					record(p1)
+				end
+			end
+		elseif system.antiAir == 2 then
+			if p2.y == 0 then
+				system.antiAir = 0
+				trial.antiAirDelay = true
+			end
+		end
+	elseif system.parry > 0 then
 		if system.parry == 1 then
 			p2.playback = { 0x01 }
 			p2.playbackCount = 1
@@ -3449,6 +3546,8 @@ function openMenu()
 		p1.playbackCount = 0
 		p2.playbackCount = 0
 		system.parry = 0
+		system.antiAir = 0
+		playSound(sounds.open, 0x4040)
 		--open menu
 		if trial.enabled then
 			menu.state = 6
@@ -3475,13 +3574,13 @@ function updateMenu()
 		menuSelect()
 	elseif pressedTable(cancelInputs) then
 		menuCancel()
-	elseif repeating(p1.buttons.up) then
-		menuUp()
-	elseif repeating(p1.buttons.down) then
+	elseif repeating(p1.buttons.up) or repeating(p2.buttons.up) then
+		menuUp() 
+	elseif repeating(p1.buttons.down) or repeating(p2.buttons.down) then
 		menuDown()
-	elseif repeating(p1.buttons.left) then
+	elseif repeating(p1.buttons.left) or repeating(p2.buttons.left) then
 		menuLeft()
-	elseif repeating(p1.buttons.right) then
+	elseif repeating(p1.buttons.right) or repeating(p2.buttons.right) then
 		menuRight()
 	end
 	updateMenuFlash()
@@ -3496,13 +3595,16 @@ function menuSelect()
 		menu.options = option.options
 		menu.title = option.name
 		updateMenuInfo()
+		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.bool then
 		options[option.key] = not options[option.key]
 		optionUpdated(option.key)
+		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.func then
 		option.func()
 	elseif option.type == optionType.back then
 		menuCancel()
+		playSound(sounds.cancel, 0x4040)
 	elseif option.type == optionType.info then
 		menu.state = 3
 		menu.previousIndex = menu.index
@@ -3510,6 +3612,7 @@ function menuSelect()
 		menu.options = infoOptions
 		menu.title = option.name
 		menu.info = option.infos
+		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.color then
 		menu.color = option.key
 		menu.state = 4
@@ -3518,15 +3621,18 @@ function menuSelect()
 		menu.options = colorSliderOptions
 		menu.title = "Color Picker"
 		menu.default = option.default
+		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.trialCharacters then
 		if #trials == 0 then
 			menu.info = "No trials jsons found"
+			playSound(sounds.error, 0x4040)
 		else
 			menu.state = 5
 			menu.options = getTrialCharacterOptions()
 			menu.previousIndex = menu.index
 			menu.index = charToIndex[p1.character] or 1
 			menu.title = "Combo Trials"
+			playSound(sounds.select, 0x4040)
 		end
 	elseif option.type == optionType.trialCharacter then
 		menu.state = 6
@@ -3535,22 +3641,26 @@ function menuSelect()
 		menu.index = 1
 		menu.title = option.name
 		updateMenuTrial()
+		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.trial then
 		menuClose()
 	elseif option.type == optionType.files then
 		local fileOptions = getFileOptions()
 		if #fileOptions == 0 then
 			menu.info = "No trials jsons found"
+			playSound(sounds.error, 0x4040)
 		else
 			menu.options = fileOptions
 			menu.state = 7
 			menu.previousSubIndex = menu.index
 			menu.index = 1
 			menu.title = "Trial Select"
+			playSound(sounds.select, 0x4040)
 		end
 	elseif option.type == optionType.file then
 		readTrial(option.name)
 		writeSettings()
+		playSound(sounds.select, 0x4040)
 	end
 end
 
@@ -3563,24 +3673,28 @@ function menuCancel()
 		menu.options = colorOptions
 		menu.title = "Color Settings"
 		updateMenuInfo()
+		playSound(sounds.cancel, 0x4040)
 	elseif menu.state == 6 then -- trials 
 		menu.state = 5
 		menu.index = menu.previousSubIndex
 		menu.options = getTrialCharacterOptions()
 		menu.title = "Combo Trials"
 		trialModeStop()
+		playSound(sounds.cancel, 0x4040)
 	elseif menu.state == 7 then -- files
 		menu.state = 2
 		menu.index = menu.previousSubIndex
 		menu.options = trialOptions
 		menu.title = "Trial Options"
 		updateMenuInfo()
+		playSound(sounds.cancel, 0x4040)
 	elseif menu.state > 1 then -- sub menu
 		menu.state = 1
 		menu.index = menu.previousIndex
 		menu.options = rootOptions
 		menu.title = "Training Menu"
 		updateMenuInfo()
+		playSound(sounds.cancel, 0x4040)
 	end
 end
 
@@ -3592,6 +3706,7 @@ function menuClose()
 	updateChild(p1, options.p1Child, 0x020348D5)
 	updateChild(p2, options.p2Child, 0x02034CF5)
 	updateReversal()
+	playSound(sounds.close, 0x4040)
 	if trial.enabled then
 		trialMenuClose()
 	else
@@ -3605,12 +3720,15 @@ function menuLeft()
 	if option.type == optionType.bool then
 		options[option.key] = not value
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.int then
 		options[option.key] = (value == option.min and option.max or value - 1)
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.list then
 		options[option.key] = (value == 1 and #option.list or value - 1)
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
@@ -3618,13 +3736,16 @@ function menuLeft()
 			inc = value
 		end
 		options[menu.color] = options[menu.color] - lShift(inc, option.shift)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
 		local index = tableIndex(option.list, value)
 		options[option.key] = option.list[index == 1 and #option.list or index - 1]
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trialCharacter then
 		if menu.index ~= 23 then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		end
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trial then
 		if menu.index == 1 then
 			menu.index = math.min(12, #menu.options - 1)
@@ -3636,10 +3757,12 @@ function menuLeft()
 			menu.index = menu.index - 1
 		end
 		updateMenuTrial()
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.back and menu.state == 6 then --trials
 		if #menu.options > 25 then
 			menu.index = #menu.options - 1
 		end
+		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -3649,12 +3772,15 @@ function menuRight()
 	if option.type == optionType.bool then
 		options[option.key] = not value
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.int then
 		options[option.key] = (value >= option.max and option.min or value + 1)
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.list then
 		options[option.key] = (value >= #option.list and 1 or value + 1)
 		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
@@ -3662,13 +3788,16 @@ function menuRight()
 			inc = 255 - value
 		end
 		options[menu.color] = options[menu.color] + lShift(inc, option.shift)
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
 		local index = tableIndex(option.list, value)
 		options[option.key] = option.list[index >= #option.list and 1 or index + 1]
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trialCharacter then
 		if menu.index ~= 23 then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		end
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trial then
 		if menu.index == #menu.options - 1 then
 			if #menu.options > 25 then
@@ -3682,10 +3811,12 @@ function menuRight()
 			menu.index = menu.index + 1
 		end
 		updateMenuTrial()
+		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.back and menu.state == 6 then --trials
 		if #menu.options > 25 then
 			menu.index = 25
 		end
+		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -3702,6 +3833,7 @@ function menuUp()
 		else
 			menu.index = menu.index - 2
 		end
+		playSound(sounds.move, 0x4040)
 	elseif menu.state == 6 then --trials
 		if menu.index == #menu.options then
 			if #menu.options > 25 then
@@ -3719,9 +3851,11 @@ function menuUp()
 			menu.index = menu.index - 12
 		end
 		updateMenuTrial()
+		playSound(sounds.move, 0x4040)
 	else
 		menu.index = (menu.index == 1 and #menu.options or menu.index - 1)
 		updateMenuInfo()
+		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -3738,6 +3872,7 @@ function menuDown()
 		else
 			menu.index = menu.index + 2
 		end
+		playSound(sounds.move, 0x4040)
 	elseif menu.state == 6 then --trials
 		if menu.index == #menu.options then
 			menu.index = math.min(#menu.options - 1, 12)
@@ -3749,9 +3884,11 @@ function menuDown()
 			menu.index = #menu.options
 		end
 		updateMenuTrial()
+		playSound(sounds.move, 0x4040)
 	else
 		menu.index = (menu.index >= #menu.options and 1 or menu.index + 1)
 		updateMenuInfo()
+		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -3769,6 +3906,7 @@ end
 
 function resetColor()
 	options[menu.color] = menu.default
+	playSound(sounds.select, 0x4040)
 end
 
 function getTrialCharacterOptions()
@@ -3883,6 +4021,17 @@ function updateMenuFlash()
 	end
 end
 
+function playSound(id, pan)
+	if not options.menuSound then return end
+	local addr = readDWord(0x203120C)
+	writeWord(addr, 0x0007)
+	writeWord(addr + 2, id)
+	writeWord(addr + 4, pan)
+	writeWord(addr + 6, 0x0002)
+	addr = addr == 0x20330FC and 0x2032F04 or addr + 8
+	writeDWord(0x203120C, addr)
+end
+
 -------------------------------------------------
 -- Trials
 -------------------------------------------------
@@ -3895,6 +4044,8 @@ function updateTrial()
 		updateTrialReset()
 	elseif trial.trial.parry and not trialStarted() and system.parry == 0 then
 		updateTrialParry()
+	elseif trial.trial.antiair and not trialStarted() and system.antiAir == 0 then
+		updateTrialAntiAir()
 	end
 	updateTrialCheck(false)
 end
@@ -4141,9 +4292,14 @@ function trialModeStart()
 	trial.wait = 0
 	trial.replay = false
 	trial.reset = false
+
 	trial.parryDelay = false
 	trial.parryReplay = false
 	system.parry = 0
+
+	trial.antiAirDelay = false
+	trial.antiAirReplay = false
+	system.antiAir = 0
 
 	if trial.trial.drill then 
 		trial.drill = trial.trial.drill
@@ -4167,6 +4323,7 @@ function trialModeStop()
 	retrieveOptions()
 	updateHacks()
 	system.parry = 0
+	system.antiAir = 0
 	trial.enabled = false
 end
 
@@ -4188,7 +4345,10 @@ function updateOptions()
 		p2.directionLockFacing = 1
 	end
 	if t.rng ~= nil then
-		writeDWord(0x020162E4, t.rng)
+		writeDWord(0x20162E4, t.rng)
+	end
+	if t.rng2 ~= nil then
+		writeDWord(0x205C1B8, t.rng2)
 	end
 	if t.health ~= nil then
 		if not t.health then
@@ -4258,6 +4418,7 @@ function updateOptions()
 	options.level = 1
 	options.inputStyle = 1
 	options.infiniteRounds = true
+	options.infiniteTimestop = false
 	options.killDenial = t.drill or false
 	updateHacks()
 	resetReversalOptions()
@@ -4283,6 +4444,7 @@ function advanceTrialIndex()
 	end
 	if trial.index > #trial.combo then
 		system.parry = 0
+		system.antiAir = 0
 		if trial.drill then
 			trial.drillSuccess = trial.drillSuccess + 1
 			trial.index = 1
@@ -4434,7 +4596,8 @@ function trialStartRecording()
 		},
 		combo = {},
 		direction = p2.directionLockFacing == 1 and p2.directionLock or swapHexDirection(p2.directionLock),
-		rng = readDWord(0x020162E4),
+		rng = readDWord(0x20162E4),
+		rng2 = readDWord(0x205C1B8),
 		position = false,
 		tandemChain = getTandemChain()
 	}
@@ -4444,7 +4607,7 @@ function trialStartRecording()
 		recording.p2.hp = p2.healthRefill
 	end
 	if options.meterRefill == 1 then
-		recording.meter = readByte(p1.memory.meterRefill)
+		recording.meter = readByte(p1.memory.meterNumber)
 	end
 	if not options.standGaugeRefill then
 		recording.standGauge = false
@@ -4454,6 +4617,8 @@ function trialStartRecording()
 	end
 	if options.mediumKickHotkey == "recordParry" then
 		recording.parry = true
+	elseif options.mediumKickHotkey == "recordAntiAir" then
+		recording.antiair = true
 	end
 	trial.recording = recording
 	trial.recordingSubIndex = 1
@@ -4536,28 +4701,37 @@ function updateTrialRecording()
 end
 
 function trialFinaliseRecording()
-	local hexes = duplicateList(p1.recorded[options.recordingSlot], true, false)
+	local trim = not (options.mediumKickHotkey == "recordParry" or options.mediumKickHotkey == "recordAntiAir")
+	local hexes = duplicateList(p1.recorded[options.recordingSlot], trim, false)
 	if #hexes == 0 then return end
 	trial.recording.recording = getParsedRecording(hexes)
 end
 
 function trialRecordingSave()
-	local char = charToIndex[trial.recording.p1.character]
+	local recording = trial.recording
+	if not recording then
+		menu.info = "No recording found!"
+		playSound(sounds.error, 0x4040)
+		return
+	end
+	local char = charToIndex[recording.p1.character]
 	if not char then
 		menu.info = "Boss character trials not supported"
+		playSound(sounds.error, 0x4040)
 		return
 	end
 	local charTrials = trials[char].trials
 	if  #charTrials >= 32 then
 		menu.info = "Trial limit of 32 reached!"
-	elseif not trial.recording then
-		menu.info = "No recording found!"
+		playSound(sounds.error, 0x4040)
 	elseif #trial.recording.combo == 0 then
 		menu.info = "No combo found!"
+		playSound(sounds.error, 0x4040)
 	elseif menu.info ~= "Recording added to trials!" then -- Prevent accidental duplication
 		charTrials[#charTrials + 1] = trial.recording
 		menu.info = "Recording added to trials!"
 		trial.export = true
+		playSound(sounds.select, 0x4040)
 	end
 end
 
@@ -4640,10 +4814,28 @@ function updateTrialReplay()
 	if trial.trial.parry then
 		system.parry = 1
 		trial.parryReplay = true
+	elseif trial.trial.antiair then
+		system.antiAir = 2
+		trial.antiAirReplay = true
 	else
 		trialStartReplay()
 	end
 	trial.replay = false
+end
+
+function updateTrialAntiAir()
+	if trial.wait > 0 then
+		trial.wait = trial.wait - 1
+		return
+	end
+
+	if trial.antiAirDelay then
+		trial.antiAirDelay = false
+		trial.wait = 20
+		return
+	end
+
+	system.antiAir = 1
 end
 
 function updateTrialParry()
@@ -4666,7 +4858,19 @@ function trialStartReplay()
 	p1.playbackCount = #trial.recorded
 	p1.playbackFacing = 1
 	p1.playbackFlipped = p1.side ~= 1
+	--resetIdle()
 end
+
+-- function resetIdle()
+-- 	if p2.character == 5 then
+-- 		print("hi")
+-- 		writeDWord(0x2034D3C, 0x6833EDC) --animation root frame
+-- 		writeDWord(0x2034D34, 0x6833F3C) --animation current frame
+-- 		writeDWord(0x2034D38, 0x6833F1C) --animation previous frame
+-- 		writeByte(0x2034D4F, 64) --animation count
+-- 		writeDWord(0x2034DA8, 0) --y vel
+-- 	end
+-- end
 
 function trialPlayback()
 	return trial.reset or trial.replay or p1.playbackCount > 0 or p2.playbackCount > 0
@@ -4828,7 +5032,9 @@ function trialForceStop()
 	p1.playbackCount = 0
 	p2.playbackCount = 0
 	system.parry = 0
+	system.antiAir = 0
 	trial.parryReplay = false
+	trial.antiAirReplay = false
 end
 
 function parseTrialRecording()
@@ -4841,6 +5047,7 @@ end
 function resetTrialCompletion()
 	clearTrialOptions()
 	writeSettings()
+	playSound(sounds.select, 0x4040)
 end
 
 function clearTrialOptions()
@@ -4865,6 +5072,7 @@ end
 function trialOptionsVerification()
 	if #trials == 0 then
 		menu.info = "No trials jsons found"
+		playSound(sounds.error, 0x4040)
 	else
 		-- replace the current option with the submenu and select it
 		local option = menu.options[menu.index]
@@ -4920,10 +5128,10 @@ function drawHud()
 			drawMeatyHud()
 		elseif options.guiStyle == 5 then
 			drawTrialDebugHud()
+		elseif options.guiStyle == 6 then
+			drawAttackInfo()
 		end
 	end
-
-
 
 	if debug then
 		drawDebug(160, 20)
@@ -5221,16 +5429,20 @@ function drawDebug(x, y)
 		p1.standAttackHit.." stand attack hit",
 		p1.actionId.." action id",
 		p1.standActionId.." stand action id",
-		p2.hitstun.." hitstun",
+		--p2.hitstun.." hitstun",
 		p2.hitFreeze.." hit stop",
 		p2.stunCount.." hitstun count",
-		p2.stunType.." stun type",
+		--p2.stunType.." stun type",
 		p2.defenseAction.." p2 defense action",
-		string.format("%08X p1 action address", p1.actionAddress),
-		string.format("%08X p1 action frame", readDWord(p1.memory4.actionAddress - 8)),
-		string.format("%08X p1 action frame previous", readDWord(p1.memory4.actionAddress - 4)),
-		readDWord(0x020162E4).." RNG 1",
+		string.format("%08X p2 action address", p2.actionAddress),
+		string.format("%08X p2 action frame", readDWord(p2.memory4.actionAddress - 8)),
+		string.format("%08X p2 action frame previous", readDWord(p2.memory4.actionAddress - 4)),
+		--readByte(0x2034D4F).." p2 action frame count",
+		readDWord(0x20162E4).." RNG 1",
 		readDWord(0x205C1B8).." RNG 2",
+		--p2.y.." p2 y",
+		(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
+		readByte(0x2034CAC + 0x1B).." p2 scaling index"
 		-- projectiles[1].attackId.." proj attack id",
 		-- projectiles[1].attackHit.." proj hit",
 		-- projectiles[1].actionId.." proj action id",
@@ -5336,6 +5548,100 @@ function drawFileList()
 		local color = menu.index == i and menu.flashColor or 
 			options.trialsFilename == option.name and options.failColor or colors.menuUnselected
 		gui.text(100, 50 + i * 10, option.name, color)
+	end
+end
+
+local hitInfo = {
+	names =  {
+		"Damage",
+		"Stand Damage",
+		"Meter (Whiff)",
+		"Meter (Hit)",
+		"Blocking",
+		"Attribute",
+		"Launch X",
+		"Launch Y",
+		"Blocking",
+		"Blocking2",
+		"Hitstop",
+		"Knockback (Hit)",
+		"Hitspark",
+		nil,
+		"Hit Effect",
+		"Screenshake",
+		nil,
+		"Knockback (Block)",
+		"Hitstun",
+		"Blockstun",
+		nil,
+		"Sound",
+		"Air Blocking",
+		"Kill Denial",
+		"Background Flash",
+		"Parry",
+		nil,
+		"Teching",
+		nil,
+		nil,
+		nil,
+		"Scaling",
+		nil,
+		nil,
+		nil,
+		"Blazing Fists",
+		"IPS"
+	},
+	tables = {
+		[4] = { 
+			[0x0] = "Overhead",
+			[0x1] = "Mid",
+			[0x2] = "Low",
+			[0x3] = "Unblockable",
+		},
+		[5] = { 
+			[0x1D] = "Launch",
+			[0x1B] = "Knockdown",
+			[0x20] = "Wallbounce",
+			[0x27] = "Offscreen Launch",
+			[0x2A] = "Child Transform",
+			[0x31] = "Grab",
+			[0x60] = "Instakill softlock"
+		}
+	}
+}
+
+function drawAttackInfo()
+	if p1.attackHit > 0 and (p1.previousAttackHit == 0 or p1.attackId ~= p1.previousAttackId) then 
+		system.attackId = p1.attackId
+		system.attackAddr = readDWord(0x203488C + 0xD0) + system.attackId * 0x30
+	end
+	if p1.standAttackHit > 0 and (p1.previousStandAttackHit == 0 or p1.previousStandAttackId ~= p1.standAttackId) then
+		system.attackId = p1.standAttackId
+		system.attackAddr = readDWord(0x20350CC + 0xD0) + system.attackId * 0x30
+	end
+	for i = 1, 32, 1 do
+		local projectile = projectiles[i]
+		if projectile.state > 0 then
+			if projectile.attackHit > 0 and (projectile.previousAttackHit == 0 or projectile.previousAttackId ~= projectile.attackId) then
+				system.attackId = projectile.attackId
+				system.attackAddr = readDWord(0x0203806C + i * 0x420 + 0xD0) + system.attackId * 0x30
+				break
+			end
+		end
+	end
+	if system.attackAddr == 0 then return end
+	gui.text(92, 40, "ID:"..system.attackId)
+	gui.text(182, 40, string.format("Address: %08X", system.attackAddr))
+	for i = 0, 0x2F, 1 do
+		local x = math.floor(i / 0x10)
+		local y = i % 0x10
+		local name = hitInfo.names[i + 1] or i
+		local value = readByte(system.attackAddr + i)
+		local table = hitInfo.tables[i]
+		if table then
+			value = table[value] or value
+		end
+		gui.text(92 + x * 90, 50 + y * 8, name..": "..value)
 	end
 end
 
@@ -5475,7 +5781,7 @@ input.registerhotkey(1, function()
 	if fcReplay then
 		options.guiStyle = (options.guiStyle == 2) and 1 or 2
 	else
-		options.guiStyle = (options.guiStyle == 5) and 1 or options.guiStyle + 1
+		options.guiStyle = (options.guiStyle == #hudStyles) and 1 or options.guiStyle + 1
 	end
 	gui.clearuncommitted()
 end)
@@ -5516,6 +5822,7 @@ function replayOptions()
 	options.taunt = true
 	options.killDenial = false
 	options.disableHud = false
+	options.infiniteTimestop = false
 	resetReversalOptions()
 end
 
@@ -5578,7 +5885,6 @@ emu.registerstart(function()
 		replayOptions()
 	end
 	updateHacks()
-	
 end)
 
 gui.register(function()
@@ -5601,9 +5907,7 @@ emu.registerbefore(function()
 end)
 
 savestate.registerload(function()
-	if menu.state > 0 then
-		writeByte(0x20713A3, 0x00); -- Bit mask that disables player input
-	end
+	writeByte(0x20713A3, menu.state > 0 and 0x00 or 0xFF); -- Enable/disable player input
 end)
 
 -------------------------------------------------
