@@ -120,6 +120,7 @@ local options = {
 	disableHud = false,
 	infiniteTimestop = false,
 	menuSound = true,
+	characterSpecific = true,
 }
 
 -----------------------
@@ -316,8 +317,11 @@ local hudStyles = {
 	"Simple",
 	"Advanced",
 	"Wakeup Indicator",
+	"Frame Data",
 	"Trial Debug",
-	"Attack Info"
+	"Attack Info",
+	"Action Frame Info",
+	"Projectile Frame Info"
 }
 
 local systemOptions = {
@@ -553,6 +557,11 @@ local hudOptions = {
 	{
 		name = "Info Numbers:",
 		key = "infoNumbers",
+		type = optionType.bool
+	},
+	{
+		name = "Character Specific:",
+		key = "characterSpecific",
 		type = optionType.bool
 	},
 	{
@@ -1008,12 +1017,13 @@ local p1 = {
 	playbackFlipped = false,
 	guarding = 0,
 	animationState = 0,
-	guardAnimation = 0,
-	standGuardAnimation = 0,
+	guardState = 0,
+	standGuardState = 0,
 	riseFall = 0,
 	hitstun = 0,
+	standHitstun = 0,
 	blockstun = 0,
-	blocking = false,
+	blocking = 0,
 	canAct1 = 0,
 	canAct2 = 0,
 	stand = false,
@@ -1032,8 +1042,9 @@ local p1 = {
 	pushblockCount = 0,
 	wakeupFreeze = 0,
 	hitFreeze = 0,
-	previousHitFreeze = 0,
 	actionAddress = 0,
+	frameAddress = 0,
+	standFrameAddress = 0,
 	stunType = 0,
 	stunCount = 0,
 	wakeupFrame = false,
@@ -1046,6 +1057,12 @@ local p1 = {
 	techable = 0,
 	newButtons = 0,
 	healthDelay = 0,
+	actFrame = 0,
+	guardFrame = 0,
+	guardAct = false,
+	actType = 0,
+	attackType = 0,
+	standAct = false,
 	buttons = {},
 	memory = nil,
 	memory2 = nil,
@@ -1073,27 +1090,30 @@ p1.memory = {  --0x203488C
 	meterBar = 0x2034862,
 	meterNumber = 0x2034863,
 	standGaugeMax = 0x02035211,
-	guarding = 0x00000000, --placeholder need to find this later
+	guarding = 0x00000000, 
 	facing = 0x2034899,
 	side = 0x20349F9, 
-	animationState = 0x00000000, --placeholder need to find this later
-	riseFall  = 0x00000000, --placeholder need to find this later
-	hitstun = 0x00000000, --placeholder need to find this later
-	blockstun = 0x00000000, --placeholder need to find this later
+	animationState = 0x00000000, 
+	riseFall  = 0x00000000, 
+	hitstun = 0x02034971,
+	standHitstun = 0x020351B1,
+	blockstun = 0x00000000, 
 	stand = 0x2034A1F,
 	ips = 0x2034E9E,
 	scaling = 0x2034E9D,
 	height = 0x00000000,
-	guardAnimation = 0x00000000,
-	standGuardAnimation = 0x00000000,
-	canAct1 = 0x02034941,
-	canAct2 = 0x02034A25,
+	guardState = 0x00000000,
+	standGuardState = 0x00000000,
+	canAct1 = 0x02034941, --B5
+	canAct2 = 0x02034A25, --199
+	standCanAct1 = 0x02035181,
+	standCanAct2 = 0x02035265,
 	throwTech = 0x02034A3C, --1b0
 	standFacing = 0x20350D9,
 	standActive = 0x02034A20,
 	child = 0x02034AB2,
 	defenseAction = 0x00000000,
-	hitFreeze = 0x00000000,
+	hitFreeze = 0x02034A5F,
 	wakeupFreeze = 0x00000000,
 	stunType = 0x00000000,
 	stunCount = 0x00000000,
@@ -1105,7 +1125,10 @@ p1.memory = {  --0x203488C
 	tandemCount = 0x02032D74,
 	actionId = 0x0203491E,
 	standActionId = 0x0203515E,
-	cc = 0x2034A38
+	cc = 0x2034A38,
+	attackType = 0x02034A48,
+	standAttackType = 0x02035288,
+	blocking = 0x00000000,
 }
 
 p1.memory2 = {
@@ -1121,7 +1144,9 @@ p1.memory2 = {
 
 p1.memory4 = {
 	actionAddress = 0x0203491C,
-	standActionAddress = 0x0203515C
+	standActionAddress = 0x0203515C,
+	frameAddress = 0x02034918,
+	standFrameAddress = 0x02035158,
 }
 
 p2.memory = { 
@@ -1139,15 +1164,18 @@ p2.memory = {
 	animationState = 0x02034D93,
 	riseFall = 0x002034DA8,
 	hitstun = 0x02034D91,
+	standHitstun = 0x020355D1,
 	blockstun = 0x02034D5A,
 	stand = 0x02034E3F,
 	ips = 0x00000000,
 	scaling = 0x00000000,
 	height = 0x02034D0D,
-	guardAnimation = 0x02034D92,
-	standGuardAnimation = 0x20355D2,
-	canAct1 = 0x00000000,
-	canAct2 = 0x00000000,
+	guardState = 0x02034D92,
+	standGuardState = 0x20355D2,
+	canAct1 = 0x02034D61, --B5
+	canAct2 = 0x02034E45, --199
+	standCanAct1 = 0x02034D61,
+	standCanAct2 = 0x02035685,
 	throwTech = 0x02034E5C,
 	standFacing = 0x020354F9,
 	standActive = 0x02034E40,
@@ -1159,6 +1187,8 @@ p2.memory = {
 	stunCount = 0x02034E92,
 	techable = 0x02034EE3,
 	cc = 0x2034E58,
+	attackType = 0x02034E68,
+	blocking = 0x2034E52,
 }
 
 p2.memory2 = {
@@ -1174,7 +1204,9 @@ p2.memory2 = {
 
 p2.memory4 = {
 	actionAddress = 0x02034D3C,
-	standActionAddress = 0x0203557C
+	standActionAddress = 0x0203557C,
+	frameAddress = 0x02034D38,
+	standFrameAddress = 0x02035578,
 }
 
 p1.health = readByte(p1.memory.health)
@@ -1194,8 +1226,6 @@ p2.address = 0x2034CAC
 p2.standAddress = 0x20354EC
 
 local system = {
-	frameAdvantage = 0,
-	previousFrame = emu.framecount() - 1,
 	screenFreeze = 0,
 	antiAir = 0,
 	parry = 0,
@@ -1204,7 +1234,24 @@ local system = {
 	p1Swap = 0,
 	p2Swap = 0,
 	attackId = 0,
-	attackAddr = 0,
+	attackAddress = 0,
+	startUp = 0,
+	active = { 0 },
+	recovery = 0,
+	frameState = 0,
+	frameAdvantage = false,
+	proj1Address = 0,
+	proj2Address = 0,
+	sBullet = 0x2038870
+}
+
+local hud = {
+	startUp = 0,
+	active = 0,
+	recovery = 0,
+	frameAdvantage = 0,
+	reversalFrame = 0,
+	--pushBlock = false
 }
 
 local buttons = {
@@ -1615,6 +1662,24 @@ local idToName = {
 	[25] = "Khan"
 }
 
+local hexToAnime = {
+	8, 
+	2, 
+	5, --up down
+	4, 
+	7, 
+	1,
+	4, --up left down
+	6,
+	9,
+	3,
+	6, --up down right
+	5, --left right
+	8, --up left right
+	1, --down left right
+	5, --up down left right
+}
+
 local trials = {}
 local trial = {
 	position = { 0, 0, 0, 0 },
@@ -1644,6 +1709,7 @@ local comboType = {
 	projectileAction = 20,
 	reset = 21,
 	meatyReset = 22,
+	sBullet = 23,
 }
 
 local comboDictionary = {} 
@@ -1669,6 +1735,7 @@ comboDictionary["unblockable meaty"] = comboType.doubleMeaty
 comboDictionary["stand action"] = comboType.standAction
 comboDictionary["projectile action"] = comboType.projectileAction
 comboDictionary["meaty reset"] = comboType.meatyReset
+comboDictionary["s bullet"] = comboType.sBullet
 
 local intToComboString = {
 	"id",
@@ -1691,7 +1758,9 @@ local intToComboString = {
 	"action",
 	"stand action",
 	"projectile action",
-	"reset"
+	"reset",
+	"meaty reset",
+	"s bullet",
 }
 
 local recordingKeys = createSet({
@@ -1768,8 +1837,330 @@ local romHacks = {
 	comboCounter = {
 		[0x61A1118] = 0x0000, --p1 combo counter
 		[0x61A1048] = 0x2E50, --p2 combo counter
+	},
+	petshopFlap = {
+		[0x68A43A8] = 0x0000, --idle sound
+		[0x68A46F8] = 0x0000, --forward sound
+		[0x68A47A0] = 0x0000, --back sound
+		[0x68A49D8] = 0x0000, --up sound
 	}
 }
+
+local hitInfo = {
+	names =  {
+		"Damage",
+		"Stand Damage",
+		"Meter (Whiff)",
+		"Meter (Hit)",
+		"Blocking",
+		"Attribute",
+		"Launch X",
+		"Launch Y",
+		"Blocking",
+		"Blocking2",
+		"Hitstop",
+		"Knockback (Hit)",
+		"Hitspark",
+		nil,
+		"Hit Effect",
+		"Screenshake",
+		nil,
+		"Knockback (Block)",
+		"Hitstun",
+		"Blockstun",
+		nil,
+		"Sound",
+		"Air Blocking",
+		"Kill Denial",
+		"Background Flash",
+		"Parry",
+		nil,
+		"Teching",
+		nil,
+		nil,
+		nil,
+		"Scaling",
+		nil,
+		nil,
+		nil,
+		"Blazing Fists",
+		"IPS"
+	},
+	tables = {
+		[4] = { 
+			[0x0] = "Overhead",
+			[0x1] = "Mid",
+			[0x2] = "Low",
+			[0x3] = "Unblockable",
+		},
+		[5] = { 
+			[0x1D] = "Launch",
+			[0x1B] = "Knockdown",
+			[0x20] = "Wallbounce",
+			[0x27] = "Offscreen Launch",
+			[0x2A] = "Child Transform",
+			[0x31] = "Grab",
+			[0x60] = "Instakill softlock"
+		}
+	}
+}
+
+local frameInfo = {
+	{
+		name = "Frame",
+		info = {
+			[2] = {
+				name = "End",
+				table = {
+					[0] = "No",
+					[0x80] = "Yes"
+				}
+			},
+			[3] = "Count",
+			[4] = {
+				name = "Sprite",
+				length = 4,
+				hex = true
+			},
+			[10] = {
+				name = "X Mod",
+				signed = true
+			},
+			[11] = {
+				name = "Y Mod",
+				signed = true
+			},
+			[12] = {
+				name = "Hitbox",
+				length = 2
+			},
+			[25] = "Sound"
+		}
+	},
+	{
+		name = "Unconditional Jump",
+		info = {
+			[4] = {
+				name = "Jump",
+				length = 4,
+				hex = true
+			}
+		}
+	},
+	{
+		name = "Simple Frame",
+		info = {
+			[3] = "Count",
+			[4] = {
+				name = "Sprite",
+				length = 4,
+				hex = true
+			},
+			[10] = {
+				name = "X Mod",
+				signed = true
+			},
+			[11] = {
+				name = "Y Mod",
+				signed = true
+			},
+		}
+	},
+	{
+		name = "Condition Equal",
+		info = {
+			[4] = {
+				name = "Jump",
+				length = 4,
+				hex = true
+			}
+		}
+	},
+	{
+		name = "Condition Not Equal",
+		info = {
+			[4] = {
+				name = "Jump",
+				length = 4,
+				hex = true
+			}
+		}
+	},
+	{
+		name = "5"
+	},
+	{
+		name = "Set Value",
+		info = {
+			[2] = "Index",
+			[3] = "Value"
+		}
+	},
+	{
+		name = "Add To Value",
+		info = {
+			[2] = "Index",
+			[3] = "Value"
+		}
+	},
+	{
+		name = "Check Value If Equal",
+		info = {
+			[2] = "Index",
+			[3] = "Condition"
+		}
+	},
+	{
+		name = "And Value",
+		info = {
+			[2] = "Index",
+			[3] = "Value"
+		}
+	},
+	{
+		name = "10",
+		info = {
+			[2] = "Index"
+		}
+	},
+	{
+		name = "Temporary Jump",
+		info = {
+			[4] = {
+				name = "Jump",
+				length = 4,
+				hex = true
+			}
+		}
+	},
+	{
+		name = "12"
+	},
+	{
+		name = "Random Decision"
+	},
+	{
+		name = "Jump With Action Table"
+	},
+	{
+		name = "No Sprite Frame"
+	},
+	{
+		name = "16"
+	},
+	{
+		name = "17"
+	},
+	{
+		name = "18"
+	},
+}
+
+local canActIds = {
+	createSet({ 2, 6, 9, 10 }),
+	{},
+	createSet({ 3, 4, 10, 19 }),
+	createSet({ 13 }),
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	createSet({ 1, 10, 15 }),
+	createSet({ 13 }),
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+}
+
+local actType0 = {
+	createSet({ 9 }),
+	createSet({ 163 }),
+	{},
+	createSet({ 20 }),
+	createSet({ 12, 14 }),
+	{},
+	createSet({ 95, 96, 97 }),
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	createSet({ 152, 154 }),
+	{},
+	{},
+	createSet({ 18, 76 }),
+	{},
+	createSet({ 105, 106, 107, 108 }),
+	{},
+	{},
+	{},
+	createSet({ 223, 227, 229, 231, 233 }),
+	createSet({ 20, 22 }),
+}
+
+local standPlusFrames = {
+	createSet({ 2 }),
+	{},
+	createSet({ 3, 4, 10, 19 }),
+	createSet({ 13 }),
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	createSet({ 1 }),
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+	{},
+}
+
+local kakActFrames = createSet({
+	--kak
+	0x6810808, 0x6810888, 0x68108A8, 0x68108C8, --5a
+	0x6811570, 0x6811590, 0x68115B0, --236
+	0x68F7C1C, 0x68F7820, 0x68F7A2C, 0x68F7654, 0x68F733C, 0x68F74E8, --s.2a, s.5b, s.5c, s.6a, s.6b, s.4C
+	--nkak
+	0x6894B44, 0x6894B64, 0x6894B84, --5a
+	0x689582C, 0x689584C, 0x689586C, --236
+	0x697E6A8, 0x697E3F0, 0x697E57C, 0x697E2E4, 0x697E02C, 0x697E178, --s.2a, s.5b, s.5c, s.6a, s.6b, s.4C
+})
+
+-- local flipFrames = createSet({
+-- 	0x6801D50, 0x6801D70, 0x6801D90, 0x6801DB0, --jotaro dash
+-- })
 
 -------------------------------------------------
 -- json.lua 
@@ -2304,6 +2695,7 @@ end
 function updateHacks()
 	updateHack("killDenial", options.killDenial)
 	updateHack("comboCounter", options.disableHud)
+	updateHack("petshopFlap", not options.music)
 end
 
 function updateHack(hack, option)
@@ -2380,6 +2772,8 @@ function readPlayerMemory(player)
 	player.previousStandActionId = player.standActionId
 	player.previousY = player.y
 	player.previousTechable = player.techable
+	player.previousFrameAddress = player.frameAddress
+	player.previousStandFrameAddress = player.standFrameAddress
 	for k, v in pairs(player.memory) do
 		player[k] = readByte(v)
 	end
@@ -2412,6 +2806,7 @@ function readProjectileMemory()
 			projectile.attackHit = readByte(address + 0xDD)
 			projectile.previousActionId = projectile.actionId
 			projectile.actionId = readByte(address + 0x92)
+			projectile.frameAddress = readDWord(address + 0x8C)
 			if projectile.previousState == 0 then
 				projectile.consumed = false
 			end
@@ -2728,8 +3123,16 @@ function updateGameplayLoop() --main loop for gameplay calculations
 		updatePlayerSwap(p2, system.p2Swap, "p2Swap")
 		system.p2Swap = system.p2Swap - 1
 	end
-	if options.disableHud then
+	if options.disableHud then 
 		removeGameHud()
+	end
+	if options.guiStyle == 5 then
+		updateFrameData()
+	elseif options.guiStyle == 9 then
+		updateProjectileFrameInfo()
+	end
+	if options.characterSpecific then
+		updateCharacterSpecific()
 	end
 end
 
@@ -2961,6 +3364,217 @@ function removeGameHud()
 	writeWord(0x205BB02, 0x4001) --P2 meter
 	writeWord(0x205BB7C, 0xF031) --Stand On/First Hit ect.
 	writeByte(0x205BB30, 0xF0) --Combo counter
+end
+
+function updateFrameData()
+	--Frame Advantage
+	updatePlayerAct(p1)
+	updatePlayerAct(p2)
+	updatePlayerFrameAdvantage(p1, p2)
+	updatePlayerFrameAdvantage(p2, p1)
+
+	--Start Up/Active/Recovery
+	updateAnimationData()
+end
+
+function updateAnimationData()
+	if system.screenFreeze > 0 then return end --Don't update on screen freeze 
+
+	local hitbox, frameAddress
+
+	if p1.standActive == 1 then
+		hitbox = p1.standHitbox
+		frameAddress = p1.standFrameAddress
+	else
+		hitbox = p1.hitbox
+		frameAddress = p1.frameAddress
+	end
+
+	local hasActive = hasHitbox(hitbox)
+
+	--Check projectiles if no hitbox found
+	if not hasActive then
+		local projectile = getActiveProjectile()
+		if projectile then
+			hitbox = projectile.hitbox
+			frameAddress = projectile.frameAddress
+		end
+	end
+
+	--If new action
+	if p1.previousCanAct and not p1.canAct then
+		--Start calculating new frames
+		system.recovery = 0
+		if hasHitbox(hitbox) then
+			system.startUp = 0
+			system.active = { frameHitStop(frameAddress) and 0 or 1}
+			system.frameState = 1
+		else
+			system.startUp = 1
+			system.active = { 0 }
+			system.frameState = 0
+		end
+	elseif p1.canAct and not p1.previousCanAct then
+		--Store complete frames for display
+		if system.active[1] ~= 0 then
+			local active = ""
+			for i = 1, #system.active, 1 do
+				if i % 2 == 0 then
+					active = active.."("..system.active[i]..") "
+				else
+					active = active..system.active[i].." "
+				end
+			end 
+			hud.startUp = system.startUp
+			hud.active = active
+			hud.recovery = system.recovery
+		end
+	else
+		--Don't update on hitstop
+		if frameHitStop(frameAddress) then return end
+
+		if system.frameState == 0 then --Start up
+			if hasHitbox(hitbox) then
+				system.frameState = 1
+				system.active[#system.active] = system.active[#system.active] + 1
+				system.startUp = system.startUp + 1
+			else
+				system.startUp = system.startUp + 1
+			end
+		elseif system.frameState == 1 then --Active
+			if hasHitbox(hitbox) then
+				system.active[#system.active] = system.active[#system.active] + 1
+			else
+				system.frameState = 2
+				system.recovery = system.recovery + 1
+			end
+		elseif system.frameState == 2 then --Recovery
+			if hasHitbox(hitbox) then
+				system.active[#system.active + 1] = system.recovery
+				system.active[#system.active + 1] = 1
+				system.recovery = 0
+				system.frameState = 1
+			else
+				system.recovery = system.recovery + 1
+			end
+		end
+	end
+end
+
+function updatePlayerAct(player)
+	player.previousCanAct = player.canAct
+	if player.number == 1 then
+		if player.stand == 0 then
+			player.canAct = playerCanAct(player, player.attackType, player.canAct1, player.canAct2, player.previousFrameAddress)
+		else
+			player.canAct = playerCanAct(player, player.standAttackType, player.standCanAct1, player.standCanAct2, player.previousStandFrameAddress)
+		end
+	else
+		local guardState = player.stand == 0 and player.guardState or player.standGuardState
+		if player.guardAct then
+			player.canAct = (guardState == 0 or guardState == 2)
+			if player.canAct then 
+				player.guardAct = false
+			end
+		elseif guardState == 1 then
+			player.actType = 1
+			player.guardAct = true
+			player.canAct = false
+			player.guardFrame = emu.framecount()
+		else
+			player.canAct = (player.standActive == 0 and player.standHitsun == 0 or player.hitstun == 0)
+			if not player.canAct and player.wakeupCount > 0 then
+				player.actType = 2
+			end
+		end
+	end
+
+	if player.canAct and not player.previousCanAct then
+		player.actFrame = emu.framecount()
+		player.standAct = player.stand > 0
+	end
+end
+
+function playerCanAct(player, attackType, act1, act2, frameAddress)
+	if player.stand == 0 then
+		if player.hitstun > 0 then return false end
+	else
+		if player.standHitstun > 0 then return false end
+	end
+	if player.character == 1 or player.character == 18 then --kak/nkak
+		local address = player.stand == 0 and player.previousFrameAddress or player.previousStandFrameAddress
+		if kakActFrames[address] then return true end
+	end
+	if act1 == 0 then
+		if act2 == 0 and player.hitFreeze == 0 and player.previousHitFreeze == 0 then return true end
+		local actSet = actType0[player.character + 1]
+		if attackType == 0 and not (actSet[player.actionId] or actSet[player.standActionId]) then return true end
+		if canActIds[player.character + 1][attackType] then return true end	
+	end
+	return false
+end
+
+function updatePlayerFrameAdvantage(player, other)
+	if player.canAct then
+		if not player.previousCanAct and other.canAct and system.frameAdvantage then
+			-- Update frame advantage
+			hud.frameAdvantage = p2.actFrame - p1.actFrame
+			if p1.standAct then
+				if p2.actType ~= 2 and not standPlusFrames[p1.character + 1][p1.standAttackType] then
+					hud.frameAdvantage = hud.frameAdvantage + 1
+				end
+				p1.standAct = false
+			end
+			hud.reversalFrame = hud.frameAdvantage
+			if p2.actType ~= 1 then
+				hud.frameAdvantage = hud.frameAdvantage - 1
+			end
+			system.frameAdvantage = false
+			p2.actType = 0
+		end
+	else
+		if player.number == 2 then
+			system.frameAdvantage = true
+		end
+	end
+end
+
+function getActiveProjectile()
+	for i = 32, 1, -1 do
+		local projectile = projectiles[i]
+		if projectile.state > 0 then
+			return projectile
+		end
+	end
+	return nil
+end
+
+function frameHitStop(frameAddress)
+	--if frame + 0x12 == 1 then it's not affected by the hitstop counter
+	return  p1.hitFreeze > 0 and readByte(p1.frameAddress + 0x12) == 0
+end
+
+function updateProjectileFrameInfo()
+	system.previousProj1Address = system.proj1Address
+	system.proj1Address = readDWord(0x02038518)
+	system.previousProj2Address = system.proj2Address
+	system.proj2Address = readDWord(0x02038938)
+end
+
+function updateCharacterSpecific()
+	if p1.character == 16 or p1.character == 23 then --hol/hoingo s bullet hud
+		local sBullet = getSBullet()
+		if sBullet then system.sBullet = sBullet end
+	end
+end
+
+function getSBullet()
+	for i = 3, 1, -1 do
+		local projectile = projectiles[i]
+		if projectile.state > 0 and projectile.attackId == 31 then
+			return 0x2038870 + (i - 1) * 0x420
+		end
+	end
 end
 
 -------------------------------------------------
@@ -3273,7 +3887,6 @@ function controlPlayer(player, other)
 		elseif options.guardAction == 3 then
 			guardCancel(player)
 		end
-		player.blocking = false
 	-- Air Tech
 	elseif options.airTech and player.airtech then
 		airTech(player)
@@ -4003,7 +4616,8 @@ local optionUpdateFunctions = {
 	p2Character = function()
 		updateCharacter(p2, nameToId[characters[options.p2Character]])
 	end,
-	disableHud = updateHacks
+	disableHud = updateHacks,
+	music = updateHacks,
 }
 
 function optionUpdated(key)
@@ -4172,6 +4786,22 @@ function updateTrialCheck(tailCall)
 						projectile.previousActionId ~= input.id[2] and projectile.actionId == input.id[2] then
 					return advanceTrialIndex()
 				end
+			end
+		end
+	elseif input.type == comboType.sBullet then
+		if (p1.character == 16 and p1.previousActionId == 43 and p1.actionId == 44) or -- hol horse s bullet
+				(p1.character == 23 and p1.previousActionId == 90 and p1.actionId == 91) then --hoingo s bullet
+			local bytes = readDWord(getSBullet())
+			local dir = 0
+			for i = 1, #input.directions, 1 do
+				local hex = input.directions[i]
+				hex = p1.facing == 1 and hex or swapHexDirection(hex)
+				dir = lShift(dir, 4) + hex
+			end
+			if dir == bytes then
+				return advanceTrialIndex()
+			else
+				return trialFail()
 			end
 		end
 	end
@@ -4697,6 +5327,24 @@ function updateTrialRecording()
 			name = "(Time Stop End)",
 			type = comboType.timeStopEnd
 		}
+	elseif (p1.character == 16 and p1.previousActionId == 43 and p1.actionId == 44) or -- hol horse s bullet
+			(p1.character == 23 and p1.previousActionId == 90 and p1.actionId == 91) then --hoingo s bullet
+		local name = "S "
+		local directions = {}
+		local bytes = readDWord(0x2038870)
+		for i = 7, 0, -1 do 
+			local dir = band(rShift(bytes, i * 4), 0xF)
+			if dir ~= 0 then
+				dir = p1.facing == 1 and dir or swapHexDirection(dir)
+				directions[#directions + 1] = dir
+				name = name..hexToAnime[dir]
+			end
+		end
+		combo[#combo + 1] = {
+			name = name,
+			type = comboType.sBullet,
+			directions = directions,
+		}
 	end
 end
 
@@ -5127,10 +5775,20 @@ function drawHud()
 		elseif options.guiStyle == 4 then
 			drawMeatyHud()
 		elseif options.guiStyle == 5 then
-			drawTrialDebugHud()
+			drawFrameData()
 		elseif options.guiStyle == 6 then
+			drawTrialDebugHud()
+		elseif options.guiStyle == 7 then
 			drawAttackInfo()
+		elseif options.guiStyle == 8 then
+			drawActionFrameInfo()
+		elseif options.guiStyle == 9 then
+			drawProjectileFrameInfo()
 		end
+	end
+
+	if options.characterSpecific then
+		drawCharacterSpecific()
 	end
 
 	if debug then
@@ -5434,15 +6092,15 @@ function drawDebug(x, y)
 		p2.stunCount.." hitstun count",
 		--p2.stunType.." stun type",
 		p2.defenseAction.." p2 defense action",
-		string.format("%08X p2 action address", p2.actionAddress),
-		string.format("%08X p2 action frame", readDWord(p2.memory4.actionAddress - 8)),
-		string.format("%08X p2 action frame previous", readDWord(p2.memory4.actionAddress - 4)),
+		--string.format("%08X p2 action address", p2.actionAddress),
+		--string.format("%08X p2 action frame", readDWord(p2.memory4.actionAddress - 8)),
+		--string.format("%08X p2 action frame previous", readDWord(p2.memory4.actionAddress - 4)),
 		--readByte(0x2034D4F).." p2 action frame count",
 		readDWord(0x20162E4).." RNG 1",
 		readDWord(0x205C1B8).." RNG 2",
 		--p2.y.." p2 y",
-		(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
-		readByte(0x2034CAC + 0x1B).." p2 scaling index"
+		--(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
+		--readByte(0x2034CAC + 0x1B).." p2 scaling index"
 		-- projectiles[1].attackId.." proj attack id",
 		-- projectiles[1].attackHit.." proj hit",
 		-- projectiles[1].actionId.." proj action id",
@@ -5450,6 +6108,9 @@ function drawDebug(x, y)
 		-- readWord(0x02031464).." screen px",
 		-- p1.x.." p1 x",
 		-- p2.x.." p2 x",
+		tostring(p1.canAct).." p1 can act",
+		tostring(p2.canAct).." p2 can act",
+		tostring(p2.canReversal).." p2 can reversal",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -5551,97 +6212,163 @@ function drawFileList()
 	end
 end
 
-local hitInfo = {
-	names =  {
-		"Damage",
-		"Stand Damage",
-		"Meter (Whiff)",
-		"Meter (Hit)",
-		"Blocking",
-		"Attribute",
-		"Launch X",
-		"Launch Y",
-		"Blocking",
-		"Blocking2",
-		"Hitstop",
-		"Knockback (Hit)",
-		"Hitspark",
-		nil,
-		"Hit Effect",
-		"Screenshake",
-		nil,
-		"Knockback (Block)",
-		"Hitstun",
-		"Blockstun",
-		nil,
-		"Sound",
-		"Air Blocking",
-		"Kill Denial",
-		"Background Flash",
-		"Parry",
-		nil,
-		"Teching",
-		nil,
-		nil,
-		nil,
-		"Scaling",
-		nil,
-		nil,
-		nil,
-		"Blazing Fists",
-		"IPS"
-	},
-	tables = {
-		[4] = { 
-			[0x0] = "Overhead",
-			[0x1] = "Mid",
-			[0x2] = "Low",
-			[0x3] = "Unblockable",
-		},
-		[5] = { 
-			[0x1D] = "Launch",
-			[0x1B] = "Knockdown",
-			[0x20] = "Wallbounce",
-			[0x27] = "Offscreen Launch",
-			[0x2A] = "Child Transform",
-			[0x31] = "Grab",
-			[0x60] = "Instakill softlock"
-		}
-	}
-}
-
 function drawAttackInfo()
 	if p1.attackHit > 0 and (p1.previousAttackHit == 0 or p1.attackId ~= p1.previousAttackId) then 
 		system.attackId = p1.attackId
-		system.attackAddr = readDWord(0x203488C + 0xD0) + system.attackId * 0x30
+		system.attackAddress = readDWord(0x203488C + 0xD0) + system.attackId * 0x30
 	end
 	if p1.standAttackHit > 0 and (p1.previousStandAttackHit == 0 or p1.previousStandAttackId ~= p1.standAttackId) then
 		system.attackId = p1.standAttackId
-		system.attackAddr = readDWord(0x20350CC + 0xD0) + system.attackId * 0x30
+		system.attackAddress = readDWord(0x20350CC + 0xD0) + system.attackId * 0x30
 	end
 	for i = 1, 32, 1 do
 		local projectile = projectiles[i]
 		if projectile.state > 0 then
 			if projectile.attackHit > 0 and (projectile.previousAttackHit == 0 or projectile.previousAttackId ~= projectile.attackId) then
 				system.attackId = projectile.attackId
-				system.attackAddr = readDWord(0x0203806C + i * 0x420 + 0xD0) + system.attackId * 0x30
+				system.attackAddress = readDWord(0x0203806C + i * 0x420 + 0xD0) + system.attackId * 0x30
 				break
 			end
 		end
 	end
-	if system.attackAddr == 0 then return end
+	if system.attackAddress == 0 then return end
 	gui.text(92, 40, "ID:"..system.attackId)
-	gui.text(182, 40, string.format("Address: %08X", system.attackAddr))
+	gui.text(182, 40, string.format("Address: %08X", system.attackAddress))
 	for i = 0, 0x2F, 1 do
 		local x = math.floor(i / 0x10)
 		local y = i % 0x10
 		local name = hitInfo.names[i + 1] or i
-		local value = readByte(system.attackAddr + i)
+		local value = readByte(system.attackAddress + i)
 		local table = hitInfo.tables[i]
 		if table then
 			value = table[value] or value
 		end
 		gui.text(92 + x * 90, 50 + y * 8, name..": "..value)
+	end
+end
+
+local frameData = {
+	"Start Up: ", hud.startUp,
+	"Active: ", hud.active,
+	"Recovery: ", hud.recovery,
+	"Frame Advantage: ", hud.frameAdvantage,
+	"Reversal: ", hud.reversalFrame,
+	--"Push Block: ", hud.pushBlock or "NA",
+	"P1 act: ", tostring(p1.canAct),
+	"P2 act: ", tostring(p2.canAct),
+	-- "update frame advantage: ", tostring(system.frameAdvantage),
+	-- "cancel frame: ", tostring(readByte(p1.frameAddress + 0x14) == 0),
+	-- "can act 1: ", p1.canAct1,
+	-- "can act 2: ", p1.canAct2,
+	-- "stand act 1: ", p1.standCanAct1,
+	-- "stand act 2: ", p1.standCanAct2,
+	-- "attack type: ", p1.attackType,
+	-- "stand attack type: ", p1.standAttackType,
+	-- "p1 hitstop: ", p1.hitFreeze,
+	-- "p1 grab: ", p1.hitstun,
+	-- "p1 stand grab: ", p1.standHitstun,
+	-- "p2 guard: ", p2.guardState,
+	-- "p2 stand guard: ", p2.standGuardState,
+}
+
+function drawFrameData()
+	frameData[2] = hud.startUp
+	frameData[4] = hud.active
+	frameData[6] = hud.recovery
+	frameData[8] = hud.frameAdvantage
+	frameData[10] = hud.reversalFrame 
+	frameData[12] = tostring(p1.canAct)
+	frameData[14] = tostring(p2.canAct)
+
+	for i = 1, #frameData, 2 do
+		gui.text(160, 38 + i * 4, frameData[i]..frameData[i + 1])
+		--gui.text(218, 38 + i * 4, frameData[i + 1])
+	end
+end
+
+function drawActionFrameInfo()
+	drawPlayerFrameInfo(p1.previousFrameAddress, 92, 50, "Player Address: %08X")
+	drawPlayerFrameInfo(p1.previousStandFrameAddress, 230, 50, "Stand Address: %08X")
+end
+
+function drawProjectileFrameInfo()
+	drawPlayerFrameInfo(system.previousProj1Address, 92, 50, "Projectile 1 Address: %08X")
+	drawPlayerFrameInfo(system.previousProj2Address, 230, 50, "Projectile 2 Address: %08X")
+end
+
+function drawPlayerFrameInfo(frameAddress, baseX, baseY, name)
+	gui.text(baseX, baseY - 10, string.format(name, frameAddress))
+	if frameAddress < 0x6000000 or frameAddress > 0x6FFFFFF then return end
+	local info = frameInfo[readByte(frameAddress) + 1]
+	local length = readByte(frameAddress + 1)
+	local i = 0
+	local y = 0
+	local x = 0
+	while i < length do
+		local key, value
+		if i == 0 then
+			key = "Type"
+			value = info and info.name or i
+		elseif i == 1 then
+			key = "Size"
+			value = length
+		else
+			if info and info.info and info.info[i] then
+				local byteInfo = info.info[i]
+				local type = type(byteInfo)
+				if type == "table" then
+					key = byteInfo.name
+					if byteInfo.table then
+						local byte = readByte(frameAddress + i)
+						value = byteInfo.table[byte] or byte
+					else
+						if byteInfo.length == 4 then
+							value = byteInfo.signed and readDWordSigned(frameAddress + i) or readDWord(frameAddress + i)
+							i = i + 3
+							if byteInfo.hex then
+								value = string.format("%08X", value)
+							end
+						elseif byteInfo.length == 2 then
+							value = byteInfo.signed and readWordSigned(frameAddress + i) or readWord(frameAddress + i)
+							i = i + 1
+							if byteInfo.hex then
+								value = string.format("%04X", value)
+							end
+						else
+							value = byteInfo.signed and readByteSigned(frameAddress + i) or readByte(frameAddress + i)
+							if byteInfo.hex then
+								value = string.format("%02X", value)
+							end
+						end
+					end
+				else
+					key = byteInfo
+					value = readByte(frameAddress + i)
+				end
+			else
+				key = i
+				value = readByte(frameAddress + i)
+			end
+		end
+		gui.text(baseX + x * 80, baseY + y * 8, key..": "..value)
+		i = i + 1
+		y = y + 1
+		if y > 0x10 then
+			x = x + 1
+			y = 0
+		end
+	end
+end
+
+function drawCharacterSpecific()
+	if p1.character == 16 or p1.character == 23 then
+		local bytes = readDWord(system.sBullet)
+		local word = "S Bullet: "
+		for i = 7, 0, -1 do 
+			local dir = band(rShift(bytes, i * 4), 0xF)
+			if dir ~= 0 then word = word..hexToAnime[dir] end
+		end
+		gui.text(56, 207, word)
 	end
 end
 
@@ -5867,7 +6594,7 @@ function updateSettings()
 	end
 	if type(options.meterRefill) == "boolean" then
 		options.meterRefill = 2
-	end
+	end 
 end
 
 emu.registerstart(function()

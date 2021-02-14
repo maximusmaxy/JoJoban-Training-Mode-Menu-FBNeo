@@ -455,15 +455,13 @@
                         "name": "j.214A (Hit)"
                     }
                 ],
-                "standGuage": false,
+                "difficulty": 2,
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
-                "difficulty": 2,
                 "recording": ["ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81"],
+                "standGuage": false,
                 "rng": 3975358280,
-                "info": [
-                    "Nothing but net"
-                ],
+                "name": "Net link",
                 "position": false,
                 "p2": {
                     "y": 0,
@@ -475,7 +473,9 @@
                     "standX": 872,
                     "x": 1192
                 },
-                "name": "Net link",
+                "info": [
+                    "Nothing but net"
+                ],
                 "stage": {
                     "id": 38,
                     "x": 840,
@@ -1852,9 +1852,7 @@
                 "recording": ["dl2","adl8","10","c5","6","s6","10","r3","4","r9","3","dl38","d1","22"],
                 "difficulty": 1,
                 "rng": 401018469,
-                "info": [
-                    "Loop 5 times to succeed!"
-                ],
+                "name": "Loop drill",
                 "position": false,
                 "p2": {
                     "y": 0,
@@ -1866,7 +1864,9 @@
                     "standX": 608,
                     "x": 928
                 },
-                "name": "Loop drill",
+                "info": [
+                    "Loop 5 times to succeed!"
+                ],
                 "stage": {
                     "id": 39,
                     "x": 576,
@@ -2018,14 +2018,14 @@
                 },
                 "p1": {
                     "standX": 872,
-                    "stand": 0,
+                    "child": false,
                     "y": 0,
-                    "character": 22,
+                    "x": 967,
                     "standY": 0,
                     "facing": 1,
                     "level": 0,
-                    "child": false,
-                    "x": 967
+                    "stand": 0,
+                    "character": 22
                 }
             }
         ]
@@ -2033,6 +2033,72 @@
     {
         "name": "Hoingo",
         "trials": [
+            {
+                "recording": ["s7","4","r5","3","l8","11","r2","5","r9","ar1","a4","2","r1","rd2","d2","dl2","l1","u2","2","a3","280"],
+                "direction": 0,
+                "ips": false,
+                "combo": [
+                    {
+                        "type": "s bullet",
+                        "name": "S 64",
+                        "directions": [
+                            8,
+                            4
+                        ]
+                    },
+                    {
+                        "id": 31,
+                        "name": "S (Hit)"
+                    },
+                    {
+                        "id": 9,
+                        "name": "66A"
+                    },
+                    {
+                        "id": 42,
+                        "name": "6248A"
+                    }
+                ],
+                "tandemChain": 0,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "rng": 1980842744,
+                "difficulty": 1,
+                "rng2": 28549,
+                "name": "S bullet test",
+                "position": false,
+                "p2": {
+                    "standX": 624,
+                    "stand": 0,
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "child": false,
+                    "standFacing": 0,
+                    "x": 944
+                },
+                "info": [
+                    "S bullet directions must be forward, back or",
+                    "trial will fail"
+                ],
+                "stage": {
+                    "id": 30,
+                    "x": 592,
+                    "y": 252
+                },
+                "p1": {
+                    "standX": 624,
+                    "stand": 0,
+                    "y": 0,
+                    "character": 23,
+                    "standY": 0,
+                    "facing": 1,
+                    "child": false,
+                    "standFacing": 1,
+                    "x": 831
+                }
+            }
         ]
     },
     {
