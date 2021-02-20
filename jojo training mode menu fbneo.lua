@@ -121,6 +121,8 @@ local options = {
 	infiniteTimestop = false,
 	menuSound = true,
 	characterSpecific = true,
+	status = 1,
+	block = 1,
 }
 
 -----------------------
@@ -452,17 +454,39 @@ local battleOptions = {
 
 local enemyOptions = {
 	{
-		name = "Guard Action:",
+		name = "Status:",
+		key = "status",
+		type = optionType.list,
+		list = {
+			"Stand",
+			"Crouch",
+			"Jump",
+		}
+	},
+	{
+		name = "Block:",
+		key = "block",
+		type = optionType.list,
+		list = {
+			"Off",
+			"Status",
+			"All",
+			"Status After Hit",
+			"All After Hit",
+		}
+	},
+	{
+		name = "Blocking Action:",
 		key = "guardAction",
 		type = optionType.list,
 		list = {
-			"Default",
+			"Off",
 			"Push block",
 			"Guard Cancel"
 		}
 	},
 	{
-		name = "Guard Action Delay:",
+		name = "Blocking Action Delay:",
 		key = "guardActionDelay",
 		type = optionType.int,
 		min = 0,
@@ -999,7 +1023,6 @@ local p1 = {
 	combo = 0,
 	control = false,
 	directionLock = 0,
-	directionLockFacing = 0,
 	inputs = 0,
 	previousInputs = 0,
 	recording = false,
@@ -1063,6 +1086,10 @@ local p1 = {
 	actType = 0,
 	attackType = 0,
 	standAct = false,
+	afterHit = 0,
+	blockAll = 0,
+	animationCount = 0,
+	standAnimationCount = 0,
 	buttons = {},
 	memory = nil,
 	memory2 = nil,
@@ -1129,6 +1156,8 @@ p1.memory = {  --0x203488C
 	attackType = 0x02034A48,
 	standAttackType = 0x02035288,
 	blocking = 0x00000000,
+	animationCount = 0x203492F,
+	standAnimationCount = 0x203516F,
 }
 
 p1.memory2 = {
@@ -1189,6 +1218,7 @@ p2.memory = {
 	cc = 0x2034E58,
 	attackType = 0x02034E68,
 	blocking = 0x2034E52,
+	standBlocking = 0x2035692,
 }
 
 p2.memory2 = {
@@ -1207,6 +1237,7 @@ p2.memory4 = {
 	standActionAddress = 0x0203557C,
 	frameAddress = 0x02034D38,
 	standFrameAddress = 0x02035578,
+	yVelocity = 0x2034DA8,
 }
 
 p1.health = readByte(p1.memory.health)
@@ -2147,7 +2178,7 @@ local standPlusFrames = {
 	{},
 }
 
-local kakActFrames = createSet({
+local kakPoseFrames = createSet({
 	--kak
 	0x6810808, 0x6810888, 0x68108A8, 0x68108C8, --5a
 	0x6811570, 0x6811590, 0x68115B0, --236
@@ -2158,9 +2189,63 @@ local kakActFrames = createSet({
 	0x697E6A8, 0x697E3F0, 0x697E57C, 0x697E2E4, 0x697E02C, 0x697E178, --s.2a, s.5b, s.5c, s.6a, s.6b, s.4C
 })
 
--- local flipFrames = createSet({
--- 	0x6801D50, 0x6801D70, 0x6801D90, 0x6801DB0, --jotaro dash
--- })
+local flipFrames = createSet({
+	0x6801D50, 0x6801D70, 0x6801D90, 0x6801DB0, --jotaro f dash
+	0x6801FF8, 0x6802018, 0x6802038, 0x6802058, 0x6801F70, 0x6801F90, 0x6801FB0, 0x6801FD0, --jotaro b dash
+	0x68E89AC, 0x68E89CC, 0x68E89EC, --jotaro s f dash
+	0x68E8AB4, 0x68E8AD4, 0x68E8AF4, --jotaro s b dash
+	0x681641C, 0x681643C, 0x681645C, 0x681647C, --avdol f dash
+	0x681656C, 0x681658C, 0x68165AC, 0x68165CC, --avdol b dash
+	0x68FF538, 0x68FF558, --avdol s f dash
+	0x68FF620, 0x68FF640, --avdol s b dash
+	0x681827C, --avdol 2C
+	0x681DE9C, 0x681DEBC, 0x681DEDC, 0x681DEFC, 0x681DF1C, --pol f dash 
+	0x681DF9C, 0x681DFBC, 0x681DFDC, 0x681DFFC, 0x681E01C, --pol b dash 
+	0x690D8E4, 0x690D904, 0x690D924, 0x690D944, --pol s f dash
+	0x690DB04, 0x690DB24, 0x690DB44, 0x690DB64, --pol s b dash
+	0x6849BD8, 0x6849BF8, 0x6849C18, 0x6849C38, 0x6849C58, --chaka f dash
+	0x6849CD8, 0x6849CF8, 0x6849D18, 0x6849D38, 0x6849D58,--chaka b dash
+	0x6934674, 0x6934694, 0x69346B4, --chaka s f dash
+	0x6934754, 0x6934774, 0x6934794, --chaka s b dash
+	0x684A7D0, --chaka 5C
+	0x68524F4, 0x6852514, 0x6852534, --devo f dash
+	0x68525DC, 0x68525FC, 0x685261C, --devo b dash
+	0x693ECA0, 0x693ECC0, 0x693ECE0, 0x693ED00, 0x693ED20, 0x693ED40, 0x693ED60, --devo s f dash
+	0x693EFE0, 0x693F000, 0x693F020, 0x693F040, 0x693F060, 0x693F080, 0x693F0A0,--devo s b dash
+	0x685B254, 0x685B274, 0x685B294, 0x685B2B4, 0x685B2D4, --midler crouch
+	0x6878610, --yojo 2C
+	0x6889154, 0x6889174, 0x6889194, --ice f dash
+	0x68892A4, 0x68892C4, 0x68892E4, --ice b dash
+	0x69744F8, 0x6974518, --ice s f dash
+	0x6974578, 0x6974598, --ice s b dash
+	0x689AB10, 0x689AB30, 0x689AB50, 0x689AB70, 0x689AB90, --bpol f dash
+	0x689AC10, 0x689AC30, 0x689AC50, 0x689AC70, 0x689AC90, --bpol b dash
+})
+
+local blockActiveFrame = {
+	[0x68F0424] = 2, --Jotaro
+	[0x68F0404] = 2,
+	[0x68F99E4] = 4, --Kak
+	[0x68F9A04] = 4,
+	[0x68F9AC4] = 4, 
+	[0x68F9AE4] = 4, 
+	[0x68FB9C0] = 2, 
+	[0x6836A5C] = 1, --Iggy
+	[0x68460E8] = 2, --Alessi
+	[0x6960EEC] = 2, --Midler
+	[0x69B26A4] = 2, --Dio
+	[0x69B2824] = 2, 
+	[0x69B29A4] = 2, 
+	[0x69B2C84] = 2, 
+	[0x69B2E04] = 2,
+	[0x69B2F84] = 2, 
+	[0x69B5638] = 2,
+	[0x6980A28] = 4, --Nkak
+	[0x6980A48] = 4, 
+	[0x698E324] = 4, --Rubber
+	[0x698E304] = 4,
+}
+
 
 -------------------------------------------------
 -- json.lua 
@@ -2895,8 +2980,26 @@ end
 function updatePlayerInputBefore(player, other)
 	if not system.inMatch or menu.state > 0 then return end
 	if player.previousControl and not player.control then
-		player.directionLock = band(getPlayerInputHex(other.name), 0x0F) 
-		player.directionLockFacing = player.facing
+		local direction = band(getPlayerInputHex(other.name), 0x0F) 
+		player.directionLock = player.side == 1 and direction or swapHexDirection(direction)
+		--update status option
+		if band(player.directionLock, 0x1) == 0x1 then
+			options.status = 3 --jump
+		elseif band(player.directionLock, 0x2) == 0x2 then
+			options.status = 2 --crouch
+		else
+			options.status = 1 --stand
+		end
+		--update block option
+		if options.block < 3 then
+			if band(player.directionLock, 0x4) == 0x4 then
+				options.block = 2 --block
+			else
+				options.block = 1 --no block
+			end
+		else
+			player.directionLock = band(player.directionLock, 0x3)
+		end
 	end
 	-- Input Playback
 	if player.playbackCount > 0 then
@@ -2916,7 +3019,7 @@ function updatePlayerInputBefore(player, other)
 	elseif player.control or (player.recording and options.mediumKickHotkey == "recordP2") then
 		inputModule.transfer = true
 	elseif player.directionLock ~= 0 then
-		local direction = (player.side == player.directionLockFacing and player.directionLock or swapHexDirection(player.directionLock))
+		local direction = (player.side == 1 and player.directionLock or swapHexDirection(player.directionLock))
 		local directionInputs = hexToPlayerInput(direction, player.name)
 		tableCopy(directionInputs, inputModule.overwrite)
 	end
@@ -3089,6 +3192,7 @@ end
 function updateGameplayLoop() --main loop for gameplay calculations
 	updatePlayer(p1, p2)
 	updatePlayer(p2, p1)
+	updateBlock(p2, p1)
 	writeByte(0x205CC1A, options.music and 0x80 or 0x00) -- Toggle music off or on
 
 	if fcReplay then return end  -- Don't write if replay
@@ -3303,6 +3407,243 @@ function updatePlayer(player, other)
 	if options.killDenial and player.healthRefill < 0 then
 		writeWord(player.memory2.healthRefill, 0)
 	end
+
+	-- Can Act
+	updatePlayerAct(player)
+end
+
+function updateBlock(player, other)
+	if options.block == 3 then -- Block all
+		local direction = getBlockDirectionLock(player, other)
+		if band(direction, 0x4) == 0x4 then
+			player.directionLock = direction
+			player.blockAll = 12
+		else
+			if player.blockAll == 1 then
+				player.directionLock = direction
+			end
+			if system.screenFreeze == 0 then
+				player.blockAll = player.blockAll - 1
+			end
+		end
+	elseif options.block == 4 or options.block == 5 then -- Block after hit
+		if player.wakeupCount == 2 and player.afterHit > 0 then
+			player.afterHit = 0
+			player.directionLock = band(player.directionLock, 0x3) 
+		elseif player.canAct then
+			if player.afterHit == 1 then
+				if options.status == 1 then
+					player.directionLock = 0x0
+				elseif options.status == 2 then
+					player.directionLock = 0x2
+				elseif options.status == 3 then
+					player.directionLock = 0x1
+				end
+			elseif options.block == 5 and player.afterHit > 0 then
+				local direction = getBlockDirectionLock(player, other)
+				if band(direction, 0x4) == 0x4 then
+					player.directionLock = direction
+				end
+			end
+			if system.screenFreeze == 0 then
+				player.afterHit = player.afterHit - 1
+			end
+		else
+			player.afterHit = 30
+			if options.block == 4 then
+				player.directionLock = band(player.directionLock, 0x3) + 0x4
+			elseif options.block == 5 then
+				local direction = getBlockDirectionLock(player, other)
+				if band(direction, 0x4) == 0x4 then
+					player.directionLock = direction
+				end
+			end
+		end
+	end
+end
+
+function getBlockDirectionLock(player,other)
+	local hitType = getBlockDirection(other)
+	if hitType == 0 then --neutral
+		if options.status == 1 then
+			return 0x0
+		elseif options.status == 2 then
+			return 0x2
+		elseif options.status == 3 then
+			return 0x1
+		end
+	elseif band(hitType, 0x1) == 0x1 then --overhead
+		return 0x4
+	elseif band(hitType, 0x4) == 0x4 then --low
+		return 0x6
+	else --mid, unblockable
+		if options.status == 1 then
+			return  0x4
+		elseif options.status == 2 then
+			return  0x6
+		elseif options.status == 3 then
+			return  0x5
+		end
+	end
+end
+
+function getBlockDirection(player)
+	local hitType = 0
+	if player.stand == 0 then
+		local frameType = getHitType(player.frameAddress, player.address, player.attackId, player.previousAttackId, player.attackHit)
+		hitType = bor(hitType, frameType)
+	end
+	if player.standActive > 0 then
+		local frameType = getHitType(player.standFrameAddress, player.standAddress, player.standAttackId, player.previousStandAttacId, player.standAttackHit)
+		hitType = bor(hitType, frameType)
+	end
+	for i = 1, 32, 1 do
+		local projectile = projectiles[i]
+		if projectile.state > 0 then
+			local address = 0x0203848C + (i - 1) * 0x420
+			local frameType = getHitType(projectile.frameAddress, address, projectile.attackId, projectile.previousAttackId, projectile.attackHit)
+			hitType = bor(hitType, frameType)
+		end
+	end
+	return hitType
+end
+
+function getHitType(frameAddress, address, attackId, previousAttackId, attackHit)
+	local blockFrame = blockActiveFrame[frameAddress]
+	if blockFrame then return blockFrame end
+	if hasNextHitbox(address, frameAddress) then
+		return getFrameHitType(address, attackId, previousAttackId, attackHit)
+	end
+	return 0
+end
+
+function hasNextHitbox(address, frame)
+	if hasHitbox(readByte(frame + 0xD)) then return true end
+	frame = getNextFrame(address, frame)
+	if frame == 0 then return false end
+	if hasHitbox(readByte(frame + 0xD)) then return true end
+	if readByte(address + 0x1ac) == 1 then --tandem skips frames
+		frame = getNextFrame(address, frame)
+		return hasHitbox(readByte(frame + 0xD))
+	end
+	return false
+end
+
+function getFrameHitType(address, attackId, previousAttackId, attackHit)
+	if attackHit > 0 and attackId == previousAttackId then return 0 end
+	local attackAddress = readDWord(address + 0xD0) + attackId * 0x30
+	local hitType = band(readByte(attackAddress + 0x4), 0x3)
+	if hitType == 0 then --overhead
+		return 1
+	elseif hitType == 1 then --mid
+		return 2
+	elseif hitType == 2 then --low
+		return 4
+	elseif hitType == 3 then --unblockable
+		return 8
+	end
+end
+
+function getNextFrame(address, frame)
+	if readByte(frame + 0x02) == 0x80 then 
+		return 0
+	end
+	frame = frame + readByte(frame + 0x1)
+	local ram = {
+		[0xA4] = readByte(address + 0xA4)
+	}
+	while true do
+		local type = readByte(frame)
+		if type == 0x0 or type == 0x2 or type == 0xF then --frame/simple/no sprite
+			return frame
+		elseif type == 0x1 then --branch
+			frame = readDWord(frame + 0x4)
+		elseif type == 0x3 then --a4 ~= 0
+			if ram[0xA4] == 0 then
+				frame = frame + 8
+			else
+				frame = readDWord(frame + 0x4)
+			end
+		elseif type == 0x4 then --a4 == 0
+			if ram[0xA4] == 0 then
+				frame = readDWord(frame + 0x4)
+			else
+				frame = frame + 8
+			end
+		elseif type == 0x5 then --a4 = 0
+			ram[0xA4] = 0
+			frame = frame + 4
+		elseif type == 0x6 then --a4 + (frame + 2) = (frame + 3)
+			ram[0xA4 + readByte(frame + 0x2)] = readByte(frame + 0x3)
+			frame = frame + 4
+		elseif type == 0x7 then --a4 + (frame + 2) += (frame + 3)
+			local offset = readByte(frame + 0x2)
+			local byte = ram[0xA4 + offset] or readByte(address + 0xA4 + offset)
+			byte = byte + readByte(frame + 0x3)
+			ram[0xA4 + offset] = byte
+			frame = frame + 4
+		elseif type == 0x8 then --a4 + (frame + 2) == (frame + 3) and A4 = 0xFF or A4 = 0x00
+			local offset = readByte(frame + 0x2)
+			local byte = ram[0xA4 + offset] or readByte(address + 0xA4 + offset)
+			if byte == readByte(frame + 0x3) then
+				ram[0xA4] = 0xFF
+			else
+				ram[0xA4] = 0x0
+			end
+			frame = frame + 4
+		elseif type == 0x9 then --a4 = (frame + 2) &= (frame + 3)
+			local offset = readByte(frame + 0x2)
+			local byte = ram[0xA4 + offset] or readByte(address + 0xA4 + offset)
+			byte = band(byte, readByte(frame + 0x3))
+			ram[0xA4 + offset] = byte
+			frame = frame + 4
+		elseif type == 0xA then --???
+			if readByte(frame + 0x3) ~= 0 then
+				local byte = ram[0xAE] or readByte(address + 0xAE)
+				local offset = readByte(frame + 0x2)
+				ram[0xA4 + offset] = byte
+			end
+			frame = frame + 4
+		elseif type == 0xB then --subroutine
+			ram[0x94] = frame + 8
+			frame = readDWord(frame + 0x4)
+		elseif type == 0xC then --return from subroutine
+			frame = ram[0x94] or readDWord(address + 0x94)
+		elseif type == 0xD then --random
+			local offset = readByte(frame + 0x2)
+			ram[0] = getNextRn(ram[0])
+			ram[0xA4 + offset] = band(ram[0], readByte(frame + 0x3))
+			frame = frame + 4
+		elseif type == 0xE then --lookup table
+			local offset = readByte(frame + 0x2)
+			local byte = ram[0xA4 + offset] or readByte(address + 0xA4 + offset)
+			frame = frame + 4 + byte * 4 
+		elseif type == 0x10 then --f+2 = 198
+			local offset = readWord(frame + 0x2)
+			ram[0xA4 + offset] = readByte(address + 0x198)
+			frame = frame + 4
+		elseif type == 0x11 then --f+2 = 194
+			local offset = readWord(frame + 0x2)
+			ram[0xA4 + offset] = readByte(address + 0x194)
+			frame = frame + 4
+		elseif type == 0x12 then --f+2 = 192
+			local offset = readWord(frame + 0x2)
+			ram[0xA4 + offset] = readByte(address + 0x192)
+			frame = frame + 4
+		else
+			return 0
+		end
+	end
+end
+
+function getNextRn(seed)
+	local rng = seed or readDWord(0x20162E4)
+	rng = rng * 0x41C54E6D
+	rng = band(rng, 0xFFFFFFFF)
+	rng = rng + 3039
+	rng = rShift(rng, 16)
+	rng = band(rng, 0x7FFF)
+	return rng
 end
 
 function getActionLength(address)
@@ -3368,8 +3709,6 @@ end
 
 function updateFrameData()
 	--Frame Advantage
-	updatePlayerAct(p1)
-	updatePlayerAct(p2)
 	updatePlayerFrameAdvantage(p1, p2)
 	updatePlayerFrameAdvantage(p2, p1)
 
@@ -3465,12 +3804,15 @@ function updatePlayerAct(player)
 	player.previousCanAct = player.canAct
 	if player.number == 1 then
 		if player.stand == 0 then
-			player.canAct = playerCanAct(player, player.attackType, player.canAct1, player.canAct2, player.previousFrameAddress)
+			player.canAct = playerCanAct(player, player.attackType, player.canAct1, player.canAct2, player.frameAddress)
 		else
-			player.canAct = playerCanAct(player, player.standAttackType, player.standCanAct1, player.standCanAct2, player.previousStandFrameAddress)
+			player.canAct = playerCanAct(player, player.standAttackType, player.standCanAct1, player.standCanAct2, player.standFrameAddress)
 		end
 	else
 		local guardState = player.stand == 0 and player.guardState or player.standGuardState
+		if player.yVelocity > 0 and player.yVelocity < 0x80000000 then --if positive signed
+			guardState = 0
+		end
 		if player.guardAct then
 			player.canAct = (guardState == 0 or guardState == 2)
 			if player.canAct then 
@@ -3501,10 +3843,13 @@ function playerCanAct(player, attackType, act1, act2, frameAddress)
 	else
 		if player.standHitstun > 0 then return false end
 	end
-	if player.character == 1 or player.character == 18 then --kak/nkak
-		local address = player.stand == 0 and player.previousFrameAddress or player.previousStandFrameAddress
-		if kakActFrames[address] then return true end
+	if flipFrames[frameAddress] then
+		act1 = act1 == 0 and 1 or 0
 	end
+	if player.character == 1 or player.character == 18 then --kak/nkak
+		if kakPoseFrames[frameAddress] then return true end
+	end
+	local frame = player.stand == 0 
 	if act1 == 0 then
 		if act2 == 0 and player.hitFreeze == 0 and player.previousHitFreeze == 0 then return true end
 		local actSet = actType0[player.character + 1]
@@ -3573,6 +3918,36 @@ function getSBullet()
 		local projectile = projectiles[i]
 		if projectile.state > 0 and projectile.attackId == 31 then
 			return 0x2038870 + (i - 1) * 0x420
+		end
+	end
+end
+
+function statusOptionUpdated()
+	if options.status == 1 then
+		p2.directionLock = band(p2.directionLock, 0xC)
+	elseif options.status == 2 then
+		p2.directionLock = band(p2.directionLock, 0xC) + 0x2
+	elseif options.status == 3 then
+		p2.directionLock = band(p2.directionLock, 0xC) + 0x1
+	end
+end
+
+function blockOptionUpdated()
+	if options.block == 1 then
+		if band(p2.directionLock, 0x2) == 0x2 then --down
+			p2.directionLock = 0x2
+		elseif band(p2.directionLock, 0x1) == 0x1 then --up
+			p2.directionLock = 0x1
+		else
+			p2.directionLock = 0x0
+		end
+	elseif options.block == 2 then
+		if band(p2.directionLock, 0x2) == 0x2 then --down
+			p2.directionLock = 0x6
+		elseif band(p2.directionLock, 0x1) == 0x1 then --up
+			p2.directionLock = 0x5
+		else
+			p2.directionLock = 0x4
 		end
 	end
 end
@@ -4015,7 +4390,7 @@ function pushBlock(player)
 end
 
 function guardCancel(player)
-	local inputs = (player.facing == 1 and { 0x08, 0x02, 0x1A } or { 0x04, 0x02, 0x16 })
+	local inputs = (player.side == 1 and { 0x08, 0x02, 0x1A } or { 0x04, 0x02, 0x16 })
 	insertDelay(inputs, options.guardActionDelay, band(player.inputs, 0x0F))
 	setPlayback(player, inputs)
 	player.guardCount = 0
@@ -4130,10 +4505,6 @@ end
 function canStand(player) 
 	return (options.forceStand == 2 and player.stand ~= 1) or
 		(options.forceStand == 3 and player.stand == 1)
-end
-
-function canAct(player)
-	return player.canAct1 == 0 and player.canAct2 == 0
 end
 
 function resetReversalOptions()
@@ -4618,6 +4989,8 @@ local optionUpdateFunctions = {
 	end,
 	disableHud = updateHacks,
 	music = updateHacks,
+	status = statusOptionUpdated,
+	block = blockOptionUpdated,
 }
 
 function optionUpdated(key)
@@ -4972,7 +5345,6 @@ function updateOptions()
 	end
 	if t.direction ~= nil then
 		p2.directionLock = t.direction
-		p2.directionLockFacing = 1
 	end
 	if t.rng ~= nil then
 		writeDWord(0x20162E4, t.rng)
@@ -5050,6 +5422,8 @@ function updateOptions()
 	options.infiniteRounds = true
 	options.infiniteTimestop = false
 	options.killDenial = t.drill or false
+	options.block = 1
+	options.status = 1
 	updateHacks()
 	resetReversalOptions()
 end
@@ -5225,7 +5599,7 @@ function trialStartRecording()
 			y = system.screenY
 		},
 		combo = {},
-		direction = p2.directionLockFacing == 1 and p2.directionLock or swapHexDirection(p2.directionLock),
+		direction = p2.directionLock,
 		rng = readDWord(0x20162E4),
 		rng2 = readDWord(0x205C1B8),
 		position = false,
@@ -6110,7 +6484,12 @@ function drawDebug(x, y)
 		-- p2.x.." p2 x",
 		tostring(p1.canAct).." p1 can act",
 		tostring(p2.canAct).." p2 can act",
-		tostring(p2.canReversal).." p2 can reversal",
+		tostring(p2.hitstun).." p2 hitstun",
+		p2.guardState.." p2 guard state",
+		p2.riseFall.." p2 rise fall",
+		readWordSigned(0x2034DA8).." p2 y velocity",
+		(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
+		p2.blocking.." p2 blocking",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
@@ -6550,6 +6929,8 @@ function replayOptions()
 	options.killDenial = false
 	options.disableHud = false
 	options.infiniteTimestop = false
+	options.block = 1
+	options.status = 1
 	resetReversalOptions()
 end
 
