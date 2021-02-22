@@ -123,6 +123,16 @@ local options = {
 	characterSpecific = true,
 	status = 1,
 	block = 1,
+	kakyoinPose = 1,
+	p1Hp = 144,
+	p2Hp = 144,
+	standGaugeLimit = false,
+	-- p1StandGauge = 88,
+	-- p1StandMin = 1,
+	-- p1StandMax = 88,
+	p2StandGauge = 88,
+	p2StandMin = 1,
+	p2StandMax = 88,
 }
 
 -----------------------
@@ -311,7 +321,8 @@ local optionType = {
 	file = 12, 
 	key = 13,
 	listSelect = 14,
-	back = 15
+	managedInt = 15,
+	back = 16
 }
 
 local hudStyles = {
@@ -414,6 +425,47 @@ local battleOptions = {
 		max = 41
 	},
 	{
+		name = "P1 HP Max",
+		key = "p1Hp",
+		type = optionType.int,
+		min = 1,
+		max = 144,
+		inc = 10,
+		info = "Hold A to increase by 10",
+	},
+	{
+		name = "P2 HP Max",
+		key = "p2Hp",
+		type = optionType.int,
+		min = 1,
+		max = 144,
+		inc = 10,
+		info = "Hold A to increase by 10",
+	},
+	{
+		name = "Stand Gauge Limit",
+		key = "standGaugeLimit",
+		type = optionType.bool,
+	},
+	-- {
+	-- 	name = "P1 Stand Gauge Max",
+	-- 	key = "p1StandGauge",
+	-- 	type = optionType.managedInt,
+	-- 	min = "p1StandMin",
+	-- 	max = "p1StandMax",
+	-- 	inc = 10,
+	-- 	info = "Hold A to increase by 10",
+	-- },
+	{
+		name = "Stand Gauge Max",
+		key = "p2StandGauge",
+		type = optionType.managedInt,
+		min = "p2StandMin",
+		max = "p2StandMax",
+		inc = 10,
+		info = "Hold A to increase by 10",
+	},
+	{
 		name = "P1 Child:",
 		key = "p1Child",
 		type = optionType.bool
@@ -422,6 +474,26 @@ local battleOptions = {
 		name = "P2 Child:",
 		key = "p2Child",
 		type = optionType.bool
+	},
+	{
+		name = "Return",
+		type = optionType.back
+	}
+}
+
+local characterSpecificOptions = {
+	{
+		name = "Kakyoin Pose:",
+		key = "kakyoinPose",
+		type = optionType.list,
+		list = {
+			"Off",
+			"1",
+			"2",
+			"3",
+			"4",
+			"5",
+		}
 	},
 	{
 		name = "Boingo RNG:",
@@ -434,7 +506,7 @@ local battleOptions = {
 		key = "level",
 		type = optionType.list,
 		list = {
-			"Disabled",
+			"Off",
 			"1",
 			"2",
 			"3",
@@ -473,6 +545,7 @@ local enemyOptions = {
 			"All",
 			"Status After Hit",
 			"All After Hit",
+			"Random",
 		}
 	},
 	{
@@ -832,25 +905,27 @@ local recordReplaySettings = {
 		key = "replayInterval",
 		type = optionType.int,
 		min = 0,
-		max = 100
+		max = 100,
+		inc = 10,
+		info = "Hold A to increase by 10",
 	},
 	{
 		name = "Not In Use 1 Hotkey:",
 		key = "mediumKickHotkey",
 		type = optionType.key,
 		list = {
+			"disabled",
 			"record",
 			"recordP2",
 			"recordAntiAir",
 			"recordParry",
-			"disabled"
 		},
 		names = {
+			disabled = "Disabled",
 			record = "Record P1",
 			recordP2 = "Record P2",
 			recordAntiAir = "Record Anti-air",
 			recordParry = "Record Parry",
-			disabled = "Disabled"
 		}
 	},
 	{
@@ -858,16 +933,16 @@ local recordReplaySettings = {
 		key = "strongKickHotkey",
 		type = optionType.key,
 		list = {
+			"disabled",
 			"replay",
 			"replayP2",
 			"inputPlayback",
-			"disabled"
 		},
 		names = {
+			disabled = "Disabled",
 			replay = "Replay P1",
 			replayP2 = "Replay P2",
 			inputPlayback = "Input Playback",
-			disabled = "Disabled"
 		}
 	},
 	{
@@ -914,6 +989,11 @@ local rootOptions = {
 		name = "Reversal Settings",
 		type = optionType.subMenu,
 		options = reversalOptions
+	},
+	{
+		name = "Character Specific Settings",
+		type = optionType.subMenu,
+		options = characterSpecificOptions
 	},
 	{
 		name = "Color Settings",
@@ -991,6 +1071,7 @@ local menu = {
 	index = 1,
 	previousIndex = 1,
 	previousSubIndex = 1,
+	min = 1,
 	options = rootOptions,
 	title = "Training Menu",
 	info = "",
@@ -1088,6 +1169,7 @@ local p1 = {
 	standAct = false,
 	afterHit = 0,
 	blockAll = 0,
+	randomBlock = 0,
 	animationCount = 0,
 	standAnimationCount = 0,
 	buttons = {},
@@ -1599,6 +1681,8 @@ local charToIndex = {
 	[8] = 9,
 	[10] = 10,
 	[11] = 11,
+	[12] = 23,
+	[13] = 24,
 	[14] = 12,
 	[15] = 13,
 	[16] = 14,
@@ -1634,7 +1718,9 @@ local indexToName = {
 	"Mariah",
 	"Hoingo",
 	"Rubber Soul",
-	"Khan"
+	"Khan",
+	"Boss Ice",
+	"Death 13",
 }
 
 local nameToId = {
@@ -1815,7 +1901,7 @@ local commandGrabIds = {
 }
 
 local moveDefinitions = {}
-for i = 1, 22, 1 do
+for i = 1, 24, 1 do
 	moveDefinitions[i] = {}
 end
 
@@ -1874,7 +1960,21 @@ local romHacks = {
 		[0x68A46F8] = 0x0000, --forward sound
 		[0x68A47A0] = 0x0000, --back sound
 		[0x68A49D8] = 0x0000, --up sound
-	}
+	},
+	kakyoinPose = {
+		[0x6811924] = 0x0604, --Modifies the random action frame (type 0xD) to set a specific value (type 0x6)
+		[0x6811926] = 0x0200, --This byte is set manually to the desired pose
+		[0x6811988] = 0x0604, --kak s.on
+		[0x681198A] = 0x0200, 
+		[0x6895BE0] = 0x0604, --nkak s.off
+		[0x6895BE2] = 0x0200, 
+		[0x6895C44] = 0x0604, --nkak s.on
+		[0x6895C46] = 0x0200,
+	},
+	standGauge = {
+		[0x60451B2] = 0xE300, --Move stand gauge max into R3, modified manually
+		[0x60451BA] = 0xE200, --Move stand gauge max into R2, modified manually
+	},
 }
 
 local hitInfo = {
@@ -2198,7 +2298,9 @@ local flipFrames = createSet({
 	0x681656C, 0x681658C, 0x68165AC, 0x68165CC, --avdol b dash
 	0x68FF538, 0x68FF558, --avdol s f dash
 	0x68FF620, 0x68FF640, --avdol s b dash
+	0x681817C, --avdol 2B
 	0x681827C, --avdol 2C
+	0x681807C, --avodl 6C
 	0x681DE9C, 0x681DEBC, 0x681DEDC, 0x681DEFC, 0x681DF1C, --pol f dash 
 	0x681DF9C, 0x681DFBC, 0x681DFDC, 0x681DFFC, 0x681E01C, --pol b dash 
 	0x690D8E4, 0x690D904, 0x690D924, 0x690D944, --pol s f dash
@@ -2651,10 +2753,15 @@ function readTrial(filename)
 	options.trialsFilename = filename
 	if options.trialSuccess[filename] == nil then
 		local successTable = {}
-		for i = 1, 22, 1 do 
+		for i = 1, 24, 1 do 
 			successTable[i] = 0
 		end
 		options.trialSuccess[filename] = successTable
+	end
+	--sanitize for added boss characters
+	if #options.trialSuccess[filename] < 24 then
+		options.trialSuccess[filename][23] = 0
+		options.trialSuccess[filename][24] = 0
 	end
 	return true
 end
@@ -2781,6 +2888,8 @@ function updateHacks()
 	updateHack("killDenial", options.killDenial)
 	updateHack("comboCounter", options.disableHud)
 	updateHack("petshopFlap", not options.music)
+	updateKakyoinPose()
+	updateStandGaugeLimit()
 end
 
 function updateHack(hack, option)
@@ -2815,6 +2924,28 @@ function updateCharacter(player, id)
 		return true
 	end
 	return false
+end
+
+function updateKakyoinPose()
+	restoreHack("kakyoinPose")
+	if options.kakyoinPose > 1 then
+		local poseByte = 0x0200 + options.kakyoinPose - 2
+		romHacks.kakyoinPose[0x6811926] = poseByte
+		romHacks.kakyoinPose[0x681198A] = poseByte
+		romHacks.kakyoinPose[0x6895BE2] = poseByte
+		romHacks.kakyoinPose[0x6895C46] = poseByte
+		writeHack("kakyoinPose")
+	end
+end
+
+function updateStandGaugeLimit()
+	restoreHack("standGauge")
+	if options.standGaugeLimit then
+		romHacks.standGauge[0x60451B2] = 0xE300 + options.p2StandGauge
+		romHacks.standGauge[0x60451BA] = 0xE200 + options.p2StandGauge
+		writeWord(p2.memory2.standGaugeRefill, options.p2StandGauge)
+		writeHack("standGauge")
+	end
 end
 
 -------------------------------------------------
@@ -3262,12 +3393,13 @@ function updatePlayer(player, other)
 	--Health Regen
 	if options.healthRefill > 1 and ((player.previousCombo > 0 or other.damage ~= 0) and (player.combo == 0)) then
 		if options.healthRefill == 2 then
-			writeWord(other.memory2.healthRefill, 0x90)
+			local maxHealth = player.number == 1 and options.p2Hp or options.p1Hp
+			writeWord(other.memory2.healthRefill, maxHealth)
 		elseif options.healthRefill == 3 then
 			other.healthDelay = 60
 		end
 		other.damage = 0
-	end
+	end 
 
 	if other.combo > 0 or player.hitstun == 3 or player.hitstun == 4 or system.timeStop > 0 or system.betweenRounds then
 		player.healthDelay = 0
@@ -3275,9 +3407,10 @@ function updatePlayer(player, other)
 
 	if player.healthDelay > 0 then
 		if player.healthDelay == 1 then
-			player.healthRefill = math.min(player.healthRefill + 2, 0x90)
+			local maxHealth = player.number == 1 and options.p1Hp or options.p2Hp
+			player.healthRefill = math.min(player.healthRefill + 2, maxHealth)
 			writeWord(player.memory2.healthRefill, player.healthRefill)
-			if player.healthRefill < 0x90 then
+			if player.healthRefill < maxHealth then
 				player.healthDelay = 2
 			end
 		end
@@ -3291,7 +3424,7 @@ function updatePlayer(player, other)
 		if options.meterRefill == 2 then
 			writeByte(player.memory.meterNumber, 0x0A)
 		elseif options.meterRefill == 3 then
-			player.meterBar = player.meterBar + 1
+			player.meterBar = player.meterBar + 2
 			if player.meterBar >= 104 then
 				player.meterBar = 0
 				player.meterNumber = player.meterNumber + 1
@@ -3312,7 +3445,9 @@ function updatePlayer(player, other)
 
 	--Stand refill 
 	if options.standGaugeRefill and player.standHealth <= 0 and player.cc == 0 then
-		writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
+		--local maxGauge = player.number == 1 and options.p1StandGauge or options.p2StandGauge
+		local max = options.standGaugeLimit and options.p2StandGauge or player.standGaugeMax
+		writeWord(player.memory2.standGaugeRefill, max)
 	end
 
 	-- Air Tech
@@ -3458,6 +3593,50 @@ function updateBlock(player, other)
 					player.directionLock = direction
 				end
 			end
+		end
+	elseif options.block == 6 then --random
+		local direction = getBlockDirectionLock(player, other)
+		if player.canAct then
+			if player.randomBlock == 0 then
+				player.randomBlock = math.random(2)
+			end
+			if player.randomBlock == 1 then
+				if band(direction, 0x4) == 0x4 then
+					player.directionLock = direction
+					player.blockAll = 12
+				else
+					if player.blockAll == 1 then
+						player.directionLock = direction
+					end
+					if system.screenFreeze == 0 then
+						player.blockAll = player.blockAll - 1
+					end
+				end
+			else
+				if options.status == 1 then
+					player.directionLock = 0x0
+				elseif options.status == 2 then
+					player.directionLock = 0x2
+				elseif options.status == 3 then
+					player.directionLock = 0x1
+				end
+			end
+		else
+			if player.wakeupCount == 2 then
+				player.randomBlock = math.random(2)
+				if player.randomBlock == 1 then
+					player.directionLock = direction
+				else
+					player.directionLock = band(direction, 0x3)
+				end
+				player.blockAll = 0
+			else
+				if band(direction, 0x4) == 0x4 then
+					player.directionLock = direction
+				end
+				player.blockAll = 2
+			end
+			player.randomBlock = 0
 		end
 	end
 end
@@ -3696,6 +3875,11 @@ function updatePlayerSwap(player, count, hack)
 		writeByte(0x2034AA2, 0) --enable borders
 		writeByte(0x2034AA3, 1) --enable screen scroll
 		writeByte(0x20314A2, 0) --enable zoom
+		--updateStandGaugeMax() --Update max stand gauge for menu
+		--Fix for hoingo breaking stage borders
+		if not trial.enabled and player.character == 23 then
+			writeWord(player.memory2.x, system.screenX + 150)
+		end
 	end
 end
 
@@ -4002,11 +4186,13 @@ function checkPlayerInput(player, other)
 
 	if menu.state > 0 then 
 		if pressed(player.buttons.mk) then
-			writeWord(other.memory2.standGaugeRefill, other.standGaugeMax)
+			local max = options.standGaugeLimit and options.p2StandGauge or other.standGaugeMax
+			writeWord(other.memory2.standGaugeRefill, max)
 		end
 
 		if pressed(player.buttons.sk) then
-			writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
+			local max = options.standGaugeLimit and options.p2StandGauge or player.standGaugeMax
+			writeWord(player.memory2.standGaugeRefill, max)
 		end
 		return
 	end
@@ -4043,11 +4229,13 @@ function checkPlayerInput(player, other)
 		other.control = true
 
 		if pressed(player.buttons.mk) then
-			writeWord(other.memory2.standGaugeRefill, other.standGaugeMax)
+			local max = options.standGaugeLimit and options.p2StandGauge or other.standGaugeMax
+			writeWord(other.memory2.standGaugeRefill, max)
 		end
 
 		if pressed(player.buttons.sk) then
-			writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
+			local max = options.standGaugeLimit and options.p2StandGauge or player.standGaugeMax
+			writeWord(player.memory2.standGaugeRefill, max)
 		end
 	else
 		other.control = false
@@ -4277,7 +4465,8 @@ function controlPlayer(player, other)
 	-- Reversals
 	if options.forceStand > 1 and canReversal(player) and canStand(player) then
 		setPlayback(player, { 0x80 })
-		writeWord(player.memory2.standGaugeRefill, player.standGaugeMax)
+		local max = options.standGaugeLimit and options.p2StandGauge or player.standGaugeMax
+		writeWord(player.memory2.standGaugeRefill, max)
 	else
 		if options.wakeupReversal and player.wakeupCount > 0 then
 			doReversal(player, other, player.wakeupCount, player.previousWakeupCount)
@@ -4547,6 +4736,7 @@ function openMenu()
 			options.stageIndex = system.stageId
 			options.p1Character = tableIndex(characters, idToName[p1.character])
 			options.p2Character = tableIndex(characters, idToName[p2.character])
+			--updateStandGaugeMax()
 		end
 	else
 		menuClose()
@@ -4620,7 +4810,7 @@ function menuSelect()
 		end
 	elseif option.type == optionType.trialCharacter then
 		menu.state = 6
-		menu.options = getTrialOptions(menu.index, option)
+		menu.options = getTrialOptions(menu.index)
 		menu.previousSubIndex = menu.index
 		menu.index = 1
 		menu.title = option.name
@@ -4638,6 +4828,7 @@ function menuSelect()
 			menu.state = 7
 			menu.previousSubIndex = menu.index
 			menu.index = 1
+			menu.min = 1
 			menu.title = "Trial Select"
 			playSound(sounds.select, 0x4040)
 		end
@@ -4706,7 +4897,16 @@ function menuLeft()
 		optionUpdated(option.key)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.int then
-		options[option.key] = (value == option.min and option.max or value - 1)
+		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
+		if (value - inc < option.min) then inc = value - option.min end
+		options[option.key] = (value == option.min and option.max or value - inc)
+		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
+	elseif option.type == optionType.managedInt then
+		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
+		local min = options[option.min]
+		if (value - inc < min) then inc = value - min end
+		options[option.key] = (value == min and options[option.max] or value - inc)
 		optionUpdated(option.key)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.list then
@@ -4716,9 +4916,7 @@ function menuLeft()
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
-		if (value - inc < 0) then 
-			inc = value
-		end
+		if (value - inc < 0) then inc = value end
 		options[menu.color] = options[menu.color] - lShift(inc, option.shift)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
@@ -4726,7 +4924,7 @@ function menuLeft()
 		options[option.key] = option.list[index == 1 and #option.list or index - 1]
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trialCharacter then
-		if menu.index ~= 23 then
+		if menu.index ~= #menu.options then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		end
 		playSound(sounds.move, 0x4040)
@@ -4758,7 +4956,16 @@ function menuRight()
 		optionUpdated(option.key)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.int then
-		options[option.key] = (value >= option.max and option.min or value + 1)
+		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
+		if (value + inc > option.max) then inc = option.max - value end
+		options[option.key] = (value >= option.max and option.min or value + inc)
+		optionUpdated(option.key)
+		playSound(sounds.move, 0x4040)
+	elseif option.type == optionType.managedInt then
+		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
+		local max = options[option.max]
+		if (value + inc > max) then inc = max - value end
+		options[option.key] = (value >= max and options[option.min] or value + inc)
 		optionUpdated(option.key)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.list then
@@ -4768,9 +4975,7 @@ function menuRight()
 	elseif option.type == optionType.slider then
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
-		if (value + inc > 255) then
-			inc = 255 - value
-		end
+		if (value + inc > 255) then inc = 255 - value end
 		options[menu.color] = options[menu.color] + lShift(inc, option.shift)
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
@@ -4778,7 +4983,7 @@ function menuRight()
 		options[option.key] = option.list[index >= #option.list and 1 or index + 1]
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trialCharacter then
-		if menu.index ~= 23 then
+		if menu.index ~= #menu.options then
 			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		end
 		playSound(sounds.move, 0x4040)
@@ -4809,11 +5014,11 @@ function menuUp()
 		return
 	elseif menu.state == 5 then --trials characters
 		if menu.index == 1 then
-			menu.index = 21
+			menu.index = #menu.options - 2
 		elseif menu.index == 2 then
-			menu.index = 23
-		elseif menu.index == 23 then
-			menu.index = 22
+			menu.index = #menu.options
+		elseif menu.index == #menu.options then
+			menu.index = #menu.options - 1
 		else
 			menu.index = menu.index - 2
 		end
@@ -4836,6 +5041,12 @@ function menuUp()
 		end
 		updateMenuTrial()
 		playSound(sounds.move, 0x4040)
+	elseif menu.state == 7 then --files
+		menu.index = (menu.index == 1 and #menu.options or menu.index - 1)
+		if #menu.options > 15 then
+			menu.min = math.min(math.max(menu.index - 8, 1), #menu.options - 14)
+		end
+		playSound(sounds.move, 0x4040)
 	else
 		menu.index = (menu.index == 1 and #menu.options or menu.index - 1)
 		updateMenuInfo()
@@ -4847,11 +5058,11 @@ function menuDown()
 	if menu.state == 3 then --about
 		return
 	elseif menu.state == 5 then --trials characters
-		if menu.index == 21 then
+		if menu.index == #menu.options - 2 then
 			menu.index = 1
-		elseif menu.index == 22 then
-			menu.index = 23
-		elseif menu.index == 23 then
+		elseif menu.index == #menu.options - 1 then
+			menu.index = #menu.options
+		elseif menu.index == #menu.options then
 			menu.index = 2
 		else
 			menu.index = menu.index + 2
@@ -4868,6 +5079,12 @@ function menuDown()
 			menu.index = #menu.options
 		end
 		updateMenuTrial()
+		playSound(sounds.move, 0x4040)
+	elseif menu.state == 7 then --files
+		menu.index = (menu.index >= #menu.options and 1 or menu.index + 1)
+		if #menu.options > 15 then
+			menu.min = math.min(math.max(menu.index - 8, 1), #menu.options - 14)
+		end
 		playSound(sounds.move, 0x4040)
 	else
 		menu.index = (menu.index >= #menu.options and 1 or menu.index + 1)
@@ -4895,7 +5112,7 @@ end
 
 function getTrialCharacterOptions()
 	local optionsTable = {}
-	for i = 1, 22, 1 do
+	for i = 1, 24, 1 do
 		optionsTable[i] = {
 			name = indexToName[i],
 			type = optionType.trialCharacter,
@@ -4910,7 +5127,7 @@ function getTrialCharacterOptions()
 end
 
 function trialCompletedCount(index)
-	local success = options.trialSuccess[options.trialsFilename][index]
+	local success = options.trialSuccess[options.trialsFilename][index] or 0
 	local count = 0
 	while success > 0 do
 		if band(success, 1) == 1 then
@@ -4923,7 +5140,7 @@ end
 
 function getTrialOptions(index)
 	local optionsTable = {}
-	local success = options.trialSuccess[options.trialsFilename][index]
+	local success = options.trialSuccess[options.trialsFilename][index] or 0
 	local characterTrials = trials[index].trials
 	for i = 1, #characterTrials, 1 do
 		optionsTable[i] = {
@@ -4991,6 +5208,11 @@ local optionUpdateFunctions = {
 	music = updateHacks,
 	status = statusOptionUpdated,
 	block = blockOptionUpdated,
+	kakyoinPose = updateKakyoinPose,
+	p1Hp = function() writeWord(p1.memory2.healthRefill, options.p1Hp) end,
+	p2Hp = function() writeWord(p2.memory2.healthRefill, options.p2Hp) end,
+	standGaugeLimit = updateStandGaugeLimit,
+	p2StandGauge = updateStandGaugeLimit,
 }
 
 function optionUpdated(key)
@@ -5007,6 +5229,17 @@ function updateMenuFlash()
 		menu.flashColor[i] = min[i] + (max[i] - min[i]) / 60 * inc
 	end
 end
+
+-- function updateStandGaugeMax()
+-- 	options.p1StandMax = p1.standGaugeMax
+-- 	options.p2StandMax = p2.standGaugeMax
+-- 	if options.p1StandGauge == 72 or options.p1StandGauge == 80 or options.p1StandGauge == 88 then
+-- 		options.p1StandGauge = options.p1StandMax
+-- 	end
+-- 	if options.p2StandGauge == 72 or options.p2StandGauge == 80 or options.p2StandGauge == 88 then
+-- 		options.p2StandGauge = options.p2StandMax
+-- 	end
+-- end
 
 function playSound(id, pan)
 	if not options.menuSound then return end
@@ -5312,7 +5545,6 @@ function trialModeStart()
 	end
 
 	writeWord(p1.memory2.standGaugeRefill, p1.standGaugeMax)
-	writeWord(p2.memory2.standGaugeRefill, p2.standGaugeMax)
 
 	if not trial.enabled then
 		storeOptions()
@@ -5353,10 +5585,6 @@ function updateOptions()
 		writeDWord(0x205C1B8, t.rng2)
 	end
 	if t.health ~= nil then
-		if not t.health then
-			writeWord(p1.memory2.healthRefill, t.p1.hp or 144)
-			writeWord(p2.memory2.healthRefill, t.p2.hp or 144)
-		end
 		options.healthRefill = t.health and 2 or 1
 	else
 		options.healthRefill = 2
@@ -5378,6 +5606,13 @@ function updateOptions()
 		options.standGaugeRefill = true
 	end
 	if t.p1 then
+		if t.p1.hp then
+			options.p1Hp = t.p1.hp
+			writeWord(p1.memory2.healthRefill, t.p1.hp)
+		else
+			options.p1Hp = 144
+			writeWord(p1.memory2.healthRefill, 144)
+		end
 		if t.p1.child ~= nil then
 			options.p1Child = t.p1.child
 		else
@@ -5389,11 +5624,26 @@ function updateOptions()
 		end
 	end
 	if t.p2 then
+		if t.p2.hp then
+			options.p2Hp = t.p2.hp
+			writeWord(p2.memory2.healthRefill, t.p2.hp)
+		else
+			options.p2Hp = 144
+			writeWord(p2.memory2.healthRefill, 144)
+		end
 		if t.p2.child ~= nil then
 			options.p2Child = t.p2.child
 		else
 			options.p2Child = false
 		end
+		if t.p2.standGauge ~= nil then
+			options.standGaugeLimit = true
+			options.p2StandGauge = t.p2.standGauge
+		else
+			options.standGaugeLimit = false
+			writeWord(p2.memory2.standGaugeRefill, p2.standGaugeMax)
+		end
+		updateStandGaugeLimit()
 		updateChild(p2, t.p2.child, 0x02034CF5)
 	end
 	if t.tandemChain then
@@ -5424,6 +5674,7 @@ function updateOptions()
 	options.killDenial = t.drill or false
 	options.block = 1
 	options.status = 1
+	options.kakyoinPose = 1
 	updateHacks()
 	resetReversalOptions()
 end
@@ -5476,7 +5727,7 @@ function trialSuccess()
 	if p1.playbackCount ~= 0 then return end
 	menu.options[menu.index].success = true
 	local trialSuccess = options.trialSuccess[options.trialsFilename]
-	local value = bor(trialSuccess[menu.previousSubIndex], lShift(1, trial.id - 1))
+	local value = bor(trialSuccess[menu.previousSubIndex] or 0, lShift(1, trial.id - 1))
 	trialSuccess[menu.previousSubIndex] = value
 	trialSave()
 end
@@ -5580,7 +5831,8 @@ function trialStartRecording()
 			standY = p1.standY,
 			facing = p1.facing,
 			standFacing = readByte(0x2035239),
-			child = p1.child == 0xFF
+			child = p1.child == 0xFF,
+			hp = p1.healthRefill
 		},
 		p2 = {
 			character = p2.character,
@@ -5591,7 +5843,8 @@ function trialStartRecording()
 			standY = p2.standY,
 			facing = p2.facing,
 			standFacing = readByte(0x2035659),
-			child = p2.child == 0xFF
+			child = p2.child == 0xFF,
+			hp = p2.healthRefill
 		},
 		stage = {
 			id = system.stageId,
@@ -5607,8 +5860,6 @@ function trialStartRecording()
 	}
 	if options.healthRefill == 1 then
 		recording.health = false
-		recording.p1.hp = p1.healthRefill
-		recording.p2.hp = p2.healthRefill
 	end
 	if options.meterRefill == 1 then
 		recording.meter = readByte(p1.memory.meterNumber)
@@ -5623,6 +5874,9 @@ function trialStartRecording()
 		recording.parry = true
 	elseif options.mediumKickHotkey == "recordAntiAir" then
 		recording.antiair = true
+	end
+	if options.standGaugeLimit then
+		recording.p2.standGauge = options.p2StandGauge
 	end
 	trial.recording = recording
 	trial.recordingSubIndex = 1
@@ -5738,7 +5992,7 @@ function trialRecordingSave()
 	end
 	local char = charToIndex[recording.p1.character]
 	if not char then
-		menu.info = "Boss character trials not supported"
+		menu.info = "Trials for this character are not supported"
 		playSound(sounds.error, 0x4040)
 		return
 	end
@@ -6073,8 +6327,8 @@ function resetTrialCompletion()
 end
 
 function clearTrialOptions()
-	local successTable = options.trialSuccess[options.trialsFilename]
-	for i = 1, 22, 1 do 
+	local successTable = options.trialSuccess[options.trialsFilename] or 0
+	for i = 1, 24, 1 do 
 		successTable[i] = 0
 	end
 	menu.info = "Trial completion reset!"
@@ -6082,6 +6336,17 @@ end
 
 -- Cleans up the trial table. Swaps strings for ints
 function sanitizeTrials()
+	--add boss characters
+	if #trials < 24 then
+		trials[23] = {
+			name = "Boss Ice",
+			trials = {},
+		}
+		trials[24] = {
+			name = "Death 13",
+			trials = {},
+		}
+	end
 	for i = 1, #trials, 1 do
 		for y = 1, #trials[i].trials, 1 do
 			for c = 1, #trials[i].trials[y].combo, 1 do
@@ -6387,7 +6652,7 @@ end
 -- Draws the menu overlay
 function drawMenu()
 	if menu.state == 0 then return end
-	gui.box(90, 36, 294, 208, colors.menuBackground, colors.menuBorder)
+	gui.box(90, 36, 294, 212, colors.menuBackground, colors.menuBorder)
 	gui.text(110, 42, menu.title, colors.menuTitle)
 	if menu.state == 3 then --info
 		drawInfo()
@@ -6406,22 +6671,39 @@ function drawList()
 	for i = 1, #menu.options, 1 do
 		local color = (menu.index == i and menu.flashColor or colors.menuUnselected)
 		local option = menu.options[i]
-		gui.text(100, 48 + i * 12, option.name, color)
+		local x = 100
+		local x2 = 200
+		local y = 42 + i * 12
+		gui.text(x, y, option.name, color)
 		if option.type == optionType.bool then
-			local word = options[option.key] and "Enabled" or "Disabled"
-			gui.text(200, 48 + i * 12, word, color)
+			local bool = options[option.key]
+			local word = bool and "Enabled" or "Disabled"
+			gui.text(x2, y, word, color)
+			drawSlidingBar(i, bool and 2 or 1, 2, color)
 		elseif option.type == optionType.int then
 			local number = options[option.key]
-			gui.text(200, 48 + i * 12, number, color)
+			gui.text(x2, y, number, color)
+			drawSlidingBar(i, number - option.min + 1, option.max - option.min + 1, color)
+		elseif option.type == optionType.managedInt then
+			local number = options[option.key]
+			gui.text(x2, y, number, color)
+			local min = options[option.min]
+			local max = options[option.max]
+			drawSlidingBar(i, number - min + 1, max - min + 1, color)
 		elseif option.type == optionType.list then
-			local word = option.list[options[option.key]]
-			gui.text(200, 48 + i * 12, word, color)
+			local index = options[option.key]
+			local word = option.list[index]
+			gui.text(x2, y, word, color)
+			drawSlidingBar(i, index, #option.list, color)
 		elseif option.type == optionType.slider then
 			local value = getMenuColor(option.mask, option.shift)
-			gui.text(150, 48 + i * 12, value, color)
+			gui.text(x + 50, y, value, color)
 		elseif option.type == optionType.key then
-			local word = option.names[options[option.key]]
-			gui.text(200, 48 + i * 12, word, color)
+			local value = options[option.key]
+			local index = tableIndex(option.list, value)
+			local word = option.names[value]
+			gui.text(x2, y, word, color)
+			drawSlidingBar(i, index, #option.list, color)
 		end
 	end
 	if menu.state == 4 then
@@ -6429,7 +6711,21 @@ function drawList()
 		gui.box(200, 60, 240, 100, color, color)
 		gui.text(186, 112, "Hold A to increase by 10", colors.menuTitle)
 	end
-	gui.text(110, 196, menu.info, colors.menuTitle)
+	if #menu.info > 0 then
+		gui.box(90, 10, 294, 28, colors.menuBackground, colors.menuBorder)
+		gui.text(100, 16, menu.info, colors.menuUnselected)
+	end
+end
+
+function drawSlidingBar(i, index, size, color)
+	local length = 62
+	local inc = length / size
+	if menu.index == i then
+		local x = 199
+		local y =  51 + i * 12
+		gui.line(x, y, x + length, y, colors.menuUnselected)
+		gui.line(x + (index - 1) * inc, y, x + (index - 1) * inc + inc, y, color)
+	end
 end
 
 function drawInfo()
@@ -6511,12 +6807,12 @@ function drawTrialsCharacters()
 		local option = menu.options[i]
 		local color = (menu.index == i) and menu.flashColor or colors.menuUnselected
 		local x = 100 + ((i - 1) % 2) * 100
-		local y = 60 + math.floor((i - 1) / 2) * 12
+		local y = 54 + math.floor((i - 1) / 2) * 12
 		gui.text(x, y, option.name, color)
 		guiTextAlignRight(x + 86, y, option.completed.."/"..#trials[i].trials, color)
 	end
-	local color = (menu.index == 23) and menu.flashColor or colors.menuUnselected
-	gui.text(200, 192, "Return", color)
+	local color = (menu.index == #menu.options) and menu.flashColor or colors.menuUnselected
+	gui.text(200, 198, "Return", color)
 end
 
 function drawTrials()
@@ -6583,11 +6879,13 @@ function drawTrialGui()
 end
 
 function drawFileList()
-	for i = 1, #menu.options, 1 do
-		local option = menu.options[i]
-		local color = menu.index == i and menu.flashColor or 
+	local length = math.min(#menu.options, 15)
+	for i = 1, length, 1 do
+		local index = menu.min + i - 1
+		local option = menu.options[index]
+		local color = menu.index == index and menu.flashColor or 
 			options.trialsFilename == option.name and options.failColor or colors.menuUnselected
-		gui.text(100, 50 + i * 10, option.name, color)
+		gui.text(100, 44 + i * 10, option.name, color)
 	end
 end
 
@@ -6931,6 +7229,10 @@ function replayOptions()
 	options.infiniteTimestop = false
 	options.block = 1
 	options.status = 1
+	options.kakyoinPose = 1
+	options.p1Hp = 144
+	options.p2Hp = 144
+	options.standGaugeLimit = false
 	resetReversalOptions()
 end
 

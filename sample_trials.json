@@ -5,6 +5,9 @@
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 0,
@@ -27,11 +30,8 @@
                         "name": "214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "difficulty": 1,
                 "recording": ["r15","ar9","r10","rb4","b2","3","d2","rd3","r1","sr3","1","d3","dl2","l2","bl2","b4","8","d2","dl3","l3","1","a7","60"],
+                "difficulty": 1,
                 "name": "Rekkas",
                 "position": false,
                 "p2": {
@@ -40,9 +40,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 872,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "Easy hard knock down"
@@ -58,14 +58,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1104,
+                    "child": false,
                     "standX": 999,
-                    "child": false
+                    "x": 1104
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 6,
@@ -199,11 +202,8 @@
                         "name": "214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "difficulty": 1,
                 "recording": ["r3","rd2","d4","rd2","r1","ar2","a19","ar3","arb9","r1","19","r4","3","r7","cr7","r18","ar7","r12","rb4","db2","d2","dl3","l1","bl1","b4","9","ru6","r1","20","c6","11","r5","ar8","r11","rb1","db4","dl3","l3","s8","14","a3","ab2","b2","cb1","c5","5","a3","ab2","b2","cb1","c5","6","a3","ab2","b2","cb1","c5","37","r13","12","a10","17","r22","ar10","r1","15","ru5","r1","19","c7","7","r8","ar8","r11","rb4","db2","d2","rd3","r2","sr1","s2","2","d1","dl2","l3","b5","9","d2","dl3","l3","1","a6","76"],
+                "difficulty": 1,
                 "name": "Tandem Test",
                 "position": false,
                 "p2": {
@@ -212,9 +212,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 872,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "ABCABCABC"
@@ -230,14 +230,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1070,
+                    "child": false,
                     "standX": 998,
-                    "child": false
+                    "x": 1070
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 2,
@@ -293,11 +296,8 @@
                         "name": "s.214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "recording": ["r8","rb4","rdb1","rd1","d2","dl2","l3","b7","6","ru7","r1","20","c6","10","r6","ar6","r12","rb3","b2","2","d2","rd3","r2","sr1","s3","2","d1","dl3","l2","bl3","b3","44","r4","4","r3","ar1","a3","16","a4","6","a5","4","b6","1","d2","rd2","r3","c5","15","d2","dl3","l2","al1","a3","8","d3","dl2","l4","a5","121"],
                 "difficulty": 1,
+                "recording": ["r8","rb4","rdb1","rd1","d2","dl2","l3","b7","6","ru7","r1","20","c6","10","r6","ar6","r12","rb3","b2","2","d2","rd3","r2","sr1","s3","2","d1","dl3","l2","bl3","b3","44","r4","4","r3","ar1","a3","16","a4","6","a5","4","b6","1","d2","rd2","r3","c5","15","d2","dl3","l2","al1","a3","8","d3","dl2","l4","a5","121"],
                 "name": "Stand crash",
                 "position": false,
                 "p2": {
@@ -306,9 +306,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 1192,
                     "standX": 1192,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "Works on 80 s.gauge opponents (eg. Dio)"
@@ -324,14 +324,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1043,
                     "standX": 1004,
-                    "x": 1043
+                    "child": false
                 }
             },
             {
                 "direction": 6,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 6,
@@ -392,11 +395,8 @@
                         "name": "214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "recording": ["ru4","r1","21","c5","7","d8","cd3","crd1","rd3","r3","rd1","d5","rd4","rb2","b14","rb6","b25","rb1","rub2","rb2","b2","cb7","b5","28","r4","ar8","r11","rb2","rdb1","db1","d3","dl2","l2","b6","8","ru7","21","c6","9","r8","ar6","r12","rb3","db2","d3","rd3","r2","sr2","s2","1","d2","dl3","l1","bl1","b5","10","d2","dl3","l3","a6","119"],
                 "difficulty": 1,
+                "recording": ["ru4","r1","21","c5","7","d8","cd3","crd1","rd3","r3","rd1","d5","rd4","rb2","b14","rb6","b25","rb1","rub2","rb2","b2","cb7","b5","28","r4","ar8","r11","rb2","rdb1","db1","d3","dl2","l2","b6","8","ru7","21","c6","9","r8","ar6","r12","rb3","db2","d3","rd3","r2","sr2","s2","1","d2","dl3","l1","bl1","b5","10","d2","dl3","l3","a6","119"],
                 "name": "Instant overhead",
                 "position": false,
                 "p2": {
@@ -405,9 +405,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 1192,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "j.C must hit meaty or the trial will fail"
@@ -423,9 +423,64 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1063,
                     "standX": 979,
-                    "x": 1063
+                    "child": false
+                }
+            },
+            {
+                "recording": ["c7","42"],
+                "direction": 0,
+                "ips": false,
+                "combo": [
+                    {
+                        "id": 38,
+                        "name": "5C "
+                    },
+                    {
+                        "id": 52,
+                        "name": "5C "
+                    }
+                ],
+                "tandemChain": 0,
+                "author": "",
+                "tandemCooldown": false,
+                "rng": 2902996483,
+                "difficulty": 1,
+                "rng2": 39592,
+                "name": "",
+                "position": false,
+                "p2": {
+                    "standX": 478,
+                    "stand": 0,
+                    "hp": 135,
+                    "y": 0,
+                    "character": 11,
+                    "standY": 0,
+                    "facing": 0,
+                    "child": false,
+                    "standFacing": 0,
+                    "x": 765
+                },
+                "info": [
+                    ""
+                ],
+                "stage": {
+                    "id": 30,
+                    "x": 446,
+                    "y": 252
+                },
+                "p1": {
+                    "standX": 608,
+                    "stand": 0,
+                    "hp": 144,
+                    "y": 0,
+                    "character": 0,
+                    "standY": 0,
+                    "facing": 1,
+                    "child": false,
+                    "standFacing": 1,
+                    "x": 715
                 }
             }
         ]
@@ -455,12 +510,14 @@
                         "name": "j.214A (Hit)"
                     }
                 ],
-                "difficulty": 2,
+                "recording": ["ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81"],
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
-                "recording": ["ru5","r1","17","d3","dl1","adl2","al4","a1","15","a7","81"],
                 "standGuage": false,
-                "rng": 3975358280,
+                "difficulty": 2,
+                "info": [
+                    "Nothing but net"
+                ],
                 "name": "Net link",
                 "position": false,
                 "p2": {
@@ -469,13 +526,11 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 872,
-                    "x": 1192
+                    "child": false
                 },
-                "info": [
-                    "Nothing but net"
-                ],
+                "rng": 3975358280,
                 "stage": {
                     "id": 38,
                     "x": 840,
@@ -487,14 +542,17 @@
                     "standY": 42,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1096,
                     "standX": 1103,
-                    "x": 1096
+                    "child": false
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 4118674902,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 15,
@@ -581,11 +639,8 @@
                         "name": "236AA"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 4118674902,
-                "difficulty": 3,
                 "recording": ["ru3","r2","rd1","crd6","rd11","r1","3","a5","6","r4","3","r3","ar1","a3","16","a3","7","c5","d2","dl3","l2","s5","9","a2","ab2","b2","cb2","c3","6","a4","ab1","b1","cb2","c6","5","a3","ab2","b2","cb2","c5","30","r39","ar9","r12","ar7","r14","ar7","r15","ar7","r13","ar8","r4","8","ru5","r1","16","d3","dl1","adl2","al4","a1","14","a7","24","d2","dl3","l3","b6","22","l6","3","l4","dl1","d2","rd3","r1","acrb1","acb4","186"],
+                "difficulty": 3,
                 "name": "Instant overhead on standing opponent?",
                 "position": false,
                 "p2": {
@@ -594,9 +649,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 918,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "Yes"
@@ -612,9 +667,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "x": 1125,
+                    "child": false,
                     "standX": 1141,
-                    "child": false
+                    "x": 1125
                 }
             }
         ]
@@ -635,6 +690,9 @@
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 43,
@@ -657,11 +715,8 @@
                         "name": "s.6248A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "difficulty": 1,
                 "recording": ["c5","2","d1","rd2","r3","ar1","a6","18","l5","al5","l7","11","a5","2","r1","rd2","rdb5","rb1","5","l4","dl1","d2","rd2","r1","ru2","u3","a5","123"],
+                "difficulty": 1,
                 "name": "Command grab ender",
                 "position": false,
                 "p2": {
@@ -670,9 +725,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1057,
+                    "child": false,
                     "standX": 872,
-                    "child": false
+                    "x": 1057
                 },
                 "info": [
                     "GET OVER HERE!"
@@ -688,14 +743,15 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "x": 971,
+                    "child": false,
                     "standX": 971,
-                    "child": false
+                    "x": 971
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
                 "combo": [
                     {
                         "id": 6,
@@ -777,15 +833,14 @@
                         "name": "s.6248A"
                     }
                 ],
-                "rng": 2902996483,
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
                 "difficulty": 3,
                 "recording": ["d2","ad7","d1","13","a5","9","d3","scd7","rd3","r4","2","a5","18","l4","al4","l9","11","a5","6","a5","9","b5","3","d2","dl2","l3","s4","40","d3","ad6","d10","ad7","d10","ad7","d11","ad7","d3","9","a5","5","a5","6","b5","8","c4","4","d2","rd3","r2","ar1","a4","9","l3","al5","l7","8","s1","sc6","c1","1","d1","rd3","r2","ar2","a5","20","l2","al4","l8","11","a4","3","rd3","rdb6","b1","4","l2","dl1","d2","rd2","r1","ru2","u4","a5","194"],
+                "name": "CC",
                 "info": [
                     "s.off confirm into custom combo"
                 ],
-                "name": "CC",
                 "position": false,
                 "p2": {
                     "y": 0,
@@ -793,9 +848,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 872,
-                    "x": 1192
+                    "child": false
                 },
                 "standGauge": false,
                 "stage": {
@@ -809,9 +864,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1145,
                     "standX": 957,
-                    "x": 1145
+                    "child": false
                 }
             }
         ]
@@ -827,6 +882,9 @@
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": [
@@ -841,11 +899,8 @@
                         "name": "s.5C"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "recording": ["r4","5","r6","5","c1","cb7","23","c3","4","c7","38"],
                 "difficulty": 1,
+                "recording": ["r4","5","r6","5","c1","cb7","23","c3","4","c7","38"],
                 "name": "Double Attack",
                 "position": false,
                 "p2": {
@@ -854,9 +909,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 872,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "At the end of your stand dash if you dash attack",
@@ -874,9 +929,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "child": false,
+                    "x": 979,
                     "standX": 979,
-                    "x": 979
+                    "child": false
                 }
             }
         ]
@@ -902,15 +957,15 @@
                 "direction": 0,
                 "ips": false,
                 "rng": 2626743981,
-                "recording": ["dl7","rd2","r3","rd2","d2","rd1","ard1","ar2","a3","23","s1","sb6","b1","2","d1","rd3","r2","1","acb5","301"],
+                "difficulty": 2,
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
                 "parry": true,
-                "difficulty": 2,
+                "recording": ["dl7","rd2","r3","rd2","d2","rd1","ard1","ar2","a3","23","s1","sb6","b1","2","d1","rd3","r2","1","acb5","301"],
+                "name": "Guard Cancel",
                 "info": [
                     "Simple confirm into super from a guard cancel"
                 ],
-                "name": "Guard Cancel",
                 "position": false,
                 "p2": {
                     "y": 0,
@@ -918,9 +973,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 847,
                     "standX": 792,
-                    "x": 847
+                    "child": false
                 },
                 "standGauge": false,
                 "stage": {
@@ -934,14 +989,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 774,
                     "standX": 749,
-                    "x": 774
+                    "child": false
                 }
             },
             {
                 "direction": 6,
                 "ips": false,
+                "rng": 3077560248,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 14,
@@ -967,11 +1025,8 @@
                         "name": "s.236AA"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 3077560248,
-                "recording": ["r1","ru3","r1","25","c5","15","a4","6","b6","8","c4","10","b6","60","a4","ad1","d1","rd3","r1","1","acb5","291"],
                 "difficulty": 1,
+                "recording": ["r1","ru3","r1","25","c5","15","a4","6","b6","8","c4","10","b6","60","a4","ad1","d1","rd3","r1","1","acb5","291"],
                 "name": "UB Reset",
                 "position": false,
                 "p2": {
@@ -980,9 +1035,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 1192,
                     "standX": 1192,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "The 5A reset must hit on the first frame of",
@@ -1001,9 +1056,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "child": false,
+                    "x": 1058,
                     "standX": 1058,
-                    "x": 1058
+                    "child": false
                 }
             }
         ]
@@ -1014,6 +1069,9 @@
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 2,
@@ -1037,11 +1095,8 @@
                         "name": "2C"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "recording": ["c4","1","d1","rd3","r2","rb1","b4","4","d8","ad4","d11","23","d3","cd7","d27","20"],
                 "difficulty": 1,
+                "recording": ["c4","1","d1","rd3","r2","rb1","b4","4","d8","ad4","d11","23","d3","cd7","d27","20"],
                 "name": "Doll cancel",
                 "position": false,
                 "p2": {
@@ -1050,9 +1105,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1030,
                     "standX": 872,
-                    "x": 1030
+                    "child": false
                 },
                 "info": [
                     "Link from 5C using a 236 cancel"
@@ -1068,9 +1123,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 972,
                     "standX": 1073,
-                    "x": 972
+                    "child": false
                 }
             }
         ]
@@ -1081,9 +1136,6 @@
             {
                 "direction": 0,
                 "ips": false,
-                "rng": 1699785702,
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 33,
@@ -1146,8 +1198,11 @@
                         "name": "623AA (Vore)"
                     }
                 ],
-                "difficulty": 1,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "rng": 1699785702,
                 "recording": ["r1","ru3","r2","19","c5","14","c4","1","d3","dl2","l2","sl1","s3","14","b4","6","b4","8","b4","9","b4","5","b4","6","b4","35","r1","ru5","r1","18","b6","9","r27","10","b5","8","r5","rd3","d3","rd1","acrdb1","acrb1","acb2","466"],
+                "difficulty": 1,
                 "name": "Vore test",
                 "position": false,
                 "p2": {
@@ -1156,9 +1211,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "x": 252,
+                    "child": false,
                     "standX": 236,
-                    "child": false
+                    "x": 252
                 },
                 "info": [
                     "Works on 80 s.gauge opponents (eg. Dio)"
@@ -1174,9 +1229,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 116,
+                    "child": false,
                     "standX": 385,
-                    "child": false
+                    "x": 116
                 }
             }
         ]
@@ -1187,6 +1242,9 @@
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 76910903,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 18,
@@ -1208,11 +1266,8 @@
                         "name": "s.j.236AA"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 76910903,
-                "recording": ["l4","26","d2","rd2","r3","1","acb5","48","d4","rd2","r2","2","acb5","49","r14","ru10","u1","3","a3","1","d1","rd3","r2","acb6","64"],
                 "difficulty": 1,
+                "recording": ["l4","26","d2","rd2","r3","1","acb5","48","d4","rd2","r2","2","acb5","49","r14","ru10","u1","3","a3","1","d1","rd3","r2","acb6","64"],
                 "name": "Triple Knives",
                 "position": false,
                 "p2": {
@@ -1221,9 +1276,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 872,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "Checkmate da!"
@@ -1239,14 +1294,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "child": false,
+                    "x": 1006,
                     "standX": 1022,
-                    "x": 1006
+                    "child": false
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 3840637271,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 54,
@@ -1261,11 +1319,8 @@
                         "name": "663C"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 3840637271,
-                "difficulty": 1,
                 "recording": ["r4","4","r4","cr1","c3","3","d2","dl2","l2","cl1","c5","4","r4","4","r2","rd3","crd22","rd6","d1","25"],
+                "difficulty": 1,
                 "name": "66C Sweep",
                 "position": false,
                 "p2": {
@@ -1274,9 +1329,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 1157,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "Day 1 combos"
@@ -1292,14 +1347,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 936,
+                    "child": false,
                     "standX": 1030,
-                    "child": false
+                    "x": 936
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 3771363387,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 54,
@@ -1327,11 +1385,8 @@
                         "name": "s.214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 3771363387,
-                "difficulty": 3,
                 "recording": ["r5","3","r4","cr1","c4","d2","rd3","r1","sr3","s3","3","r5","3","r1","rd2","rdb9","rb1","r1","7","r8","rb2","db3","d1","dl3","l3","al1","a5","9","d2","dl3","l3","a6","61"],
+                "difficulty": 3,
                 "name": "Whiff test",
                 "position": true,
                 "p2": {
@@ -1340,9 +1395,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 1157,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "Link after a whiffed 236S"
@@ -1358,14 +1413,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 967,
+                    "child": false,
                     "standX": 983,
-                    "child": false
+                    "x": 967
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 3771363387,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 63,
@@ -1510,11 +1568,8 @@
                         "name": "5C"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 3771363387,
-                "difficulty": 3,
                 "recording": ["r4","3","r2","rd4","ad2","adl2","al2","l1","8","r3","4","r8","3","d1","dl4","adl8","dl11","adl8","d1","5","r4","asr4","as3","a1","3","r4","4","r2","ard3","ad1","d1","dl3","l1","sl1","s10","8","a5","ab1","b2","cb1","c5","5","a4","ab1","b2","cb1","c5","6","a4","ab2","b3","cb2","c4","21","r21","14","d1","dl3","adl11","dl1","d1","10","r13","14","dl5","adl11","dl1","d1","9","r25","12","b5","d2","rd3","r4","c5","11","dl7","adl6","dl11","adl6","dl12","adl7","dl11","adl8","dl11","adl6","dl12","adl8","12","c4","4","c7","90"],
+                "difficulty": 3,
                 "name": "Corner \"BnB\"",
                 "position": false,
                 "p2": {
@@ -1523,9 +1578,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 1157,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "I finally did it! *Posts vid in discord*"
@@ -1541,14 +1596,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1048,
+                    "child": false,
                     "standX": 1014,
-                    "child": false
+                    "x": 1048
                 }
             },
             {
                 "direction": 2,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 6,
@@ -1599,11 +1657,8 @@
                         "name": "s.214A"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "difficulty": 2,
                 "recording": ["ru5","r1","21","a6","4","d8","ad5","d15","ad1","adl2","al1","l3","7","r4","4","r8","3","dl4","adl7","dl12","adl7","dl1","d1","8","d2","asd4","a1","3","b6","db1","d1","dl4","l2","1","a5","7","d2","dl3","l3","1","a6","77"],
+                "difficulty": 2,
                 "name": "Don't want no short people",
                 "position": false,
                 "p2": {
@@ -1612,9 +1667,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1192,
+                    "child": false,
                     "standX": 872,
-                    "child": false
+                    "x": 1192
                 },
                 "info": [
                     "Works on short people and dogs"
@@ -1630,9 +1685,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1034,
+                    "child": false,
                     "standX": 1085,
-                    "child": false
+                    "x": 1034
                 }
             },
             {
@@ -1680,9 +1735,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 476,
+                    "child": false,
                     "standX": 481,
-                    "child": false
+                    "x": 476
                 },
                 "info": [
                     "Timestop test"
@@ -1698,14 +1753,15 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 1,
-                    "x": 191,
+                    "child": false,
                     "standX": 207,
-                    "child": false
+                    "x": 191
                 }
             },
             {
                 "direction": 0,
                 "ips": false,
+                "rng": 168052263,
                 "combo": [
                     {
                         "id": 3,
@@ -1787,7 +1843,6 @@
                         "type": "time stop"
                     }
                 ],
-                "rng": 168052263,
                 "author": "Teddy K",
                 "tandemCooldown": true,
                 "meter": 4,
@@ -1801,9 +1856,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 355,
                     "standX": 339,
-                    "x": 355
+                    "child": false
                 },
                 "info": [
                     "Stand crash into a timestop setup"
@@ -1819,9 +1874,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 289,
                     "standX": 504,
-                    "x": 289
+                    "child": false
                 }
             }
         ]
@@ -1830,7 +1885,7 @@
         "name": "Shadow Dio",
         "trials": [
             {
-                "direction": 0,
+                "drill": 5,
                 "ips": false,
                 "combo": [
                     {
@@ -1846,12 +1901,14 @@
                         "name": "5S"
                     }
                 ],
-                "drill": 5,
+                "direction": 0,
                 "author": "Majonglesgay",
                 "tandemCooldown": false,
                 "recording": ["dl2","adl8","10","c5","6","s6","10","r3","4","r9","3","dl38","d1","22"],
                 "difficulty": 1,
-                "rng": 401018469,
+                "info": [
+                    "Loop 5 times to succeed!"
+                ],
                 "name": "Loop drill",
                 "position": false,
                 "p2": {
@@ -1860,13 +1917,11 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 928,
                     "standX": 608,
-                    "x": 928
+                    "child": false
                 },
-                "info": [
-                    "Loop 5 times to succeed!"
-                ],
+                "rng": 401018469,
                 "stage": {
                     "id": 39,
                     "x": 576,
@@ -1878,9 +1933,9 @@
                     "standY": 80,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 880,
                     "standX": 815,
-                    "x": 880
+                    "child": false
                 }
             }
         ]
@@ -1934,9 +1989,9 @@
                     "standY": 91,
                     "facing": 0,
                     "stand": 0,
-                    "child": false,
+                    "x": 1192,
                     "standX": 872,
-                    "x": 1192
+                    "child": false
                 },
                 "info": [
                     "214A and 663A must hit on the first frame",
@@ -1953,9 +2008,9 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1126,
                     "standX": 1092,
-                    "x": 1126
+                    "child": false
                 }
             }
         ]
@@ -1981,6 +2036,9 @@
             {
                 "direction": 9,
                 "ips": false,
+                "rng": 2902996483,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "combo": [
                     {
                         "id": 2,
@@ -1991,11 +2049,8 @@
                         "name": "623C"
                     }
                 ],
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
-                "rng": 2902996483,
-                "difficulty": 1,
                 "recording": ["c6","cr1","r4","rd1","d5","rd2","r1","cr2","c4","49"],
+                "difficulty": 1,
                 "name": "Antiair",
                 "position": false,
                 "p2": {
@@ -2004,9 +2059,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1090,
+                    "child": false,
                     "standX": 872,
-                    "child": false
+                    "x": 1090
                 },
                 "info": [
                     "Anti air test"
@@ -2018,14 +2073,14 @@
                 },
                 "p1": {
                     "standX": 872,
-                    "child": false,
+                    "stand": 0,
                     "y": 0,
                     "x": 967,
                     "standY": 0,
                     "facing": 1,
                     "level": 0,
-                    "stand": 0,
-                    "character": 22
+                    "character": 22,
+                    "child": false
                 }
             }
         ]
@@ -2034,9 +2089,6 @@
         "name": "Hoingo",
         "trials": [
             {
-                "recording": ["s7","4","r5","3","l8","11","r2","5","r9","ar1","a4","2","r1","rd2","d2","dl2","l1","u2","2","a3","280"],
-                "direction": 0,
-                "ips": false,
                 "combo": [
                     {
                         "type": "s bullet",
@@ -2059,29 +2111,32 @@
                         "name": "6248A"
                     }
                 ],
-                "tandemChain": 0,
-                "author": "Majonglesgay",
-                "tandemCooldown": false,
+                "direction": 0,
+                "ips": false,
                 "rng": 1980842744,
                 "difficulty": 1,
-                "rng2": 28549,
-                "name": "S bullet test",
-                "position": false,
-                "p2": {
-                    "standX": 624,
-                    "stand": 0,
-                    "y": 0,
-                    "character": 11,
-                    "standY": 0,
-                    "facing": 0,
-                    "child": false,
-                    "standFacing": 0,
-                    "x": 944
-                },
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
                 "info": [
                     "S bullet directions must be forward, back or",
                     "trial will fail"
                 ],
+                "recording": ["s7","4","r5","3","l8","11","r2","5","r9","ar1","a4","2","r1","rd2","d2","dl2","l1","u2","2","a3","280"],
+                "p2": {
+                    "standX": 624,
+                    "child": false,
+                    "y": 0,
+                    "standFacing": 0,
+                    "standY": 0,
+                    "facing": 0,
+                    "x": 944,
+                    "character": 11,
+                    "stand": 0
+                },
+                "name": "S bullet test",
+                "position": false,
+                "rng2": 28549,
+                "tandemChain": 0,
                 "stage": {
                     "id": 30,
                     "x": 592,
@@ -2089,14 +2144,14 @@
                 },
                 "p1": {
                     "standX": 624,
-                    "stand": 0,
+                    "child": false,
                     "y": 0,
-                    "character": 23,
+                    "standFacing": 1,
                     "standY": 0,
                     "facing": 1,
-                    "child": false,
-                    "standFacing": 1,
-                    "x": 831
+                    "x": 831,
+                    "character": 23,
+                    "stand": 0
                 }
             }
         ]
@@ -2112,6 +2167,9 @@
             {
                 "direction": 0,
                 "ips": true,
+                "rng": 1657669497,
+                "author": "Mediocrity",
+                "tandemCooldown": true,
                 "combo": [
                     {
                         "id": 33,
@@ -2126,11 +2184,8 @@
                         "name": "214aa"
                     }
                 ],
-                "author": "Mediocrity",
-                "tandemCooldown": true,
-                "rng": 1657669497,
-                "recording": ["d2","dl1","l5","acb5","153","a5","ad2","adl1","al1","acbl6","l1","175"],
                 "difficulty": 5,
+                "recording": ["d2","dl1","l5","acb5","153","a5","ad2","adl1","al1","acbl6","l1","175"],
                 "name": "The Kreeg",
                 "position": false,
                 "p2": {
@@ -2139,9 +2194,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 1200,
                     "standX": 1200,
-                    "x": 1200
+                    "child": false
                 },
                 "info": [
                     "a 1f link you'll NEVER hit in a real game.",
@@ -2159,14 +2214,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1144,
                     "standX": 880,
-                    "x": 1144
+                    "child": false
                 }
             },
             {
                 "direction": 0,
                 "ips": true,
+                "rng": 2902996483,
+                "author": "Mediocrity",
+                "tandemCooldown": true,
                 "combo": [
                     {
                         "id": 1,
@@ -2185,11 +2243,8 @@
                         "name": "[4]6c"
                     }
                 ],
-                "author": "Mediocrity",
-                "tandemCooldown": true,
-                "rng": 2902996483,
-                "difficulty": 1,
                 "recording": ["d1","dl9","adl7","dl12","adl5","dl12","adl4","dl3","d1","rd2","r1","cr8","r4","61"],
+                "difficulty": 1,
                 "name": "A few pokes into knockdown",
                 "position": false,
                 "p2": {
@@ -2198,9 +2253,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1264,
+                    "child": false,
                     "standX": 944,
-                    "child": false
+                    "x": 1264
                 },
                 "info": [
                     "use 1a instead of 2a to charge while poking"
@@ -2216,14 +2271,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1212,
+                    "child": false,
                     "standX": 944,
-                    "child": false
+                    "x": 1212
                 }
             },
             {
                 "direction": 0,
                 "ips": true,
+                "rng": 2902996483,
+                "author": "Mediocrity",
+                "tandemCooldown": true,
                 "combo": [
                     {
                         "id": 1,
@@ -2246,11 +2304,8 @@
                         "name": "623c"
                     }
                 ],
-                "author": "Mediocrity",
-                "tandemCooldown": true,
-                "rng": 2902996483,
-                "recording": ["l2","dl6","adl5","dl14","adl5","dl6","l7","bl5","l1","1","r7","rb6","rd1","d1","dl2","d6","r2","cr8","rd1","d5","rd2","cr6","r3","129"],
                 "difficulty": 2,
+                "recording": ["l2","dl6","adl5","dl14","adl5","dl6","l7","bl5","l1","1","r7","rb6","rd1","d1","dl2","d6","r2","cr8","rd1","d5","rd2","cr6","r3","129"],
                 "name": "BnB combo",
                 "position": false,
                 "p2": {
@@ -2259,9 +2314,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 1264,
                     "standX": 1264,
-                    "x": 1264
+                    "child": false
                 },
                 "info": [
                     "use 1a instead of 2a to avoid accidental counter"
@@ -2277,14 +2332,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 1208,
                     "standX": 944,
-                    "x": 1208
+                    "child": false
                 }
             },
             {
                 "direction": 0,
                 "ips": true,
+                "rng": 2902996483,
+                "author": "Mediocrity",
+                "tandemCooldown": true,
                 "combo": [
                     {
                         "id": 35,
@@ -2295,11 +2353,8 @@
                         "name": "2a"
                     }
                 ],
-                "author": "Mediocrity",
-                "tandemCooldown": true,
-                "rng": 2902996483,
-                "recording": ["r4","5","r6","rd11","ard5","rd16","ard5","rd17","r2","48"],
                 "difficulty": 3,
+                "recording": ["r4","5","r6","rd11","ard5","rd16","ard5","rd17","r2","48"],
                 "name": "Confirm off a dashing poke",
                 "position": false,
                 "p2": {
@@ -2308,9 +2363,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 1,
-                    "child": false,
+                    "x": 671,
                     "standX": 655,
-                    "x": 671
+                    "child": false
                 },
                 "info": [
                     "a tight, essential link for any khan to learn"
@@ -2326,14 +2381,17 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "child": false,
+                    "x": 466,
                     "standX": 369,
-                    "x": 466
+                    "child": false
                 }
             },
             {
                 "direction": 0,
                 "ips": true,
+                "rng": 407278470,
+                "author": "Mediocrity",
+                "tandemCooldown": true,
                 "combo": [
                     {
                         "id": 35,
@@ -2352,11 +2410,8 @@
                         "name": "214aa"
                     }
                 ],
-                "author": "Mediocrity",
-                "tandemCooldown": true,
-                "rng": 407278470,
-                "difficulty": 4,
                 "recording": ["r6","4","r4","rd8","ard6","rd15","ard7","rd4","d1","l6","bl5","dl1","d5","dl2","l1","acbl3","acb3","178"],
+                "difficulty": 4,
                 "name": "Optimal combo into super",
                 "position": false,
                 "p2": {
@@ -2365,9 +2420,9 @@
                     "standY": 0,
                     "facing": 0,
                     "stand": 0,
-                    "x": 1344,
+                    "child": false,
                     "standX": 1342,
-                    "child": false
+                    "x": 1344
                 },
                 "info": [
                     "a couple tight links into a super"
@@ -2383,9 +2438,228 @@
                     "standY": 0,
                     "facing": 1,
                     "stand": 0,
-                    "x": 1191,
+                    "child": false,
                     "standX": 1024,
+                    "x": 1191
+                }
+            }
+        ]
+    },
+    {
+        "name": "Boss Ice",
+        "trials": [
+            {
+                "combo": [
+                    {
+                        "id": 20,
+                        "name": "s.6B"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.5A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.66A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.5A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.5A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.66A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.5A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.5A"
+                    },
+                    {
+                        "id": 16,
+                        "name": "s.66A"
+                    },
+                    {
+                        "id": [
+                            16,
+                            23,
+                            24
+                        ],
+                        "type": "multi",
+                        "name": "s.5A > 5B > 5C"
+                    }
+                ],
+                "direction": 0,
+                "ips": false,
+                "rng": 2120177843,
+                "tandemChain": 292,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "name": "",
+                "difficulty": 1,
+                "p2": {
+                    "standX": 624,
+                    "stand": 0,
+                    "y": 0,
+                    "standFacing": 1,
+                    "standY": 79,
+                    "facing": 0,
+                    "character": 0,
+                    "x": 944,
                     "child": false
+                },
+                "info": [
+                    ""
+                ],
+                "position": false,
+                "rng2": 10380,
+                "recording": ["r3","rb6","b1","30","a6","3","r4","4","r4","a4","13","a5","13","a6","5","r3","4","r3","a4","13","a5","15","a4","5","r4","4","r3","1","a3","16","a4","8","b4","11","c3","86"],
+                "stage": {
+                    "id": 30,
+                    "x": 592,
+                    "y": 252
+                },
+                "p1": {
+                    "standX": 786,
+                    "stand": 1,
+                    "y": 0,
+                    "standFacing": 1,
+                    "standY": 0,
+                    "facing": 1,
+                    "character": 12,
+                    "x": 794,
+                    "child": false
+                }
+            }
+        ]
+    },
+    {
+        "name": "Death 13",
+        "trials": [
+            {
+                "combo": [
+                    {
+                        "id": 3,
+                        "name": "6A"
+                    },
+                    {
+                        "id": 3,
+                        "name": "6A"
+                    },
+                    {
+                        "id": 3,
+                        "name": "6A"
+                    },
+                    {
+                        "id": 1,
+                        "name": "4B"
+                    }
+                ],
+                "direction": 0,
+                "ips": false,
+                "rng": 3910237808,
+                "tandemChain": 292,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "difficulty": 1,
+                "recording": ["r3","ar2","a2","39","r3","ar2","a4","38","r2","ar2","a3","37","l5","bl5","l14","65"],
+                "rng2": 49140,
+                "info": [
+                    "Punishable on hit. Don't do the ender."
+                ],
+                "position": false,
+                "p2": {
+                    "standX": 624,
+                    "child": false,
+                    "y": 0,
+                    "x": 944,
+                    "standY": 79,
+                    "facing": 0,
+                    "stand": 0,
+                    "standFacing": 1,
+                    "character": 0
+                },
+                "name": "",
+                "stage": {
+                    "id": 30,
+                    "x": 592,
+                    "y": 252
+                },
+                "p1": {
+                    "standX": 733,
+                    "child": false,
+                    "y": 0,
+                    "x": 879,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 0,
+                    "standFacing": 1,
+                    "character": 13
+                }
+            },
+            {
+                "combo": [
+                    {
+                        "id": 2,
+                        "type": "player charge",
+                        "name": "j.236A (Charge)"
+                    },
+                    {
+                        "id": 10,
+                        "name": "j.236A (Hit)"
+                    },
+                    {
+                        "id": 9,
+                        "name": "d.C"
+                    }
+                ],
+                "direction": 0,
+                "ips": false,
+                "rng": 3910237808,
+                "tandemChain": 292,
+                "author": "Majonglesgay",
+                "tandemCooldown": false,
+                "difficulty": 1,
+                "recording": ["d3","rd1","r2","ru5","a5","180","r3","4","r5","cr6","r8","70"],
+                "rng2": 56881,
+                "info": [
+                    "Hard knockdown. Sets up death 13 okizeme."
+                ],
+                "position": false,
+                "p2": {
+                    "standX": 624,
+                    "child": false,
+                    "y": 0,
+                    "x": 944,
+                    "standY": 79,
+                    "facing": 0,
+                    "stand": 0,
+                    "standFacing": 1,
+                    "character": 0
+                },
+                "name": "",
+                "stage": {
+                    "id": 30,
+                    "x": 592,
+                    "y": 252
+                },
+                "p1": {
+                    "standX": 733,
+                    "child": false,
+                    "y": 0,
+                    "x": 830,
+                    "standY": 0,
+                    "facing": 1,
+                    "stand": 0,
+                    "standFacing": 1,
+                    "character": 13
                 }
             }
         ]
