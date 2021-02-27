@@ -3038,6 +3038,7 @@ function readSystemMemory()
 	system.previousTimeStop = system.timeStop
 	system.timeStop = readByte(0x20314C2)
 	system.slowDown = readByte(0x2006190)
+	system.frameCount = readDWord(0x2031448)
 	system.previousPlayerSelect = system.playerSelect
 	system.playerSelect = readByte(0x2033142)
 	system.coined = readByte(0x20314AA)
@@ -3497,8 +3498,11 @@ function updatePlayer(player, other)
 	if system.screenFreeze == 0 and system.timeStop == 0 then -- not screen frozen
 
 		if player.wakeupCount > 0 then
-			player.wakeupCount = player.wakeupCount - 1
-			player.wakeupFrame = (player.wakeupCount == 1)
+			-- if not in hol horse slow down skip frame
+			if system.slowDown == 0 or system.frameCount % 2 == 0 then
+				player.wakeupCount = player.wakeupCount - 1
+				player.wakeupFrame = (player.wakeupCount == 1)
+			end
 		end
 
 		if player.guardCount > 0 then
@@ -3872,13 +3876,15 @@ function updatePlayerSwap(player, count, hack)
 		writeByte(address + 0xE4, 1) --clear round start animation
 		writeByte(address + 0xE5, 0) --clear round start animation
 		writeWord(0x205BAFC, 0) --clear hud update wait timer
-		writeByte(0x2034AA2, 0) --enable borders
-		writeByte(0x2034AA3, 1) --enable screen scroll
+		writeByte(0x2034AA2, 0) --enable p1 borders
+		writeByte(0x2034AA3, 1) --enable p1 screen scroll
+		writeByte(0x2034EC2, 0) --enable p2 borders
+		writeByte(0x2034EC3, 1) --enable p2 screen scroll
 		writeByte(0x20314A2, 0) --enable zoom
 		--updateStandGaugeMax() --Update max stand gauge for menu
 		--Fix for hoingo breaking stage borders
 		if not trial.enabled and player.character == 23 then
-			writeWord(player.memory2.x, system.screenX + 150)
+			writeWord(player.memory2.x, system.screenX + 200)
 		end
 	end
 end
