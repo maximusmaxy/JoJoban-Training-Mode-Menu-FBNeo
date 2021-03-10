@@ -133,6 +133,7 @@ local options = {
 	p2StandGauge = 88,
 	p2StandMin = 1,
 	p2StandMax = 88,
+	romHack = false,
 }
 
 -----------------------
@@ -397,6 +398,12 @@ local systemOptions = {
 		name = "Music:",
 		key = "music",
 		type = optionType.bool
+	},
+	{
+		name = "Romhack:",
+		key = "romHack",
+		type = optionType.bool,
+		info = "Enables the romhack.txt"
 	},
 	{
 		name = "Return",
@@ -1125,6 +1132,7 @@ local p1 = {
 	standGuardState = 0,
 	riseFall = 0,
 	hitstun = 0,
+	afterHitstun = 0,
 	standHitstun = 0,
 	blockstun = 0,
 	blocking = 0,
@@ -1133,6 +1141,7 @@ local p1 = {
 	stand = false,
 	previousIps = 0,
 	ips = 0,
+	ipsCount = 0,
 	scaling = 0,
 	canReversal = false,
 	reversalCount = 0,
@@ -1209,6 +1218,7 @@ p1.memory = {  --0x203488C
 	blockstun = 0x00000000, 
 	stand = 0x2034A1F,
 	ips = 0x2034E9E,
+	ipsCount = 0x2034E9F,
 	scaling = 0x2034E9D,
 	height = 0x00000000,
 	guardState = 0x00000000,
@@ -1240,6 +1250,8 @@ p1.memory = {  --0x203488C
 	blocking = 0x00000000,
 	animationCount = 0x203492F,
 	standAnimationCount = 0x203516F,
+	invul = 0x20349DE,
+	standInvul = 0x203521E,
 }
 
 p1.memory2 = {
@@ -1355,7 +1367,8 @@ local system = {
 	frameAdvantage = false,
 	proj1Address = 0,
 	proj2Address = 0,
-	sBullet = 0x2038870
+	sBullet = 0x2038870,
+	iFrames = { 0 },
 }
 
 local hud = {
@@ -1364,7 +1377,10 @@ local hud = {
 	recovery = 0,
 	frameAdvantage = 0,
 	reversalFrame = 0,
-	--pushBlock = false
+	iFrames = 0,
+	invul = false,
+	standInvul = false,
+	ips = 0,
 }
 
 local buttons = {
@@ -1827,6 +1843,7 @@ local comboType = {
 	reset = 21,
 	meatyReset = 22,
 	sBullet = 23,
+	meatyCmd = 24,
 }
 
 local comboDictionary = {} 
@@ -1853,6 +1870,7 @@ comboDictionary["stand action"] = comboType.standAction
 comboDictionary["projectile action"] = comboType.projectileAction
 comboDictionary["meaty reset"] = comboType.meatyReset
 comboDictionary["s bullet"] = comboType.sBullet
+comboDictionary["meaty cmd"] = comboType.meatyCmd
 
 local intToComboString = {
 	"id",
@@ -1878,6 +1896,7 @@ local intToComboString = {
 	"reset",
 	"meaty reset",
 	"s bullet",
+	"meaty cmd",
 }
 
 local recordingKeys = createSet({
@@ -1889,16 +1908,19 @@ local recordingArrays = createSet({
 	"p2Recording"
 })
 
-local commandGrabIds = {
-	[1] = createSet({ 52 }),
-	[4] = createSet({ 70 }),
-	[5] = createSet({ 29 }),
-	[10] = createSet({ 16 }),
-	[14] = createSet({ 48 }),
-	[18] = createSet({ 52 }),
-	[23] = createSet({ 42 }),
-	[24] = createSet({ 18 }),
+--Character * 0x100 + id
+local commandGrabLeniency = {
+	[0x134] = 2, -- kakyoin
+	[0x446] = 2, -- oldseph 360/720
+	[0x529] = 2, --iggy
+	[0x51D] = 2, --iggy
+	[0x0A10] = 1, --midler
+	[0x0E30] = 2, --sdio
+	[0x1234] = 2, --nkak
+	[0x172A] = 2, --hoingo
+	[0x1812] = 2, --rubber
 }
+
 
 local moveDefinitions = {}
 for i = 1, 24, 1 do
@@ -1908,6 +1930,7 @@ end
 local romHacks = {
 	active = {},
 	cache = {},
+	txt = {},
 	killDenial = {
 		--[0x6188F6C] = 0xE301, -- Kill denial
 		--[0x6186DDC] = 0xE301, --??
@@ -2322,6 +2345,7 @@ local flipFrames = createSet({
 	0x6974578, 0x6974598, --ice s b dash
 	0x689AB10, 0x689AB30, 0x689AB50, 0x689AB70, 0x689AB90, --bpol f dash
 	0x689AC10, 0x689AC30, 0x689AC50, 0x689AC70, 0x689AC90, --bpol b dash
+	0x68BC6D0, --rubber 2A
 })
 
 local blockActiveFrame = {
@@ -2597,7 +2621,7 @@ function createInputsFile()
 		print("Error creating inputs.txt")
 		return 
 	end
-	f:write([[- They syntax for the inputs text is as follows:
+	f:write([[- The syntax for the inputs text is as follows:
 - P1 = Start player 1's inputs (Only 1 player is required)
 - P2 = Start player 2's inputs (Only 1 player is required)
 - u = Up
@@ -2623,6 +2647,28 @@ P1
 
 - Player 2 start
 P2
+]]);
+	f:close()
+end
+
+-- Creates the romhack.txt file if it doesn't exist
+function createRomhackFile()
+	local exists = io.open("romhack.txt", "r")
+	if exists then
+		exists:close()
+		return
+	end
+	local f, err = io.open("romhack.txt", "w")
+	if err then 
+		print("Error creating romhack.txt")
+		return 
+	end
+	f:write([[- Syntax
+- - Dashes are comments
+- > Arrows are addresses
+- Under the address you list the assembly instructions to insert
+- The instruction set can be found at http://www.shared-ptr.com/sh_insns.html
+- Instructions are 2 bytes in length even if you only need to overwrite a single byte of data so keep that in mind
 ]]);
 	f:close()
 end
@@ -2845,6 +2891,24 @@ function addMoveDefinition(line, index)
 	return index
 end
 
+function readRomhack()
+	local f, err = io.open("romhack.txt", "r")
+	if err then return end
+	local table = {}
+	local address
+	for line in f:lines() do 
+		local _, _, t, value = line:find("^([->]?)%s*(%x+)")
+		if t == ">" then
+			address = tonumber(value, 16)
+		elseif value and t ~= "-" then
+			table[address] = tonumber(value, 16)
+			address = address + 2
+		end
+	end
+	f:close()
+	romHacks.txt = table
+end
+
 -------------------------------------------------
 -- Romhacks
 -------------------------------------------------
@@ -2888,6 +2952,7 @@ function updateHacks()
 	updateHack("killDenial", options.killDenial)
 	updateHack("comboCounter", options.disableHud)
 	updateHack("petshopFlap", not options.music)
+	updateHack("txt", options.romHack)
 	updateKakyoinPose()
 	updateStandGaugeLimit()
 end
@@ -2968,6 +3033,7 @@ function readPlayerMemory(player)
 	player.previousHitstun = player.hitstun
 	player.previousblockstun = player.blockstun
 	player.previousIps = player.ips
+	player.previousIpsCount = player.ipsCount
 	player.previousScaling = player.scaling
 	player.previousWakeupCount = player.wakeupCount
 	player.previousAirtechCount = player.airtechCount
@@ -3046,6 +3112,8 @@ function readSystemMemory()
 	system.inMatch = system.state == 3
 	system.zoomState = readByte(0x2048DA8) -- 0 zoomed in, 1 zooming out, 2 zoomed out, 3 zooming in
 	system.betweenRounds = readByte(0x020314A2) > 0
+	system.rng = readDWord(0x20162E4)
+	system.rng2 = readDWord(0x205C1B8)
 	--system.timeStopState = readByte(0x2033ABD)
 	--system.screenZoom = 0
 end
@@ -3337,6 +3405,7 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	end
 	if not options.ips then -- IPS
 		writeByte(p1.memory.ips, 0x00)
+		p1.ips = 0
 	end
 	if not options.tandemCooldown then
 		writeByte(0x02034AC9, 0x00)
@@ -3362,7 +3431,9 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	if options.disableHud then 
 		removeGameHud()
 	end
-	if options.guiStyle == 5 then
+	if options.guiStyle == 3 then
+		updateIPSPrediction()
+	elseif options.guiStyle == 5 then
 		updateFrameData()
 	elseif options.guiStyle == 9 then
 		updateProjectileFrameInfo()
@@ -3549,6 +3620,13 @@ function updatePlayer(player, other)
 
 	-- Can Act
 	updatePlayerAct(player)
+
+	-- Update out of hitstun count
+	if player.hitstun > 0 then
+		player.afterHitstun = 0
+	elseif system.screenFreeze == 0 then
+		player.afterHitstun = player.afterHitstun + 1
+	end
 end
 
 function updateBlock(player, other)
@@ -3795,7 +3873,7 @@ function getNextFrame(address, frame)
 		elseif type == 0xD then --random
 			local offset = readByte(frame + 0x2)
 			ram[0] = getNextRn(ram[0])
-			ram[0xA4 + offset] = band(ram[0], readByte(frame + 0x3))
+			ram[0xA4 + offset] = band(modifyRn(ram[0]), readByte(frame + 0x3))
 			frame = frame + 4
 		elseif type == 0xE then --lookup table
 			local offset = readByte(frame + 0x2)
@@ -3820,13 +3898,28 @@ function getNextFrame(address, frame)
 end
 
 function getNextRn(seed)
-	local rng = seed or readDWord(0x20162E4)
+	local rng = seed or system.rng
 	rng = rng * 0x41C54E6D
 	rng = band(rng, 0xFFFFFFFF)
 	rng = rng + 3039
+	return rng
+end
+
+function modifyRn(rng)
 	rng = rShift(rng, 16)
 	rng = band(rng, 0x7FFF)
 	return rng
+end
+
+function getNextRn2(seed)
+	local rng = seed or system.rng2
+	rng = rng * 3 + 0x3711
+	rng = band(rng, 0xFFFF)
+	return rng
+end
+
+function modifyRn2(rng)
+	return band(rShift(rng, 8), 0xFF)
 end
 
 function getActionLength(address)
@@ -3898,6 +3991,9 @@ function removeGameHud()
 end
 
 function updateFrameData()
+	--Iframes
+	updateIFrames()
+
 	--Frame Advantage
 	updatePlayerFrameAdvantage(p1, p2)
 	updatePlayerFrameAdvantage(p2, p1)
@@ -3930,10 +4026,18 @@ function updateAnimationData()
 		end
 	end
 
+	local invul
+	if p1.stand > 0 then
+		invul = hud.standInvul
+	else
+		invul = hud.invul
+	end
+
 	--If new action
 	if p1.previousCanAct and not p1.canAct then
 		--Start calculating new frames
 		system.recovery = 0
+		system.iFrames = invul and { 0, 1 } or { 1 }
 		if hasHitbox(hitbox) then
 			system.startUp = 0
 			system.active = { frameHitStop(frameAddress) and 0 or 1}
@@ -3954,9 +4058,31 @@ function updateAnimationData()
 					active = active..system.active[i].." "
 				end
 			end 
+			local iFrames
+			if #system.iFrames == 1 then
+				iFrames = "0"
+			else
+				iFrames = ""
+				local count = system.iFrames[1]
+				for i = 2, #system.iFrames, 1 do
+					if i % 2 == 0 then
+						iFrames = iFrames..(count + 1)
+						if i == #system.iFrames then
+							iFrames = iFrames.."-"..(count + system.iFrames[i])
+						end
+					else
+						iFrames = iFrames.."-"..count
+						if i ~= #system.iFrames then
+							iFrames = iFrames..", "
+						end
+					end
+					count = count + system.iFrames[i]
+				end
+			end
 			hud.startUp = system.startUp
 			hud.active = active
 			hud.recovery = system.recovery
+			hud.iFrames = iFrames
 		end
 	else
 		--Don't update on hitstop
@@ -3987,6 +4113,14 @@ function updateAnimationData()
 				system.recovery = system.recovery + 1
 			end
 		end
+
+		--iframes
+		local iFrames = system.iFrames
+		if (invul and #iFrames % 2 == 1) or (#iFrames % 2 == 0 and not invul) then
+			iFrames[#iFrames + 1] = 1
+		else
+			iFrames[#iFrames] = iFrames[#iFrames] + 1
+		end	
 	end
 end
 
@@ -4074,6 +4208,24 @@ function updatePlayerFrameAdvantage(player, other)
 	end
 end
 
+function updateIFrames()
+	hud.invul = getPlayerInvul(p1.invul, p1.frameAddress)
+	if p1.standActive > 0 then 
+		hud.standInvul = getPlayerInvul(p1.standInvul, p1.standFrameAddress)
+	else
+		hud.standInvul = false
+	end
+end
+
+function getPlayerInvul(invul, address)
+	if invul > 0 then
+		return true
+	else
+		local invulFrame = readByte(address + 0x1B)
+		return invulFrame > 0
+	end
+end
+
 function getActiveProjectile()
 	for i = 32, 1, -1 do
 		local projectile = projectiles[i]
@@ -4140,6 +4292,36 @@ function blockOptionUpdated()
 			p2.directionLock = 0x4
 		end
 	end
+end
+
+function updateIPSPrediction()
+	local rng = system.rng2
+	local count = p1.ipsCount
+	--Check if ips is on and not an ips trigger on next hit
+	if p1.ips == 0 or getIPSTrigger(modifyRn2(rng), count) then 
+		hud.ips = 0 
+		return 
+	end
+	--Calculate the next ips trigger count
+	while true do
+		if count > 7 then
+			rng = getNextRn2(rng)
+			if getIPSTrigger(modifyRn2(rng), count) then
+				hud.ips = count - p1.ipsCount
+				return
+			end
+		end
+		count = count + 1
+	end
+end
+
+function getIPSTrigger(rng, count)
+	if count > 16 then
+		if band(rng, 0x3) == 0 then return true end
+	elseif count > 7 then
+		if band(rng, 0x7) == 0 then return true end
+	end
+	return false
 end
 
 -------------------------------------------------
@@ -5120,7 +5302,7 @@ function getTrialCharacterOptions()
 	local optionsTable = {}
 	for i = 1, 24, 1 do
 		optionsTable[i] = {
-			name = indexToName[i],
+			name = trials[i].name or indexToName[i],
 			type = optionType.trialCharacter,
 			completed = trialCompletedCount(i)
 		}
@@ -5219,6 +5401,7 @@ local optionUpdateFunctions = {
 	p2Hp = function() writeWord(p2.memory2.healthRefill, options.p2Hp) end,
 	standGaugeLimit = updateStandGaugeLimit,
 	p2StandGauge = updateStandGaugeLimit,
+	romHack = updateHacks,
 }
 
 function optionUpdated(key)
@@ -5278,7 +5461,15 @@ end
 
 function updateTrialCheck(tailCall)
 	local input = trial.combo[trial.index]
-	if p2.wakeupFrame and (p2.previousDefenseAction == 28 or p2.previousDefenseAction == 30) then
+	if input.type == comboType.meatyCmd then
+		local cmdLeniency = getCmdLeniency(input.id, p1.character)
+		if checkAttackId(input.id) then
+			return advanceTrialIndex()
+		elseif p2.afterHitstun > 3 then
+			return trialFail()
+		end
+	elseif p2.wakeupFrame and (p2.previousDefenseAction == 28 or p2.previousDefenseAction == 30) then
+		local cmdLeniency = getCmdLeniency(input.id, p1.character)
 		if input.type == comboType.meaty and checkAttackId(input.id) then
 			return advanceTrialIndex()
 		elseif input.type == comboType.doubleMeaty and 
@@ -5508,10 +5699,11 @@ function trialStun(input)
 			return false 
 		end
 	else
+		local cmdLeniency = getCmdLeniency(input.id, p1.character)
 		if p2.defenseAction > 26 then 
 			return true
-		elseif commandGrabIds[p1.character] and commandGrabIds[p1.character][input.id] then
-			if p2.previousHitstun > 0 and p2.hitstun == 0 then
+		elseif cmdLeniency > 0 then
+			if p2.afterHitstun >= cmdLeniency then
 				return false
 			end
 		elseif p2.hitCount == 2 then
@@ -5519,6 +5711,11 @@ function trialStun(input)
 		end
 	end
 	return true
+end
+
+function getCmdLeniency(id, char)
+	if type(id) ~= "number" then return 0 end
+	return commandGrabLeniency[char * 0x100 + id] or 0
 end
 
 function trialModeStart()
@@ -5859,8 +6056,8 @@ function trialStartRecording()
 		},
 		combo = {},
 		direction = p2.directionLock,
-		rng = readDWord(0x20162E4),
-		rng2 = readDWord(0x205C1B8),
+		rng = system.rng,
+		rng2 = system.rng2,
 		position = false,
 		tandemChain = getTandemChain()
 	}
@@ -6140,19 +6337,8 @@ function trialStartReplay()
 	p1.playbackCount = #trial.recorded
 	p1.playbackFacing = 1
 	p1.playbackFlipped = p1.side ~= 1
-	--resetIdle()
 end
 
--- function resetIdle()
--- 	if p2.character == 5 then
--- 		print("hi")
--- 		writeDWord(0x2034D3C, 0x6833EDC) --animation root frame
--- 		writeDWord(0x2034D34, 0x6833F3C) --animation current frame
--- 		writeDWord(0x2034D38, 0x6833F1C) --animation previous frame
--- 		writeByte(0x2034D4F, 64) --animation count
--- 		writeDWord(0x2034DA8, 0) --y vel
--- 	end
--- end
 
 function trialPlayback()
 	return trial.reset or trial.replay or p1.playbackCount > 0 or p2.playbackCount > 0
@@ -6583,10 +6769,10 @@ function drawAdvancedHud()
 	gui.text(146,56,"Combo: ")
 	guiTextAlignRight(236,56,p1.displayComboCounter, p1.comboCounterColor)
 	gui.text(146,64,"IPS: ") -- IPS for P1's combo
-	if p1.previousIps == 0 or not options.ips then --It flickers on and off if you don't check the menu option
-		guiTextAlignRight(236, 64, "OFF", options.failColor)
+	if p1.ips > 0 then 
+		guiTextAlignRight(236, 64, hud.ips, options.successColor)
 	else
-		guiTextAlignRight(236, 64, "ON", options.successColor)
+		guiTextAlignRight(236, 64, "OFF", options.failColor)
 	end
 	gui.text(146,72,"Scaling: ") -- Scaling for P1's combo
 	if p1.previousScaling == 0 then
@@ -6724,14 +6910,13 @@ function drawList()
 end
 
 function drawSlidingBar(i, index, size, color)
+	if menu.index ~= i then return end
 	local length = 62
 	local inc = length / size
-	if menu.index == i then
-		local x = 199
-		local y =  51 + i * 12
-		gui.line(x, y, x + length, y, colors.menuUnselected)
-		gui.line(x + (index - 1) * inc, y, x + (index - 1) * inc + inc, y, color)
-	end
+	local x = 199
+	local y =  51 + i * 12
+	gui.line(x, y, x + length, y, colors.menuUnselected)
+	gui.line(x + (index - 1) * inc, y, x + (index - 1) * inc + inc, y, color)
 end
 
 function drawInfo()
@@ -6772,8 +6957,8 @@ function drawDebug(x, y)
 		--string.format("%08X p2 action frame", readDWord(p2.memory4.actionAddress - 8)),
 		--string.format("%08X p2 action frame previous", readDWord(p2.memory4.actionAddress - 4)),
 		--readByte(0x2034D4F).." p2 action frame count",
-		readDWord(0x20162E4).." RNG 1",
-		readDWord(0x205C1B8).." RNG 2",
+		system.rng.." RNG 1",
+		system.rng2.." RNG 2",
 		--p2.y.." p2 y",
 		--(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
 		--readByte(0x2034CAC + 0x1B).." p2 scaling index"
@@ -6936,9 +7121,12 @@ local frameData = {
 	"Recovery: ", hud.recovery,
 	"Frame Advantage: ", hud.frameAdvantage,
 	"Reversal: ", hud.reversalFrame,
+	"I Frames: ", hud.iFrames,
 	--"Push Block: ", hud.pushBlock or "NA",
 	"P1 act: ", tostring(p1.canAct),
 	"P2 act: ", tostring(p2.canAct),
+	"P1 invul: ", hud.invul,
+	"S1 invul: ", hud.standInvul,
 	-- "update frame advantage: ", tostring(system.frameAdvantage),
 	-- "cancel frame: ", tostring(readByte(p1.frameAddress + 0x14) == 0),
 	-- "can act 1: ", p1.canAct1,
@@ -6960,8 +7148,11 @@ function drawFrameData()
 	frameData[6] = hud.recovery
 	frameData[8] = hud.frameAdvantage
 	frameData[10] = hud.reversalFrame 
-	frameData[12] = tostring(p1.canAct)
-	frameData[14] = tostring(p2.canAct)
+	frameData[12] = hud.iFrames
+	frameData[14] = tostring(p1.canAct)
+	frameData[16] = tostring(p2.canAct)
+	frameData[18] = tostring(hud.invul)
+	frameData[20] = tostring(hud.standInvul)
 
 	for i = 1, #frameData, 2 do
 		gui.text(160, 38 + i * 4, frameData[i]..frameData[i + 1])
@@ -7294,12 +7485,14 @@ emu.registerstart(function()
 	readTrials()
 	readMoveDefinitions()
 	createInputsFile()
+	createRomhackFile()
 	clearInputHistory(p1)
 	clearInputHistory(p2)
 	updateReversal()
 	if fcReplay then 
 		replayOptions()
 	end
+	readRomhack()
 	updateHacks()
 end)
 
