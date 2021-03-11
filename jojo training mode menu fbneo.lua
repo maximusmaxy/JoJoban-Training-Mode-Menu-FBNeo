@@ -323,7 +323,8 @@ local optionType = {
 	key = 13,
 	listSelect = 14,
 	managedInt = 15,
-	back = 16
+	trialAbout = 16,
+	back = 17
 }
 
 local hudStyles = {
@@ -2343,6 +2344,8 @@ local flipFrames = createSet({
 	0x68892A4, 0x68892C4, 0x68892E4, --ice b dash
 	0x69744F8, 0x6974518, --ice s f dash
 	0x6974578, 0x6974598, --ice s b dash
+	0x69749C0, 0x69749E0, --ice f air dash
+	0x6974A48, 0x6974A68, --ice b air dash
 	0x689AB10, 0x689AB30, 0x689AB50, 0x689AB70, 0x689AB90, --bpol f dash
 	0x689AC10, 0x689AC30, 0x689AC50, 0x689AC70, 0x689AC90, --bpol b dash
 	0x68BC6D0, --rubber 2A
@@ -5024,6 +5027,13 @@ function menuSelect()
 		readTrial(option.name)
 		writeSettings()
 		playSound(sounds.select, 0x4040)
+	elseif option.type == optionType.trialAbout then
+		menu.state = 8
+		menu.options = getTrialAboutOptions()
+		menu.previousSubIndex = menu.index
+		menu.index = 1
+		menu.title = option.name
+		playSound(sounds.select, 0x4040)
 	end
 end
 
@@ -5037,7 +5047,7 @@ function menuCancel()
 		menu.title = "Color Settings"
 		updateMenuInfo()
 		playSound(sounds.cancel, 0x4040)
-	elseif menu.state == 6 then -- trials 
+	elseif menu.state == 6 or menu.state == 8 then -- trials / trials about
 		menu.state = 5
 		menu.index = menu.previousSubIndex
 		menu.options = getTrialCharacterOptions()
@@ -5111,10 +5121,8 @@ function menuLeft()
 		local index = tableIndex(option.list, value)
 		options[option.key] = option.list[index == 1 and #option.list or index - 1]
 		playSound(sounds.move, 0x4040)
-	elseif option.type == optionType.trialCharacter then
-		if menu.index ~= #menu.options then
-			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
-		end
+	elseif option.type == optionType.trialCharacter or option.type == optionType.trialAbout then
+		menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trial then
 		if menu.index == 1 then
@@ -5128,11 +5136,16 @@ function menuLeft()
 		end
 		updateMenuTrial()
 		playSound(sounds.move, 0x4040)
-	elseif option.type == optionType.back and menu.state == 6 then --trials
-		if #menu.options > 25 then
-			menu.index = #menu.options - 1
+	elseif option.type == optionType.back then --trials
+		if menu.state == 5 then --trial characters
+			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
+			playSound(sounds.move, 0x4040)
+		elseif menu.state == 6 then
+			if #menu.options > 25 then
+				menu.index = #menu.options - 1
+			end
+			playSound(sounds.move, 0x4040)
 		end
-		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -5170,10 +5183,8 @@ function menuRight()
 		local index = tableIndex(option.list, value)
 		options[option.key] = option.list[index >= #option.list and 1 or index + 1]
 		playSound(sounds.move, 0x4040)
-	elseif option.type == optionType.trialCharacter then
-		if menu.index ~= #menu.options then
-			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
-		end
+	elseif option.type == optionType.trialCharacter or option.type == optionType.trialAbout then
+		menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.trial then
 		if menu.index == #menu.options - 1 then
@@ -5189,11 +5200,16 @@ function menuRight()
 		end
 		updateMenuTrial()
 		playSound(sounds.move, 0x4040)
-	elseif option.type == optionType.back and menu.state == 6 then --trials
-		if #menu.options > 25 then
-			menu.index = 25
+	elseif option.type == optionType.back then
+		if menu.state == 5 then --trial characters
+			menu.index = math.floor(menu.index % 2) == 0 and menu.index - 1 or menu.index + 1
+			playSound(sounds.move, 0x4040)
+		elseif menu.state == 6 then --trials
+			if #menu.options > 25 then
+				menu.index = 25
+			end
+			playSound(sounds.move, 0x4040)
 		end
-		playSound(sounds.move, 0x4040)
 	end
 end
 
@@ -5201,12 +5217,8 @@ function menuUp()
 	if menu.state == 3 then --about
 		return
 	elseif menu.state == 5 then --trials characters
-		if menu.index == 1 then
-			menu.index = #menu.options - 2
-		elseif menu.index == 2 then
-			menu.index = #menu.options
-		elseif menu.index == #menu.options then
-			menu.index = #menu.options - 1
+		if menu.index < 3 then
+			menu.index = menu.index + #menu.options - 2
 		else
 			menu.index = menu.index - 2
 		end
@@ -5246,12 +5258,8 @@ function menuDown()
 	if menu.state == 3 then --about
 		return
 	elseif menu.state == 5 then --trials characters
-		if menu.index == #menu.options - 2 then
-			menu.index = 1
-		elseif menu.index == #menu.options - 1 then
-			menu.index = #menu.options
-		elseif menu.index == #menu.options then
-			menu.index = 2
+		if menu.index > #menu.options - 2 then
+			menu.index = menu.index - #menu.options + 2
 		else
 			menu.index = menu.index + 2
 		end
@@ -5307,7 +5315,11 @@ function getTrialCharacterOptions()
 			completed = trialCompletedCount(i)
 		}
 	end
-	optionsTable[#optionsTable + 1] = {
+	optionsTable[25] = {
+		name = trials[25].name,
+		type = optionType.trialAbout
+	}
+	optionsTable[26] = {
 		name = "Return",
 		type = optionType.back
 	}
@@ -5374,6 +5386,18 @@ function getFileOptions()
 		name = "Return",
 		type = optionType.back
 	}
+	return optionsTable
+end
+
+function getTrialAboutOptions()
+	local optionsTable = {}
+	local max = math.max(#trials[25].info - 12, 0) + 1
+	for i = 1, max, 1 do
+		optionsTable[i] = {
+			name = "Return",
+			type = optionType.back
+		}
+	end
 	return optionsTable
 end
 
@@ -5878,6 +5902,7 @@ function updateOptions()
 	options.block = 1
 	options.status = 1
 	options.kakyoinPose = 1
+	options.romHack = false
 	updateHacks()
 	resetReversalOptions()
 end
@@ -6252,12 +6277,11 @@ function updateTrialReset()
 	end
 
 	--update position
-	if trial.trial.position then
-		if updateTrialPosition() then
-			trial.wait = 1
-			return
-		end
+	if updateTrialPosition() then
+		trial.wait = 1
+		return
 	end
+
 	trial.reset = false
 end
 
@@ -6314,6 +6338,11 @@ function updateTrialAntiAir()
 		return
 	end
 
+	--update stand
+	if updateTrialStand() then
+		return
+	end
+
 	system.antiAir = 1
 end
 
@@ -6326,6 +6355,11 @@ function updateTrialParry()
 	if trial.parryDelay then
 		trial.parryDelay = false
 		trial.wait = 40
+		return
+	end
+
+	--update stand
+	if updateTrialStand() then
 		return
 	end
 
@@ -6539,7 +6573,14 @@ function sanitizeTrials()
 			trials = {},
 		}
 	end
-	for i = 1, #trials, 1 do
+	if #trials < 25 then
+		trials[25] = {
+			name = "About",
+			trials = {},
+			info = {},
+		}
+	end
+	for i = 1, 24, 1 do
 		for y = 1, #trials[i].trials, 1 do
 			for c = 1, #trials[i].trials[y].combo, 1 do
 				trials[i].trials[y].combo[c].type = comboDictionary[trials[i].trials[y].combo[c].type] or 1
@@ -6854,6 +6895,8 @@ function drawMenu()
 		drawTrials()
 	elseif menu.state == 7 then --files
 		drawFileList()
+	elseif menu.state == 8 then --trial about
+		drawTrialsAbout()
 	else
 		drawList()
 	end
@@ -7000,7 +7043,9 @@ function drawTrialsCharacters()
 		local x = 100 + ((i - 1) % 2) * 100
 		local y = 54 + math.floor((i - 1) / 2) * 12
 		gui.text(x, y, option.name, color)
-		guiTextAlignRight(x + 86, y, option.completed.."/"..#trials[i].trials, color)
+		if option.completed then
+			guiTextAlignRight(x + 86, y, option.completed.."/"..#trials[i].trials, color)
+		end
 	end
 	local color = (menu.index == #menu.options) and menu.flashColor or colors.menuUnselected
 	gui.text(200, 198, "Return", color)
@@ -7078,6 +7123,23 @@ function drawFileList()
 			options.trialsFilename == option.name and options.failColor or colors.menuUnselected
 		gui.text(100, 44 + i * 10, option.name, color)
 	end
+end
+
+function drawTrialsAbout()
+	local info = trials[25].info
+	local length = math.min(#info, 12)
+	for i = 1, length, 1 do
+		gui.text(100, 42 + i * 12, info[i + menu.index - 1], colors.menuUnselected)
+	end
+	if #info > 12 then
+		if menu.index > 1 then
+			gui.text(194, 42, "^", colors.menuUnselected)
+		end
+		if menu.index ~= #info - 11 then
+			gui.text(194, 198, "v", colors.menuUnselected)
+		end
+	end
+	gui.text(100, 198, "Return", menu.flashColor)
 end
 
 function drawAttackInfo()
@@ -7430,6 +7492,7 @@ function replayOptions()
 	options.p1Hp = 144
 	options.p2Hp = 144
 	options.standGaugeLimit = false
+	options.romHack = false
 	resetReversalOptions()
 end
 

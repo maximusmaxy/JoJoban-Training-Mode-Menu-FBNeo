@@ -110,6 +110,80 @@ Avdol
 Polnareff
 
 Old Joseph
+-s.off normals
+0 5A
+1 5B
+2 5C
+6 2A
+7 2B
+8 2C
+9 3B
+10 3C
+4 6C
+
+-slides
+32 d.5A
+34 d.5B
+16 d.5C
+33 d.2A
+18 d.2B
+19 d.2C
+
+-aerials
+11 j.A
+12 j.B
+13 j.C
+75 s.j.A
+76 s.j.B
+77 s.j.C
+
+-stand on normals
+35 s.5A
+40 s.5B
+43 s.5C -idfk which is which
+44 s.5C -idfk which is which
+39 cl.s.5B
+48 s.2A
+49 s.2B
+50 s.2C
+37 s.3B
+51 s.3C
+
+-s.on slides
+82 d.s.5A
+83 d.s.5B
+61 d.s.5C
+84 d.s.2A
+85 d.s.2B
+86 d.s.2C
+
+-specials
+
+-s.off
+24 236A
+25 236B
+26 236C
+20 623A
+21 623B
+22 623C
+68 214X -this and the one below alternate
+69 214X
+
+-s.on
+62 s.236A/B
+64 s.236C
+66 s.214X -this and the one below alternate
+67 s.214X
+70 270/720
+
+-supers
+27 236AA -first hit
+28 236AA -next few hits
+29 236AA -last hit
+78 s.236AA -first hit
+79 s.236AA -next few hits
+80 s.236AA -last hit
+
 
 Iggy
 
@@ -177,6 +251,65 @@ Shadow Dio
 53 623AA (followup)
 
 Young Joseph
+
+-normals
+0 5A
+1 5B
+2 5C
+6 2A
+7 2B
+8 2C
+9 3B
+10 3C
+4 6C
+43 5S -first hit
+44 5S -followup
+48 2S
+78 6S
+
+-dashing normals
+14 d.5A
+15 d.5B
+16 d.5C
+52 d.5S -first hit
+53 d.5S -followup
+17 d.2A
+18 d.2B
+19 d.2C
+
+-aerials
+11 j.A
+12 j.B
+13 j.C
+57 j.S -first hit
+58 j.S -followup
+
+-specials
+24 236A
+25 236B
+26 236C
+3 623A
+20 623B
+21 623C
+65 63214A
+69 63214B
+66 63214C
+54 236S -first rekka first hit
+55 236S -first rekka followup
+59 >5S -second rekka first hit
+60 >5S -second rekka followup
+61 >>5S -last rekka first hit
+62 >>5S -last rekka last hit
+63 >>6S -last rekka but 6S
+67 >>2S -last rekka but 2S
+68 >>2S -last rekka but 2S followup
+39 214S
+
+-supers
+5 214AA
+27 236AA -first hit
+28 236AA -followups
+29 236AA -last hit
 
 Hol Horse
 
@@ -303,3 +436,45 @@ Hoingo
 Rubber Soul
 
 Khan
+-normals
+0 5A
+1 2A
+2 5B
+3 2B
+4 4B
+5 5C -first hit
+6 2C
+7 5C -followup
+21 5S
+
+-dash normals
+8 d.5A
+35 d.2A
+9 d.5B
+36 d.2B
+10 d.5C
+37 d.2C
+
+-aerials
+11 j.A
+12 j.B
+13 j.C
+22 j.S
+
+-specials
+14 ]4[ 6A/B
+15 ]4[ 6C
+16 623A
+17 623B
+19 623C
+
+-supers
+33 214AA -first hit
+34 214AA -followup
+
+26 236AA -first hit
+27 236AA -followup 1
+28 236AA -followup 2
+29 236AA -dp first hit
+30 236AA -dp inbetween
+31 236AA -dp last hit

@@ -108,5 +108,11 @@
         "name": "Khan",
         "trials": [
         ]
+    },
+    {
+        "name": "About",
+        "trials": [],
+        "info": [
+        ]
     }
 ]
