@@ -1845,6 +1845,7 @@ local comboType = {
 	meatyReset = 22,
 	sBullet = 23,
 	meatyCmd = 24,
+	grab = 25,
 }
 
 local comboDictionary = {} 
@@ -1872,6 +1873,7 @@ comboDictionary["projectile action"] = comboType.projectileAction
 comboDictionary["meaty reset"] = comboType.meatyReset
 comboDictionary["s bullet"] = comboType.sBullet
 comboDictionary["meaty cmd"] = comboType.meatyCmd
+comboDictionary["throw"] = comboType.grab
 
 local intToComboString = {
 	"id",
@@ -1898,6 +1900,7 @@ local intToComboString = {
 	"meaty reset",
 	"s bullet",
 	"meaty cmd",
+	"grab",
 }
 
 local recordingKeys = createSet({
@@ -5631,6 +5634,10 @@ function updateTrialCheck(tailCall)
 				return trialFail()
 			end
 		end
+	elseif input.type == comboType.grab then
+		if p2.throwTech > 0 then
+			return advanceTrialIndex()
+		end
 	end
 end
 
@@ -6182,6 +6189,11 @@ function updateTrialRecording()
 		combo[#combo + 1] = {
 			name = "(Time Stop End)",
 			type = comboType.timeStopEnd
+		}
+	elseif p2.throwTech > 0 then
+		combo[#combo + 1] = {
+			name = "6C (Grab)",
+			type = comboType.grab,
 		}
 	elseif (p1.character == 16 and p1.previousActionId == 43 and p1.actionId == 44) or -- hol horse s bullet
 			(p1.character == 23 and p1.previousActionId == 90 and p1.actionId == 91) then --hoingo s bullet
