@@ -134,6 +134,7 @@ local options = {
 	p2StandMin = 1,
 	p2StandMax = 88,
 	romHack = false,
+	boxTransparency = 0,
 }
 
 -----------------------
@@ -504,10 +505,9 @@ local characterSpecificOptions = {
 		}
 	},
 	{
-		name = "Boingo RNG:",
+		name = "Spawn Boingo:",
 		key = "boingo",
 		type = optionType.bool,
-		info = "Warning: This breaks RNG while enabled"
 	},
 	{
 		name = "Mariah Level:",
@@ -751,6 +751,15 @@ local colorOptions = {
 		key = "comboCounterActiveColor",
 		type = optionType.color,
 		default = 0x0000FFFF
+	},
+	{
+		name = "Box Transparency",
+		key = "boxTransparency",
+		type = optionType.int,
+		min = 0,
+		max = 255,
+		inc = 10,
+		info = "Hold A to increase by 10",
 	},
 	{
 		name = "Return",
@@ -1815,10 +1824,7 @@ local hexToAnime = {
 }
 
 local trials = {}
-local trial = {
-	position = { 0, 0, 0, 0 },
-	previousPosition = { 0, 0, 0, 0 }
-}
+local trial = {}
 
 local comboType = {
 	id = 1,
@@ -2002,6 +2008,9 @@ local romHacks = {
 		[0x60451B2] = 0xE300, --Move stand gauge max into R3, modified manually
 		[0x60451BA] = 0xE200, --Move stand gauge max into R2, modified manually
 	},
+	boingo = {
+		[0x616E71C] = 0x0018, --Set t bit to 1
+	}
 }
 
 local hitInfo = {
@@ -2026,7 +2035,7 @@ local hitInfo = {
 		"Knockback (Block)",
 		"Hitstun",
 		"Blockstun",
-		nil,
+		"Instant Standcrash",
 		"Sound",
 		"Air Blocking",
 		"Kill Denial",
@@ -2042,7 +2051,18 @@ local hitInfo = {
 		nil,
 		nil,
 		"Blazing Fists",
-		"IPS"
+		"IPS",
+		nil,
+		nil,
+		nil,
+		nil,
+		"Unused 1",
+		"Unused 2",
+		"Unused 3",
+		"Unused 4",
+		"Unused 5",
+		"Unused 6",
+		"Khan",
 	},
 	tables = {
 		[4] = { 
@@ -2217,7 +2237,7 @@ local frameInfo = {
 local canActIds = {
 	createSet({ 2, 6, 9, 10 }),
 	{},
-	createSet({ 3, 4, 10, 19 }),
+	createSet({ 3, 10, 19 }),
 	createSet({ 13 }),
 	{},
 	{},
@@ -2327,7 +2347,9 @@ local flipFrames = createSet({
 	0x68FF620, 0x68FF640, --avdol s b dash
 	0x681817C, --avdol 2B
 	0x681827C, --avdol 2C
-	0x681807C, --avodl 6C
+	0x681807C, --avdol 6C
+	-- 0x681813C, 0x681815C, --avdol dash 2B
+	-- 0x681823C, 0x681825C, --avdol dash 2C
 	0x681DE9C, 0x681DEBC, 0x681DEDC, 0x681DEFC, 0x681DF1C, --pol f dash 
 	0x681DF9C, 0x681DFBC, 0x681DFDC, 0x681DFFC, 0x681E01C, --pol b dash 
 	0x690D8E4, 0x690D904, 0x690D924, 0x690D944, --pol s f dash
@@ -2349,6 +2371,7 @@ local flipFrames = createSet({
 	0x6974578, 0x6974598, --ice s b dash
 	0x69749C0, 0x69749E0, --ice f air dash
 	0x6974A48, 0x6974A68, --ice b air dash
+	0x6894C94, 0x6894CB4, 0x6894CD4, 0x6894CF4, 0x6894D18, 0x6894D38, --nkak 5C/66C
 	0x689AB10, 0x689AB30, 0x689AB50, 0x689AB70, 0x689AB90, --bpol f dash
 	0x689AC10, 0x689AC30, 0x689AC50, 0x689AC70, 0x689AC90, --bpol b dash
 	0x68BC6D0, --rubber 2A
@@ -2959,6 +2982,7 @@ function updateHacks()
 	updateHack("comboCounter", options.disableHud)
 	updateHack("petshopFlap", not options.music)
 	updateHack("txt", options.romHack)
+	updateHack("boingo", options.boingo)
 	updateKakyoinPose()
 	updateStandGaugeLimit()
 end
@@ -3188,24 +3212,7 @@ function updatePlayerInputBefore(player, other)
 	if player.previousControl and not player.control then
 		local direction = band(getPlayerInputHex(other.name), 0x0F) 
 		player.directionLock = player.side == 1 and direction or swapHexDirection(direction)
-		--update status option
-		if band(player.directionLock, 0x1) == 0x1 then
-			options.status = 3 --jump
-		elseif band(player.directionLock, 0x2) == 0x2 then
-			options.status = 2 --crouch
-		else
-			options.status = 1 --stand
-		end
-		--update block option
-		if options.block < 3 then
-			if band(player.directionLock, 0x4) == 0x4 then
-				options.block = 2 --block
-			else
-				options.block = 1 --no block
-			end
-		else
-			player.directionLock = band(player.directionLock, 0x3)
-		end
+		updateBlockStatus(player)
 	end
 	-- Input Playback
 	if player.playbackCount > 0 then
@@ -3228,6 +3235,27 @@ function updatePlayerInputBefore(player, other)
 		local direction = (player.side == 1 and player.directionLock or swapHexDirection(player.directionLock))
 		local directionInputs = hexToPlayerInput(direction, player.name)
 		tableCopy(directionInputs, inputModule.overwrite)
+	end
+end
+
+function updateBlockStatus(player)
+	--update status option
+	if band(player.directionLock, 0x1) == 0x1 then
+		options.status = 3 --jump
+	elseif band(player.directionLock, 0x2) == 0x2 then
+		options.status = 2 --crouch
+	else
+		options.status = 1 --stand
+	end
+	--update block option
+	if options.block < 3 then
+		if band(player.directionLock, 0x4) == 0x4 then
+			options.block = 2 --block
+		else
+			options.block = 1 --no block
+		end
+	else
+		player.directionLock = band(player.directionLock, 0x3)
 	end
 end
 
@@ -3416,9 +3444,6 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	if not options.tandemCooldown then
 		writeByte(0x02034AC9, 0x00)
 		writeByte(0x02034EE9, 0x00)
-	end
-	if options.boingo then
-		writeDWord(0x020162E4, 0)
 	end
 	if options.level > 1 then
 		writeByte(0x02033210, options.level - 2)
@@ -4134,7 +4159,13 @@ function updatePlayerAct(player)
 	player.previousCanAct = player.canAct
 	if player.number == 1 then
 		if player.stand == 0 then
-			player.canAct = playerCanAct(player, player.attackType, player.canAct1, player.canAct2, player.frameAddress)
+			if player.character == 6 and projectiles[1].state == 1 and projectiles[1].attackId == 15 then --alessi projectile normals
+				player.previousProjectileEnd = player.projectileEnd
+				player.projectileEnd = readByte(0x2034A2A)
+				player.canAct = playerCanAct(player, player.attackType, player.previousProjectileEnd == 1 and 0 or 1, player.canAct2, projectiles[1].frameAddress)
+			else
+				player.canAct = playerCanAct(player, player.attackType, player.canAct1, player.canAct2, player.frameAddress)
+			end
 		else
 			player.canAct = playerCanAct(player, player.standAttackType, player.standCanAct1, player.standCanAct2, player.standFrameAddress)
 		end
@@ -5404,6 +5435,14 @@ function getTrialAboutOptions()
 	return optionsTable
 end
 
+function boxTransparencyUpdated()
+	local alpha = options.boxTransparency
+	options.hitboxColor = band(options.hitboxColor, 0xFFFFFF00) + alpha
+	options.hurtboxColor = band(options.hurtboxColor, 0xFFFFFF00) + alpha
+	options.collisionboxColor = band(options.collisionboxColor, 0xFFFFFF00) + alpha
+	colors.orangebox = band(colors.orangebox, 0xFFFFFF00) + alpha
+end
+
 local optionUpdateFunctions = {
 	inputStyle = function()
 		clearInputHistory(p1)
@@ -5429,6 +5468,8 @@ local optionUpdateFunctions = {
 	standGaugeLimit = updateStandGaugeLimit,
 	p2StandGauge = updateStandGaugeLimit,
 	romHack = updateHacks,
+	boxTransparency = boxTransparencyUpdated,
+	boingo = updateHacks,
 }
 
 function optionUpdated(key)
@@ -5780,6 +5821,9 @@ function trialModeStart()
 
 	writeWord(p1.memory2.standGaugeRefill, p1.standGaugeMax)
 
+	--remove scaling retention
+	--writeByte(0x2034E89, 0)
+
 	if not trial.enabled then
 		storeOptions()
 	end
@@ -5809,8 +5853,10 @@ function updateOptions()
 	if t.tandemCooldown ~= nil then
 		options.tandemCooldown = t.tandemCooldown
 	end
+	options.block = t.block or 1
 	if t.direction ~= nil then
 		p2.directionLock = t.direction
+		updateBlockStatus(p2)
 	end
 	if t.rng ~= nil then
 		writeDWord(0x20162E4, t.rng)
@@ -5887,6 +5933,11 @@ function updateOptions()
 			tandemChain = rShift(tandemChain, 1)
 		end
 	end
+	if t.pose then
+		options.kayoinPose = t.pose + 1
+	else
+		options.kakyoinPose = 1
+	end
 	options.guiStyle = 2
 	options.p1Gui = false
 	options.p2Gui = false
@@ -5906,9 +5957,6 @@ function updateOptions()
 	options.infiniteRounds = true
 	options.infiniteTimestop = false
 	options.killDenial = t.drill or false
-	options.block = 1
-	options.status = 1
-	options.kakyoinPose = 1
 	options.romHack = false
 	updateHacks()
 	resetReversalOptions()
@@ -6112,6 +6160,12 @@ function trialStartRecording()
 	end
 	if options.standGaugeLimit then
 		recording.p2.standGauge = options.p2StandGauge
+	end
+	if options.kakyoinPose > 1 then
+		recording.pose = options.kakyoinPose
+	end
+	if options.block > 1 then
+		recording.block = options.block
 	end
 	trial.recording = recording
 	trial.recordingSubIndex = 1
@@ -6501,33 +6555,27 @@ function updateTrialPosition()
 		local sOffset = sHalf + sMod * (newScreenX - sHalf)
 		writeWord(0x02031464, sOffset)
 	end
-	
-	tableCopy(trial.position, trial.previousPosition)
 
 	if p1.x ~= p1x then
-		trial.position[1] = p1.x
 		writeWord(p1.memory2.x, p1x)
 		updated = true
 	end
 	if p2.x ~= p2x then
-		trial.position[2] = p2.x
 		writeWord(p2.memory2.x, p2x)
 		updated = true
 	end
 	if (p1.stand > 0 or p1.character == 0x08) and p1.standX ~= p1sx then
-		trial.position[3] = p1.standX
 		writeWord(p1.memory2.standX, p1sx)
 		updated = true
 	end
 	if p2.stand > 0 and p2.standX ~= p2sx then
-		trial.position[4] = p2.standX
 		writeWord(p2.memory2.standX, p2sx)
 		updated = true
 	end
 
-	if updated and tableCompare(trial.position, trial.previousPosition) then
+	if updated then
 		trial.positionCounter = trial.positionCounter + 1
-		if trial.positionCounter == 5 then
+		if trial.positionCounter == 15 then
 			return false
 		end
 	end
@@ -7025,13 +7073,16 @@ function drawDebug(x, y)
 		-- p1.x.." p1 x",
 		-- p2.x.." p2 x",
 		tostring(p1.canAct).." p1 can act",
-		tostring(p2.canAct).." p2 can act",
-		tostring(p2.hitstun).." p2 hitstun",
-		p2.guardState.." p2 guard state",
-		p2.riseFall.." p2 rise fall",
+		-- tostring(p2.canAct).." p2 can act",
+		-- tostring(p2.hitstun).." p2 hitstun",
+		-- p2.guardState.." p2 guard state",
+		-- p2.riseFall.." p2 rise fall",
 		readWordSigned(0x2034DA8).." p2 y velocity",
 		(readDWordSigned(0x2034DA8) / 0x10000).." p2 y velocity",
-		p2.blocking.." p2 blocking",
+		--p2.blocking.." p2 blocking",
+		p1.attackType.." p1 attack type",
+		p1.canAct1.." p1 can act 1",
+		p1.canAct2.." p1 can act 2",
 	}
 	for i = 1, #debugInfo, 1 do
 		gui.text(x, y + 8 * i, debugInfo[i])
