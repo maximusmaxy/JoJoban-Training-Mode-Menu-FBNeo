@@ -135,6 +135,8 @@ local options = {
 	p2StandMax = 88,
 	romHack = false,
 	boxTransparency = 0,
+	timestopMode = false,
+	slowMode = false,
 }
 
 -----------------------
@@ -333,6 +335,7 @@ local hudStyles = {
 	"Simple",
 	"Advanced",
 	"Wakeup Indicator",
+	"Charge Indicator",
 	"Frame Data",
 	"Trial Debug",
 	"Attack Info",
@@ -976,6 +979,23 @@ local recordReplaySettings = {
 	}
 }
 
+local funnyOptions = {
+	{
+		name = "Timestop Mode:",
+		key = "timestopMode",
+		type = optionType.bool
+	},
+	{
+		name = "Slow Mode:",
+		key = "slowMode",
+		type = optionType.bool
+	},
+	{
+		name = "Return",
+		type = optionType.back
+	}
+}
+
 local rootOptions = {
 	{
 		name = "Enemy Settings",
@@ -1011,6 +1031,11 @@ local rootOptions = {
 		name = "Character Specific Settings",
 		type = optionType.subMenu,
 		options = characterSpecificOptions
+	},
+	{
+		name = "Funny Settings",
+		type = optionType.subMenu,
+		options = funnyOptions
 	},
 	{
 		name = "Color Settings",
@@ -1379,6 +1404,7 @@ local system = {
 	proj2Address = 0,
 	sBullet = 0x2038870,
 	iFrames = { 0 },
+	timestopToggle = 0
 }
 
 local hud = {
@@ -2010,6 +2036,11 @@ local romHacks = {
 	},
 	boingo = {
 		[0x616E71C] = 0x0018, --Set t bit to 1
+	},
+	timestopToggle = {
+		[0x6176C10] = 0xE200, -- Check for dev region
+		[0x6179212] = 0x0008, -- Start press check
+		[0x6179220] = 0x0008, -- C press check
 	}
 }
 
@@ -2327,7 +2358,7 @@ local standPlusFrames = {
 
 local kakPoseFrames = createSet({
 	--kak
-	0x6810808, 0x6810888, 0x68108A8, 0x68108C8, --5a
+	0x6810888, 0x68108A8, 0x68108C8, --5a
 	0x6811570, 0x6811590, 0x68115B0, --236
 	0x68F7C1C, 0x68F7820, 0x68F7A2C, 0x68F7654, 0x68F733C, 0x68F74E8, --s.2a, s.5b, s.5c, s.6a, s.6b, s.4C
 	--nkak
@@ -2341,6 +2372,7 @@ local flipFrames = createSet({
 	0x6801FF8, 0x6802018, 0x6802038, 0x6802058, 0x6801F70, 0x6801F90, 0x6801FB0, 0x6801FD0, --jotaro b dash
 	0x68E89AC, 0x68E89CC, 0x68E89EC, --jotaro s f dash
 	0x68E8AB4, 0x68E8AD4, 0x68E8AF4, --jotaro s b dash
+	0x68109D8, 0x68109F8, 0x6810A18, 0x6810A38, 0x6810A5C, 0x6810A7C, --kak 5C/66C
 	0x681641C, 0x681643C, 0x681645C, 0x681647C, --avdol f dash
 	0x681656C, 0x681658C, 0x68165AC, 0x68165CC, --avdol b dash
 	0x68FF538, 0x68FF558, --avdol s f dash
@@ -2354,6 +2386,7 @@ local flipFrames = createSet({
 	0x681DF9C, 0x681DFBC, 0x681DFDC, 0x681DFFC, 0x681E01C, --pol b dash 
 	0x690D8E4, 0x690D904, 0x690D924, 0x690D944, --pol s f dash
 	0x690DB04, 0x690DB24, 0x690DB44, 0x690DB64, --pol s b dash
+	--0x68406F4, 0x6840714, --allessi 5A
 	0x6849BD8, 0x6849BF8, 0x6849C18, 0x6849C38, 0x6849C58, --chaka f dash
 	0x6849CD8, 0x6849CF8, 0x6849D18, 0x6849D38, 0x6849D58,--chaka b dash
 	0x6934674, 0x6934694, 0x69346B4, --chaka s f dash
@@ -3465,12 +3498,18 @@ function updateGameplayLoop() --main loop for gameplay calculations
 	if options.guiStyle == 3 then
 		updateIPSPrediction()
 	elseif options.guiStyle == 5 then
+		updateChargeBars()
+	elseif options.guiStyle == 6 then
 		updateFrameData()
-	elseif options.guiStyle == 9 then
+	elseif options.guiStyle == 10 then
 		updateProjectileFrameInfo()
 	end
 	if options.characterSpecific then
 		updateCharacterSpecific()
+	end
+	if system.timestopToggle > 0 then
+		restoreHack("timestopToggle")
+		system.timestopToggle = 0
 	end
 end
 
@@ -4361,6 +4400,62 @@ function getIPSTrigger(rng, count)
 	return false
 end
 
+function updateChargeBars()
+	local char = p1.character
+	hud.chargeBars = {}
+	if char == 3 then --pol
+		updateChargeBar("Ray Dart",  p1.stand == 0 and 0x2034B7A or 0x203537E, 48, 1)
+		updateChargeBar("Shooting Star", p1.stand == 0 and 0x2034B70 or 0x2035392, 48, 2)
+	elseif char == 5 then --iggy
+		updateChargeBar("Sand Crush", 0x2035388, 28, 1)
+		updateChargeBar("Sand Uprising", 0x20353B0, 28, 2)
+	elseif char == 6 then --alessi
+		local state = readByte(0x203537E)
+		local timer = readByte(0x203537F)
+		if state == 1 then
+			hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 1", 30 - timer, 30 }
+		elseif state == 2 then
+			if timer < 50 then
+				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 2", timer, 50 }
+			elseif timer < 80 then
+				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 3", timer - 50, 30 }
+			elseif timer < 140 then
+				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 4", timer - 80, 60 }
+			else
+				hud.chargeBars[1] = { "Shadow Axe", "Max charge", 60, 60 }
+			end
+		else
+			hud.chargeBars[1] = { "Shadow Axe", "", 0, 30 }
+		end
+	elseif char == 17 then --ice
+		updateChargeBar("Blow Away", 0x20353B0, 48, 1)
+	elseif char == 20 then --petshop
+		local a = readWord(0x2034C74)
+		local b = readWord(0x2034C76)
+		local c = readWord(0x2034C78)
+		hud.chargeBars[1] = { "Icicle Break A", a == 0 and "" or a == 90 and "Charged" or "Charging", a, 90 }
+		hud.chargeBars[2] = { "Icicle Break B", b == 0 and "" or b == 90 and "Charged" or "Charging", b, 90 }
+		hud.chargeBars[3] = { "Icicle Break C", c == 0 and "" or c == 90 and "Charged" or "Charging", c, 90 }
+	elseif char == 25 then --khan
+		updateChargeBar("Demon Slayer Slash", 0x2034B3E, 28, 1)
+	end
+end
+
+function updateChargeBar(name, address, length, index)
+	local state = readByte(address)
+	local timer = readByte(address + 1)
+	if state == 1 then
+		local chargeState = timer == 0 and "Charged" or "Charging"
+		hud.chargeBars[index] = { name, chargeState, length - timer, length }
+	elseif state == 2 then
+		hud.chargeBars[index] = { name, "Release", length - timer, length }
+	elseif state == 3 then
+		hud.chargeBars[index] = { name, "Buffer", length - timer, length }
+	else
+		hud.chargeBars[index] = { name, "", 0, length }
+	end
+end
+
 -------------------------------------------------
 -- Input Checker
 -------------------------------------------------
@@ -4961,6 +5056,7 @@ function openMenu()
 			options.stageIndex = system.stageId
 			options.p1Character = tableIndex(characters, idToName[p1.character])
 			options.p2Character = tableIndex(characters, idToName[p2.character])
+			options.timestopMode = readByte(0x2048DE2) == 1
 			--updateStandGaugeMax()
 		end
 	else
@@ -5127,7 +5223,9 @@ function menuLeft()
 	if option.type == optionType.bool then
 		options[option.key] = not value
 		optionUpdated(option.key)
-		playSound(sounds.move, 0x4040)
+		if menu.options ~= funnyOptions then
+			playSound(sounds.move, 0x4040)
+		end
 	elseif option.type == optionType.int then
 		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
 		if (value - inc < option.min) then inc = value - option.min end
@@ -5189,7 +5287,9 @@ function menuRight()
 	if option.type == optionType.bool then
 		options[option.key] = not value
 		optionUpdated(option.key)
-		playSound(sounds.move, 0x4040)
+		if menu.options ~= funnyOptions then
+			playSound(sounds.move, 0x4040)
+		end
 	elseif option.type == optionType.int then
 		local inc = (option.inc and heldTable(selectInputs, 1)) and option.inc or 1
 		if (value + inc > option.max) then inc = option.max - value end
@@ -5443,6 +5543,28 @@ function boxTransparencyUpdated()
 	colors.orangebox = band(colors.orangebox, 0xFFFFFF00) + alpha
 end
 
+function timestopUpdated()
+	if options.timestopMode then
+		writeByte(0x20314C2, 1) --p2 freeze
+		playSound(0x37C, 0x4040) --toki wo tomare
+	else
+		writeByte(0x20314C2, 0) --p2 unfreeze
+		playSound(0x37D, 0x4040)
+	end
+	writeHack("timestopToggle") --background toggle
+	system.timestopToggle = 1
+end
+
+function slowmodeUpdated()
+	if options.slowMode then
+		writeByte(0x2006190, 1)
+		playSound(0x415, 0x4040)
+	else
+		writeByte(0x2006190, 0)
+		playSound(0x406, 0x4040)
+	end
+end
+
 local optionUpdateFunctions = {
 	inputStyle = function()
 		clearInputHistory(p1)
@@ -5470,6 +5592,8 @@ local optionUpdateFunctions = {
 	romHack = updateHacks,
 	boxTransparency = boxTransparencyUpdated,
 	boingo = updateHacks,
+	timestopMode = timestopUpdated,
+	slowMode = slowmodeUpdated,
 }
 
 function optionUpdated(key)
@@ -5823,6 +5947,16 @@ function trialModeStart()
 
 	--remove scaling retention
 	--writeByte(0x2034E89, 0)
+
+	--Disable funny options
+	options.timestopMode = false
+	options.slowMode = false
+	writeByte(0x20314C2, 0)
+	writeByte(0x2006190, 0)
+	if readByte(0x2048DE2) == 1 then
+		writeHack("timestopToggle")
+		system.timestopToggle = 1
+	end
 
 	if not trial.enabled then
 		storeOptions()
@@ -6573,6 +6707,16 @@ function updateTrialPosition()
 		updated = true
 	end
 
+	--Clear subpixel y position and velocity
+	-- if p2.y == 0 then
+	-- 	writeDWord(0x20162E4, 0)
+	-- 	writeDWord(0x205C1B8, 0)
+	-- 	writeDWord(0x2031448, 0)
+	-- 	writeDWord(p2.memory2.y, 0)
+	-- 	writeDWord(p2.memory4.yVelocity, 0)
+	-- 	writeByte(0x2034E89, 0)
+	-- end
+
 	if updated then
 		trial.positionCounter = trial.positionCounter + 1
 		if trial.positionCounter == 15 then
@@ -6707,14 +6851,16 @@ function drawHud()
 		elseif options.guiStyle == 4 then
 			drawMeatyHud()
 		elseif options.guiStyle == 5 then
-			drawFrameData()
+			drawChargeHud()
 		elseif options.guiStyle == 6 then
-			drawTrialDebugHud()
+			drawFrameData()
 		elseif options.guiStyle == 7 then
-			drawAttackInfo()
+			drawTrialDebugHud()
 		elseif options.guiStyle == 8 then
-			drawActionFrameInfo()
+			drawAttackInfo()
 		elseif options.guiStyle == 9 then
+			drawActionFrameInfo()
+		elseif options.guiStyle == 10 then
 			drawProjectileFrameInfo()
 		end
 	end
@@ -7368,6 +7514,22 @@ function drawCharacterSpecific()
 			if dir ~= 0 then word = word..hexToAnime[dir] end
 		end
 		gui.text(56, 207, word)
+	end
+end
+
+function drawChargeHud()
+	for i = 1, #hud.chargeBars, 1 do
+		drawChargeBar(hud.chargeBars[i], 191 - (hud.chargeBars[i][4] / 2) * 3, 42 + (i - 1) * 28)
+	end
+end
+
+function drawChargeBar(info, x, y)
+	local count = info[3]
+	local length = info[4]
+	gui.text(x, y, info[1]..": "..info[2])
+	gui.box(x, y + 10, x + 2 + length * 3, y + 20, colors.wakeupBorder)
+	if count > 0 then
+		gui.box(x + 2, y + 12, x + count * 3, y + 18, colors.wakeupIndicator)
 	end
 end
 
