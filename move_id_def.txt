@@ -196,6 +196,74 @@ Devo
 Midler
 
 Dio
+0 5A
+1 5B
+2 5C
+3 2A
+4 2B
+5 2C
+6 j.A
+7 j.B
+8 j.C
+
+-Dash Normals
+52 66A
+53 66B
+54 66C
+63 663A
+64 663B
+65 663C
+
+-Stand Normals
+10 s.5A
+11 s.5B11
+12 s.5C
+13 s.2A
+14 s.2B
+15 s.2C
+30 s.5B -Chain
+31 s.5C -Chain
+32 s.2B -Chain
+33 s.2C -Chain
+27 s.j.A
+28 s.j.B
+29 s.j.C
+
+-Stand Dash Normals
+55 s.66A
+56 s.66B
+57 s.66C
+58 s.663A
+59 s.663B
+60 s.663C
+
+-Specials
+20 236X
+21 236X
+22 236X
+47 214A
+48 214B
+49 214C
+62 236S
+78 6CBA6
+
+
+-Stand Specials
+19 s.236X
+47 s.214A
+48 s.214B
+49 s.214C
+50 s.214X -Chain
+
+
+-Supers
+23 214AA
+24 214AA
+25 214AA
+61 214AA
+18 236AA
+91 s.236AA
+92 s.236AA
 
 Shadow Dio
 -Normals

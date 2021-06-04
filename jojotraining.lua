@@ -171,6 +171,12 @@ else
 end
 
 -------------------------------------------------
+-- Libraries 
+-------------------------------------------------
+
+require "gd"
+
+-------------------------------------------------
 -- Aliases
 -------------------------------------------------
 
@@ -335,7 +341,7 @@ local hudStyles = {
 	"Simple",
 	"Advanced",
 	"Wakeup Indicator",
-	"Charge Indicator",
+	"Motion/Charge Indicator",
 	"Frame Data",
 	"Trial Debug",
 	"Attack Info",
@@ -650,6 +656,7 @@ local hudOptions = {
 			"Simple",
 			"History",
 			"Frames",
+			"Icons",
 		}
 	},
 	{
@@ -1032,11 +1039,11 @@ local rootOptions = {
 		type = optionType.subMenu,
 		options = characterSpecificOptions
 	},
-	{
-		name = "Funny Settings",
-		type = optionType.subMenu,
-		options = funnyOptions
-	},
+	-- {
+	-- 	name = "Funny Settings",
+	-- 	type = optionType.subMenu,
+	-- 	options = funnyOptions
+	-- },
 	{
 		name = "Color Settings",
 		type = optionType.subMenu,
@@ -2386,6 +2393,8 @@ local flipFrames = createSet({
 	0x681DF9C, 0x681DFBC, 0x681DFDC, 0x681DFFC, 0x681E01C, --pol b dash 
 	0x690D8E4, 0x690D904, 0x690D924, 0x690D944, --pol s f dash
 	0x690DB04, 0x690DB24, 0x690DB44, 0x690DB64, --pol s b dash
+	0x690D8E4, 0x690D9E4, 0x690DA04, 0x690DA24, 0x690DA44, 0x690DA64, --pol r f dash
+	0x690DB04, 0x690DC04, 0x690DC24, 0x690DC44, 0x690DC64, --pol r b dash
 	--0x68406F4, 0x6840714, --allessi 5A
 	0x6849BD8, 0x6849BF8, 0x6849C18, 0x6849C38, 0x6849C58, --chaka f dash
 	0x6849CD8, 0x6849CF8, 0x6849D18, 0x6849D38, 0x6849D58,--chaka b dash
@@ -2434,6 +2443,16 @@ local blockActiveFrame = {
 	[0x698E304] = 4,
 }
 
+local icons = {}
+
+local hexToLetter = {
+	[0x10] = "A",
+	[0x20] = "B",
+	[0x40] = "C",
+	[0x80] = "S",
+	[0x100] = "X",
+	[0x200] = "AA"
+}
 
 -------------------------------------------------
 -- json.lua 
@@ -2971,6 +2990,20 @@ function readRomhack()
 	romHacks.txt = table
 end
 
+function readIconsImage()
+	local inputIcons = gd.createFromPng("jojo_icons.png")
+	local transparent = gd.createTrueColor(12, 10)
+	transparent:alphaBlending(false)
+	local transparentColor = transparent:colorAllocateAlpha(0, 0, 0, 127)
+	transparent:fill(0, 0, transparentColor)
+	local transparentString = transparent:gdStr()
+	for i = 1, 13, 1 do
+		local icon = gd.createFromGdStr(transparentString)
+		icon:copy(inputIcons, 0, 0, 0, (i - 1) * 10, 12, 10)
+		icons[i] = icon:gdStr()
+	end
+end
+
 -------------------------------------------------
 -- Romhacks
 -------------------------------------------------
@@ -3198,6 +3231,9 @@ function updateInput()
 	elseif options.inputStyle == 3 then
 		updateFrameHistory(p1)
 		updateFrameHistory(p2)
+	elseif options.inputStyle == 4 then
+		updateSimpleHistory(p1)
+		updateSimpleHistory(p2)
 	end
 end
 
@@ -4403,42 +4439,80 @@ end
 function updateChargeBars()
 	local char = p1.character
 	hud.chargeBars = {}
-	if char == 3 then --pol
+	if char == 0 then --jotaro
+		updateMotion("The World", p1.stand == 0 and 0x2034B84 or 0x20353C4, { 0x8, 0x20, 0x10, 0x8, 0x80 }, 1)
+	elseif char == 1 then --kakyoin
+		updateMotion("Punishment Time", 0x20353BA, { 0x10, 0x10, 0x8, 0x20, 0x40 }, 1)
+	elseif char == 2 then -- avdol
+		updateMotion("Flame Sensor", p1.stand == 0 and 0x2034B70 or 0x20353A6, { 0x2, 0x6, 0x4, 0x100 }, 1)
+		updateMotion("Hell Fire", p1.stand == 0 and 0x2034B7A or 0x20353B0, { 0x8, 0x2, 0x6, 0x100 }, 2)
+	elseif char == 3 then --pol
 		updateChargeBar("Ray Dart",  p1.stand == 0 and 0x2034B7A or 0x203537E, 48, 1)
 		updateChargeBar("Shooting Star", p1.stand == 0 and 0x2034B70 or 0x2035392, 48, 2)
+	elseif char == 4 then --oldseph
+		updateSpd("Energy Tempest", p1.stand == 0 and 0x2034B66 or 0x20353A6, false, 1)
+		updateSpd("Super Hamon Overdrive!", p1.stand == 0 and 0x2034B70 or 0x20353BA, true, 2)
 	elseif char == 5 then --iggy
 		updateChargeBar("Sand Crush", 0x2035388, 28, 1)
 		updateChargeBar("Sand Uprising", 0x20353B0, 28, 2)
+		updateMotion("Sand Storm", p1.stand == 0 and 0x2034B52 or 0x20353BA, { 0x10, 0x10, 0x8, 0x20, 0x40 }, 3)
 	elseif char == 6 then --alessi
 		local state = readByte(0x203537E)
 		local timer = readByte(0x203537F)
 		if state == 1 then
-			hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 1", 30 - timer, 30 }
+			hud.chargeBars[1] = { 2, "Shadow Axe", "Charging lvl 1", 30 - timer, 30 }
 		elseif state == 2 then
 			if timer < 50 then
-				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 2", timer, 50 }
+				hud.chargeBars[1] = { 2, "Shadow Axe", "Charging lvl 2", timer, 50 }
 			elseif timer < 80 then
-				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 3", timer - 50, 30 }
+				hud.chargeBars[1] = { 2, "Shadow Axe", "Charging lvl 3", timer - 50, 30 }
 			elseif timer < 140 then
-				hud.chargeBars[1] = { "Shadow Axe", "Charging lvl 4", timer - 80, 60 }
+				hud.chargeBars[1] = { 2, "Shadow Axe", "Charging lvl 4", timer - 80, 60 }
 			else
-				hud.chargeBars[1] = { "Shadow Axe", "Max charge", 60, 60 }
+				hud.chargeBars[1] = { 2, "Shadow Axe", "Max charge", 60, 60 }
 			end
 		else
-			hud.chargeBars[1] = { "Shadow Axe", "", 0, 30 }
+			hud.chargeBars[1] = { 2, "Shadow Axe", "", 0, 30 }
 		end
+	elseif char == 11 then --dio
+		updateMotion("Stingy Ripper Space Eyes", 0x2034B3E, { 0x8, 0x40, 0x20, 0x10, 0x8 }, 1)
+		updateMotion("Bloody Summoning", p1.stand == 0 and 0x2034B98 or 0x20353D8, { 0x20, 0x10, 0x8, 0x10, 0x40 }, 2)
+		updateMotion("The World", p1.stand == 0 and 0x2034B7A or 0x2035388, { 0x8, 0x40, 0x10, 0x8, 0x80 }, 3)
+	elseif char == 14 then --sdio
+		updateMotion("The World", 0x2034B8E, { 0x10, 0x8, 0x40, 0x4, 0x80 }, 1)
 	elseif char == 17 then --ice
 		updateChargeBar("Blow Away", 0x20353B0, 48, 1)
+	elseif char == 18 then --nkak
+		updateMotion("Raging Demon", 0x20353BA, { 0x10, 0x10, 0x8, 0x20, 0x40 }, 1)
 	elseif char == 20 then --petshop
 		local a = readWord(0x2034C74)
 		local b = readWord(0x2034C76)
 		local c = readWord(0x2034C78)
-		hud.chargeBars[1] = { "Icicle Break A", a == 0 and "" or a == 90 and "Charged" or "Charging", a, 90 }
-		hud.chargeBars[2] = { "Icicle Break B", b == 0 and "" or b == 90 and "Charged" or "Charging", b, 90 }
-		hud.chargeBars[3] = { "Icicle Break C", c == 0 and "" or c == 90 and "Charged" or "Charging", c, 90 }
+		hud.chargeBars[1] = { 2, "Icicle Break A", a == 0 and "" or a == 90 and "Charged" or "Charging", a, 90 }
+		hud.chargeBars[2] = { 2, "Icicle Break B", b == 0 and "" or b == 90 and "Charged" or "Charging", b, 90 }
+		hud.chargeBars[3] = { 2, "Icicle Break C", c == 0 and "" or c == 90 and "Charged" or "Charging", c, 90 }
+		updateMotion("Terminal Lock-On", 0x2034B70, { 0x10, 0x10, 0x8, 0x20, 0x40 }, 4)
+	elseif char == 23 then --hoingo
+		updateSpd("Absolute Premonition", 0x2034B5C, false, 1)
+	elseif char == 24 then --rubber
+		updateSpd("Coconut Backbreaker", 0x2034B84, false, 1)
 	elseif char == 25 then --khan
 		updateChargeBar("Demon Slayer Slash", 0x2034B3E, 28, 1)
 	end
+end
+
+function updateMotion(name, address, motion, index)
+	local state = readByte(address)
+	local count = readByte(address + 3)
+	local remaining = readByte(address + 4)
+	local length = #motion
+	local stage
+	if state == 0 then
+		stage = count == #motion + 3 and length or 0
+	else
+		stage = length - remaining - 1
+	end
+	hud.chargeBars[index] = { 1, name, motion, stage }
 end
 
 function updateChargeBar(name, address, length, index)
@@ -4446,14 +4520,62 @@ function updateChargeBar(name, address, length, index)
 	local timer = readByte(address + 1)
 	if state == 1 then
 		local chargeState = timer == 0 and "Charged" or "Charging"
-		hud.chargeBars[index] = { name, chargeState, length - timer, length }
+		hud.chargeBars[index] = { 2, name, chargeState, length - timer, length }
 	elseif state == 2 then
-		hud.chargeBars[index] = { name, "Release", length - timer, length }
+		hud.chargeBars[index] = { 2, name, "Release", length - timer, length }
 	elseif state == 3 then
-		hud.chargeBars[index] = { name, "Buffer", length - timer, length }
+		hud.chargeBars[index] = { 2, name, "Buffer", length - timer, length }
 	else
-		hud.chargeBars[index] = { name, "", 0, length }
+		hud.chargeBars[index] = { 2, name, "", 0, length }
 	end
+end
+
+function updateSpd(name, address, double, index)
+	local state = readByte(address)
+	local timer = readByte(address + 1)
+	local count = readByte(address + 2)
+	local direction = readByte(address + 3)
+	local rotation = readByte(address + 4)
+	local remaining = 3 - readByte(address + 6)
+	local motion
+	local d = 4 - direction
+	if double then
+		motion = { 0x4, 0x2, 0x8, 0x1, 0x4, 0x2, 0x8, 0x1}
+		if state == 1 then
+			if count == 1 then
+				remaining = 3
+			elseif count == 2 then
+				remaining = 0
+			end
+		elseif count == 1 then
+			remaining = remaining + 4
+		end
+		if (rotation == 1 and d + remaining > 4 and d + remaining < 9) or
+			(rotation == 0xFF and d - remaining < 1 and d - remaining > -4) then
+			d = d + 4
+		end
+	else
+		motion = { 0x4, 0x2, 0x8, 0x1 }
+		if state == 1 then remaining = 0 end
+	end
+	local length = #motion
+	local directions = {}
+	for i = 1, length, 1 do
+		directions[i] = false
+	end
+	if state > 0 then
+		for i = 0, remaining, 1 do
+			directions[d] = true
+			if rotation == 1 then
+				d = d + 1
+				if d > length then d = 1 end
+			else
+				d = d - 1
+				if d < 1 then d = length end
+			end
+		end
+	end
+	hud.chargeBars[index] = { 3, name, motion, directions, state == 3 }
 end
 
 -------------------------------------------------
@@ -6829,6 +6951,8 @@ function drawHud()
 		drawHistoryInputs()
 	elseif options.inputStyle == 3 then
 		drawFrameInputs()
+	elseif options.inputStyle == 4 then
+		drawIconInputs()
 	end
 	if trial.enabled then
 		drawTrialGui()
@@ -6911,6 +7035,24 @@ function drawHistoryInputs()
 	drawSimpleHud()
 end
 
+function drawIconInputs()
+	if options.p1Gui then -- p1
+		local historyLength = (options.guiStyle == 3 and 13 or 11)
+		for i = 1, historyLength, 1 do
+			local hex = p1.inputHistoryTable[i]
+			drawIcon(hex, 13, 200 - (11 * i))
+		end
+	end
+	if options.p2Gui then  -- p2
+		local historyLength = (options.guiStyle == 3 and 13 or 11)
+		for i = 1, historyLength, 1 do
+			local hex = p2.inputHistoryTable[i]
+			drawIcon(hex, 324, 200 - (11 * i))
+		end
+	end
+	drawSimpleHud()
+end
+
 function drawFrameInputs()
 	if options.p1Gui then -- p1
 		for i = 1, 13, 1 do
@@ -6969,6 +7111,27 @@ function drawInput(hex, x, y) -- Draws the dpad and buttons
 	if band(hex, 0x08) == 0x08 then --Right
 		gui.box(x + 6, y + 1, x + 8, y + 2, colors.dpadActive)
 	end 
+end
+
+function drawIcon(hex, x, y)
+	local buttonOffset = 0
+	local direction = hexToAnime[band(hex, 0xF)] or 5
+	gui.gdoverlay(x, y, icons[direction])
+	if band(hex, 0x10) == 0x10 then --A
+		gui.gdoverlay(x + 12, y, icons[10])
+		buttonOffset = buttonOffset + 12
+	end
+	if band(hex, 0x20) == 0x20 then --B
+		gui.gdoverlay(x + 12 + buttonOffset, y, icons[11])
+		buttonOffset = buttonOffset + 12
+	end
+	if band(hex, 0x40) == 0x40 then --C
+		gui.gdoverlay(x + 12 + buttonOffset, y, icons[12])
+		buttonOffset = buttonOffset + 12
+	end
+	if band(hex, 0x80) == 0x80 then --S
+		gui.gdoverlay(x + 12 + buttonOffset, y, icons[13])
+	end
 end
 
 function drawFixedInput(hex, x, y)
@@ -7519,17 +7682,79 @@ end
 
 function drawChargeHud()
 	for i = 1, #hud.chargeBars, 1 do
-		drawChargeBar(hud.chargeBars[i], 191 - (hud.chargeBars[i][4] / 2) * 3, 42 + (i - 1) * 28)
+		local type = hud.chargeBars[i][1]
+		if type == 1 then --motion
+			drawMotion(hud.chargeBars[i], 191 - (#hud.chargeBars[i][3] * 11 + #hud.chargeBars[i][2] * 4) / 2, 42 + (i - 1) * 28)
+		elseif type == 2 then --charge
+			drawChargeBar(hud.chargeBars[i], 191 - (hud.chargeBars[i][5] / 2) * 3, 42 + (i - 1) * 28)
+		elseif type == 3 then --spd
+			drawSpd(hud.chargeBars[i], 191 - (#hud.chargeBars[i][3] * 11 + #hud.chargeBars[i][2] * 4) / 2, 42 + (i - 1) * 28)
+		end
+	end
+end
+
+function drawMotion(info, x, y)
+	local hexes = info[3]
+	local count = info[4]
+	local length = #hexes
+	guiTextAlignRight(191, y, info[2]..":")
+	for i = 1, #hexes, 1 do
+		local motionX = 185 + i * 11
+		local motionY = y + 2
+		if hexes[i] < 0x10 then
+			local color = count == length and options.successColor or count < i and colors.dpadActive or options.comboCounterActiveColor
+			drawDpad(motionX, motionY, 3)
+			if band(hexes[i], 0x01) == 0x01 then --Up
+				gui.box(motionX + 4, motionY, motionX + 5, motionY - 2, color)
+			end
+			if band(hexes[i], 0x02) == 0x02 then --Down
+				gui.box(motionX + 4, motionY + 3, motionX + 5, motionY + 5, color)
+			end
+			if band(hexes[i], 0x04) == 0x04 then --Left
+				gui.box(motionX + 1, motionY + 1, motionX + 3, motionY + 2, color)
+			end
+			if band(hexes[i], 0x08) == 0x08 then --Right
+				gui.box(motionX + 6, motionY + 1, motionX + 8, motionY + 2, color)
+			end
+		else
+			local color = count == length and options.successColor or count < i and colors.dpadBorder or options.comboCounterActiveColor
+			gui.text(motionX + 4, motionY - 2, hexToLetter[hexes[i]], color)
+		end
 	end
 end
 
 function drawChargeBar(info, x, y)
-	local count = info[3]
-	local length = info[4]
-	gui.text(x, y, info[1]..": "..info[2])
+	local count = info[4]
+	local length = info[5]
+	gui.text(x, y, info[2]..": "..info[3])
 	gui.box(x, y + 10, x + 2 + length * 3, y + 20, colors.wakeupBorder)
 	if count > 0 then
 		gui.box(x + 2, y + 12, x + count * 3, y + 18, colors.wakeupIndicator)
+	end
+end
+
+function drawSpd(info, x, y)
+	local hexes = info[3]
+	local completion = info[4]
+	local complete = info[5]
+	guiTextAlignRight(191, y, info[2]..":")
+	for i = 1, #hexes, 1 do
+		local color = complete and options.successColor or completion[i] and options.comboCounterActiveColor or colors.dpadActive
+		local motionX = 185 + i * 11
+		local motionY = y + 2
+		drawDpad(motionX, motionY, 3)
+		if band(hexes[i], 0x01) == 0x01 then --Up
+			gui.box(motionX + 4, motionY, motionX + 5, motionY - 2, color)
+		end
+		if band(hexes[i], 0x02) == 0x02 then --Down
+			gui.box(motionX + 4, motionY + 3, motionX + 5, motionY + 5, color)
+		end
+		if band(hexes[i], 0x04) == 0x04 then --Left
+			gui.box(motionX + 1, motionY + 1, motionX + 3, motionY + 2, color)
+		end
+		if band(hexes[i], 0x08) == 0x08 then --Right
+			gui.box(motionX + 6, motionY + 1, motionX + 8, motionY + 2, color)
+		end
 	end
 end
 
@@ -7690,6 +7915,13 @@ input.registerhotkey(4, function()
 	gui.clearuncommitted()
 end)
 
+input.registerhotkey(5, function()
+	local testImg = gui.gdscreenshot()
+	local gdImg = gd.createFromGdStr(testImg)
+	local filename = os.date():gsub("[ /\\:*?\"<>|]", "_")..".png"
+	gdImg:png(filename)
+end)
+
 function replayOptions() 
 	options.guiStyle = 2
 	options.p1Gui = true
@@ -7782,6 +8014,7 @@ emu.registerstart(function()
 	end
 	readRomhack()
 	updateHacks()
+	readIconsImage()
 end)
 
 gui.register(function()
