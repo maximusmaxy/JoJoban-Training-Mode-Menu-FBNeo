@@ -7870,10 +7870,19 @@ end
 
 function drawbox2(i, offset, x, y, flip, color, data, layer)
 	if i == 0 then return end
-	local boxx1 = x + readWordSigned(offset + i * 0x08 + 0x02) * flip
-	local boxxrad = boxx1 + readWord(offset + i * 0x08 + 0x04) * flip
-	local boxy1 = y - readWordSigned(offset + i * 0x08 + 0x06)
-	local boxyrad = boxy1 - readWord(offset + i * 0x08 + 0x08)
+	
+	local scale = readWordSigned(0x0205DDC2) -- scaling factor for sprites and stuff
+	scale = 0x40/(scale or 0x40)
+	
+	if (scale~=1) then
+		x = x*scale+200-(200*scale) -- 0.8 is the final scaling factor
+		y = y*scale+250-(250*scale) -- needs these offsets to scale slower so the hitboxes don't jump
+	end
+	
+	local boxx1 = x + readWordSigned(offset + i * 0x08 + 0x02) * scale * flip
+	local boxxrad = boxx1 + readWord(offset + i * 0x08 + 0x04) * scale * flip
+	local boxy1 = y - readWordSigned(offset + i * 0x08 + 0x06) * scale 
+	local boxyrad = boxy1 - readWord(offset + i * 0x08 + 0x08) * scale 
 	table.insert(data[layer], { boxx1, boxy1, boxxrad, boxyrad, color })
 end
 
