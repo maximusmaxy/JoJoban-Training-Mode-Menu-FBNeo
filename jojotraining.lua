@@ -2866,7 +2866,7 @@ end
 function readTrials()
 	local success = readTrial(options.trialsFilename)
 	if success then return end
-	success = readTrial("sample_trials.json")
+	success = readTrial("beginner_trials_1.1.json")
 	if success then return end
 	local jsons = getTrialsJsons()
 	if #jsons == 0 then return end
