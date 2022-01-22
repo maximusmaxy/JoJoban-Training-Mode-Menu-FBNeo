@@ -100,7 +100,7 @@ local options = {
 	inputHistoryB = 0x0000FFFF, -- Colour of the letter B in the input history
 	inputHistoryC = 0xFF0000FF, -- Colour of the letter C in the input history
 	inputHistoryS = 0xFFFF00FF, -- Colour of the letter S in the input history
-	trialsFilename = "sample_trials.json",
+	trialsFilename = "beginner_trials_1.1.json",
 	trialSuccess = {},
 	p1Recording = {},
 	p2Recording = {},
@@ -655,8 +655,8 @@ local hudOptions = {
 		list = {
 			"Simple",
 			"History",
-			"Frames",
-			"Icons",
+			"Frames"
+			--"Icons",
 		}
 	},
 	{
@@ -725,24 +725,28 @@ local colorOptions = {
 		key = "inputHistoryA",
 		type = optionType.color,
 		default = 0x00FF00FF
+		--icon = 10,
 	},
 	{
 		name = "B Input Color",
 		key = "inputHistoryB",
 		type = optionType.color,
 		default = 0x0000FFFF
+		--icon = 11,
 	},
 	{
 		name = "C Input Color",
 		key = "inputHistoryC",
 		type = optionType.color,
 		default = 0xFF0000FF
+		--icon = 12
 	},
 	{
 		name = "S Input Color",
 		key = "inputHistoryS",
 		type = optionType.color,
 		default = 0xFFFF00FF
+		--icon = 13
 	},
 	{
 		name = "Success Color",
@@ -2443,7 +2447,7 @@ local blockActiveFrame = {
 	[0x698E304] = 4,
 }
 
-local icons = {}
+--local icons = {}
 
 local hexToLetter = {
 	[0x10] = "A",
@@ -2990,19 +2994,58 @@ function readRomhack()
 	romHacks.txt = table
 end
 
-function readIconsImage()
-	local inputIcons = gd.createFromPng("jojo_icons.png")
-	local transparent = gd.createTrueColor(12, 10)
-	transparent:alphaBlending(false)
-	local transparentColor = transparent:colorAllocateAlpha(0, 0, 0, 127)
-	transparent:fill(0, 0, transparentColor)
-	local transparentString = transparent:gdStr()
-	for i = 1, 13, 1 do
-		local icon = gd.createFromGdStr(transparentString)
-		icon:copy(inputIcons, 0, 0, 0, (i - 1) * 10, 12, 10)
-		icons[i] = icon:gdStr()
-	end
-end
+-- function readIconsImage()
+-- 	local inputIcons = gd.createFromPng("jojo_icons.png")
+-- 	local transparent = gd.createTrueColor(12, 10)
+-- 	transparent:alphaBlending(false)
+-- 	local transparentColor = transparent:colorAllocateAlpha(0, 0, 0, 127)
+-- 	transparent:fill(0, 0, transparentColor)
+-- 	local transparentString = transparent:gdStr()
+-- 	for i = 1, 13, 1 do
+-- 		local icon = gd.createFromGdStr(transparentString)
+-- 		icon:copy(inputIcons, 0, 0, 0, (i - 1) * 10, 12, 10)
+-- 		local green = icon:colorExact(0, 177, 64)
+-- 		if green then
+-- 			local color
+-- 			if i == 10 then
+-- 				color = options.inputHistoryA
+-- 			elseif i == 11 then
+-- 				color = options.inputHistoryB
+-- 			elseif i == 12 then
+-- 				color = options.inputHistoryC
+-- 			elseif i == 13 then
+-- 				color = options.inputHistoryS
+-- 			else
+-- 				color = 0xFFFFFFFF
+-- 			end
+-- 			replaceIconColor(icon, green, color)
+-- 		end
+-- 		icons[i] = icon:gdStr()
+-- 	end
+-- end
+
+-- function replaceIconColor(icon, previous, new)
+-- 	local newColor = icon:colorAllocate(rShift(new, 24), band(rShift(new, 16), 0xFF), band(rShift(new, 8), 0xFF))
+-- 	for x = 0, icon:sizeX(), 1 do
+-- 		for y = 0, icon:sizeY(), 1 do
+-- 			local c = icon:getPixel(x, y)
+-- 			if c == previous then
+-- 				icon:setPixel(x, y, newColor)
+-- 			end
+-- 		end
+-- 	end
+-- end
+
+-- function updateIconColor(index, previous, new)
+-- 	print(index, previous, new)
+-- 	local icon = gd.createFromGdStr(icons[index])
+-- 	local previousColor = icon:colorExact(rShift(previous, 24), band(rShift(previous, 16), 0xFF), band(rShift(previous, 8), 0xFF))
+-- 	if previousColor then 
+-- 		print(previousColor)
+-- 		replaceIconColor(icon, previousColor, new)
+-- 	end
+-- 	icons[index] = icon:gdStr()
+-- end
 
 -------------------------------------------------
 -- Romhacks
@@ -5238,6 +5281,7 @@ function menuSelect()
 		menu.options = colorSliderOptions
 		menu.title = "Color Picker"
 		menu.default = option.default
+		--menu.icon = option.icon
 		playSound(sounds.select, 0x4040)
 	elseif option.type == optionType.trialCharacters then
 		if #trials == 0 then
@@ -5369,7 +5413,11 @@ function menuLeft()
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
 		if (value - inc < 0) then inc = value end
+		--local previous = options[menu.color]
 		options[menu.color] = options[menu.color] - lShift(inc, option.shift)
+		--if menu.icon then
+		--	updateIconColor(menu.icon, previous, options[menu.color])
+		--end
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
 		local index = tableIndex(option.list, value)
@@ -5433,7 +5481,11 @@ function menuRight()
 		local inc = (heldTable(selectInputs, 1) and 10 or 1)
 		local value = getMenuColor(option.mask, option.shift)
 		if (value + inc > 255) then inc = 255 - value end
+		--local previous = options[menu.color]
 		options[menu.color] = options[menu.color] + lShift(inc, option.shift)
+		--if menu.icon then
+		--	updateIconColor(menu.icon, previous, options[menu.color])
+		--end
 		playSound(sounds.move, 0x4040)
 	elseif option.type == optionType.key then
 		local index = tableIndex(option.list, value)
@@ -6951,8 +7003,8 @@ function drawHud()
 		drawHistoryInputs()
 	elseif options.inputStyle == 3 then
 		drawFrameInputs()
-	elseif options.inputStyle == 4 then
-		drawIconInputs()
+	-- elseif options.inputStyle == 4 then
+	-- 	drawIconInputs()
 	end
 	if trial.enabled then
 		drawTrialGui()
@@ -8023,7 +8075,7 @@ emu.registerstart(function()
 	end
 	readRomhack()
 	updateHacks()
-	readIconsImage()
+	--readIconsImage()
 end)
 
 gui.register(function()
